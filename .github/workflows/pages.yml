@@ -1,5 +1,5 @@
 name: pages
-# The wiki's content is its build, so every run builds the site, docs-only changes included.
+# Builds the site and validates it; main deploys to Pages.
 on:
   push:
     branches: [main]
