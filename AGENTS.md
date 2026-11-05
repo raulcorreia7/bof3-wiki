@@ -29,6 +29,16 @@ the confidence levels, the callouts and the rule that each fact lives on one pag
   `npm run check` and `npm run build`, plus `npm run check:diagrams` after a diagram change.
 - Keep game data, disc images and extracted assets out of the repository.
 
+## Index
+
+- Skills: none; this guide is the entry point.
+- Tools: `npm run check` ([tools/check_pages.py](tools/check_pages.py)) and `npm run check:diagrams`
+  ([tools/check_diagrams.mjs](tools/check_diagrams.mjs)).
+- Docs: [CONTRIBUTING.md](CONTRIBUTING.md) (table above).
+- CI: [.github/workflows/pages.yml](.github/workflows/pages.yml) builds and publishes the site.
+- Published: [site](https://raulcorreia7.github.io/bof3-wiki/). For a model: [llms.txt](https://raulcorreia7.github.io/bof3-wiki/llms.txt) (index), [llms-small.txt](https://raulcorreia7.github.io/bof3-wiki/llms-small.txt) (compact, for a small context), [llms-full.txt](https://raulcorreia7.github.io/bof3-wiki/llms-full.txt) (everything).
+- Project standard: [docs/standard.md](https://github.com/raulcorreia7/bof3/blob/main/docs/standard.md).
+
 ## Writing
 
 Docs, comments, commit messages and pull requests follow one standard.
