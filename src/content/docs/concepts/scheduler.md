@@ -59,21 +59,21 @@ Because the walk goes from slot 0 to slot 3, a callback in slot 0 that registers
 
 The table lists the callback that each slot runs and the code that registers it.
 
-| Slot | Callback                                                             | Registered by                                                                                                             |
-| ---: | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-|    0 | `SYS_StartFrontend (exe/slus_004_22@0x8014EA80)`                     | `SYS_Main`, at boot and on a soft reset; `CallbackReplace` from game over, from `scena15` and from `scena17`              |
-|    0 | `Game_RunCampMenuLoop (emi/etc/game/00@0x80196F78)`, the start menu  | `Game_LeaveTitle (emi/etc/game/01@0x801D1000)`                                                                            |
-|    0 | `Game_RunMainLoop (emi/etc/game/00@0x80197068)`, the game proper     | `Game_StartSelectedGame (emi/etc/game/01@0x801D0E54)`; `CallbackReplace` from `Camp_EnterMainLoop` and `Start_RunNewGame` |
-|    1 | `SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)`, then the title     | `SYS_StartFrontend`                                                                                                       |
-|    2 | `UI_DispatchLocalMode (exe/slus_004_22@0x8014ED6C)`, a screen effect | `UI_SetMode (exe/slus_004_22@0x8014ECAC)`, `UI_SetModeWait (exe/slus_004_22@0x8014ECEC)`                                  |
-|    3 | none                                                                 | no `CallbackRegister` call anywhere in the exported assembly names slot 3                                                 |
+| Slot | Callback                                                             | Registered by                                                                                                         |
+| ---: | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+|    0 | `SYS_StartFrontend (exe/slus_004_22@0x8014EA80)`                     | `SYS_Main`, at boot and on a soft reset; `CallbackReplace` from game over, from `scena15` and from `scena17`          |
+|    0 | `Game_UpdateCampMenu (emi/etc/game/00@0x80196F78)`, the start menu   | `Game_LeaveTitle (emi/etc/game/01@0x801D1000)`                                                                        |
+|    0 | `Game_UpdateMain (emi/etc/game/00@0x80197068)`, the game proper      | `Game_StartSelectedGame (emi/etc/game/01@0x801D0E54)`; `CallbackReplace` from `Menu_ExitCamp` and `Menu_StartNewGame` |
+|    1 | `SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)`, then the title     | `SYS_StartFrontend`                                                                                                   |
+|    2 | `UI_DispatchLocalMode (exe/slus_004_22@0x8014ED6C)`, a screen effect | `UI_SetMode (exe/slus_004_22@0x8014ECAC)`, `UI_SetModeWait (exe/slus_004_22@0x8014ECEC)`                              |
+|    3 | none                                                                 | no `CallbackRegister` call anywhere in the exported assembly names slot 3                                             |
 
-`SYS_EnterFrontend` calls `Game_RunTitle (emi/etc/game/01@0x801D0C04)`, which never returns, so the title runs on slot 1's thread. `Game_StartSelectedGame` and `Game_LeaveTitle` run inside that thread. They register slot 0 and the title thread continues until `Game_LeaveTitle` calls `CallbackExit`. The title reads slot 0's state to know that the game program has ended and the title may restart.
+`SYS_EnterFrontend` calls `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`, which never returns, so the title runs on slot 1's thread. `Game_StartSelectedGame` and `Game_LeaveTitle` run inside that thread. They register slot 0 and the title thread continues until `Game_LeaveTitle` calls `CallbackExit`. The title reads slot 0's state to know that the game program has ended and the title may restart.
 
 Only the executable and the title overlay `emi/etc/game/01` call `CallbackRegister`. Every other overlay changes a slot through `CallbackReplace`. The sites in the exported assembly are:
 
-- `Camp_EnterMainLoop (emi/etc/start/08@0x801E62A8)` and `Start_RunNewGame (emi/etc/start/08@0x801E2584)` install `Game_RunMainLoop`.
-- `Battle_RunGameOver (emi/battle/batl_ovr/00@0x801EF0A8)` installs `SYS_StartFrontend`. So do `func_801FC1D8` in `emi/scenario/scena15/00`, and `func_801F967C` and `func_801F87D0` in `emi/scenario/scena17/00`.
+- `Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` and `Menu_StartNewGame (emi/etc/start/08@0x801E2584)` install `Game_UpdateMain`.
+- `Battle_UpdateGameOver (emi/battle/batl_ovr/00@0x801EF0A8)` installs `SYS_StartFrontend`. So do `func_801FC1D8` in `emi/scenario/scena15/00`, and `func_801F967C` and `func_801F87D0` in `emi/scenario/scena17/00`.
 - `func_801F8844` in `scena17` installs `func_801F9490`.
 
 These sites run on the slot that is current, which is slot 0 for the main loop. `[inferred]`
@@ -84,13 +84,13 @@ Almost every mode loop has the same shape: a callback loops, reads a state byte,
 
 | Loop                                                    | State byte                                      | Handler table                                      | Entries |
 | ------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------- | ------: |
-| `Game_RunTitle (emi/etc/game/01@0x801D0C04)`            | `g_UiTitleState (exe/slus_004_22@0x80143C10)`   | `s_TitleStates`, static in `emi/etc/game/01`       |       8 |
-| `Game_RunMainLoop (emi/etc/game/00@0x80197068)`         | `g_GameEntryState (exe/slus_004_22@0x80143B90)` | `g_GameStates (emi/etc/game/00@0x801C7B14)`        |      12 |
-| `Game_RunCampMenuLoop (emi/etc/game/00@0x80196F78)`     | `g_GameEntryState`                              | `g_GameCampMenuLoad (emi/etc/game/00@0x801C7B08)`  |       3 |
+| `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`         | `g_UiTitleState (exe/slus_004_22@0x80143C10)`   | `s_TitleStates`, static in `emi/etc/game/01`       |       8 |
+| `Game_UpdateMain (emi/etc/game/00@0x80197068)`          | `g_GameEntryState (exe/slus_004_22@0x80143B90)` | `g_GameStates (emi/etc/game/00@0x801C7B14)`        |      12 |
+| `Game_UpdateCampMenu (emi/etc/game/00@0x80196F78)`      | `g_GameEntryState`                              | `g_GameCampMenuLoad (emi/etc/game/00@0x801C7B08)`  |       3 |
 | `UI_DispatchLocalMode`                                  | `g_UiLocalMode`                                 | `g_UiLocalModeFuncs (exe/slus_004_22@0x801499AC)`  |      21 |
 | `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)` | `g_BattleMode (exe/slus_004_22@0x801462E0)`     | `g_BattlePhases (emi/battle/battle/03@0x801D0C04)` |       6 |
 
-The two game loops differ in order. `Game_RunMainLoop` calls the handler, then `func_80198CAC` (the play clock and timers), then `CallbackWait(1)`. `Game_RunCampMenuLoop` waits first, then calls the handler, then `Menu_RunPanelTasks`. Both zero `g_GameEntryState` and `g_GameEntrySubstate` when they start, and call `Menu_ResetPanelTasks`. The meaning of each entry state is in [game phases](../../systems/phases/).
+The two game loops differ in order. `Game_UpdateMain` calls the handler, then `func_80198CAC` (the play clock and timers), then `CallbackWait(1)`. `Game_UpdateCampMenu` waits first, then calls the handler, then `Menu_UpdatePanelTasks`. Both zero `g_GameEntryState` and `g_GameEntrySubstate` when they start, and call `Menu_ResetPanelTasks`. The meaning of each entry state is in [game phases](../../systems/phases/).
 
 The overlays use a second form of the same idiom. The handler table is indexed by a byte of a work record instead of by a global byte. The pointer cell `g_SpadWork (exe/slus_004_22@0x1F800044)` in the scratchpad points at the record that the running handler steps. Its type depends on the overlay: a party battler in battle, an actor in the field, a band effect in a scenario. Handlers read its step bytes at offsets `+0x01`, `+0x02` and `+0x04`.
 
@@ -102,10 +102,10 @@ Handlers step fixed-size records that live in RAM tables. Each table has a free-
 | ------------------ | ------------------------------- | ------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `g_ActorSlots`     | `exe/slus_004_22@0x80143FC8`    | `ActorSlot[20]`     | 116 x 20       | `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)` takes the first slot with `flags_00 == 0`, else `0xFF`; `Actor_Free`, `Actor_ClearAll` |
 | `g_Actors`         | `exe/slus_004_22@0x80146888`    | `Actor[30]`         | 152 x 30       | `Actor_FindFree (exe/slus_004_22@0x8015CA48)` takes the first record whose first byte is 0, else `0xFF`                                  |
-| `g_MenuPanelTasks` | `exe/slus_004_22@0x80148330`    | `MenuPanelTask[22]` | 36 x 22        | `Menu_ArmPanelTask (exe/slus_004_22@0x80158DB8)`, `Menu_ResetPanelTasks`, `Menu_RunPanelTasks`                                           |
-| battlers           | [battle](../../systems/battle/) | -                   | per overlay    | `Battle_RunParty`, `Battle_RunEnemies` in `emi/battle/battle/03`                                                                         |
+| `g_MenuPanelTasks` | `exe/slus_004_22@0x80148330`    | `MenuPanelTask[22]` | 36 x 22        | `Menu_OpenPanelTask (exe/slus_004_22@0x80158DB8)`, `Menu_ResetPanelTasks`, `Menu_UpdatePanelTasks`                                       |
+| battlers           | [battle](../../systems/battle/) | -                   | per overlay    | `Battle_UpdateParty`, `Battle_UpdateEnemies` in `emi/battle/battle/03`                                                                   |
 
-A menu panel is a task, so at most 22 panels are live. `Menu_RunPanelTasks (exe/slus_004_22@0x80158C80)` makes one pass for each mode value from `g_MenuPanelMode` up to 2. It does nothing when the mode is 3 or more. In a pass it walks the 22 records. For each record whose first byte is nonzero and whose mode byte (offset `0x0F`) equals the pass, it calls the handler `g_MenuPanels[record[1]]`, one of nine. Panel contents and drawing are in [UI and text drawing](../../systems/ui/). Field actors are in [areas and the field](../../systems/areas/).
+A menu panel is a task, so at most 22 panels are live. `Menu_UpdatePanelTasks (exe/slus_004_22@0x80158C80)` makes one pass for each mode value from `g_MenuPanelMode` up to 2. It does nothing when the mode is 3 or more. In a pass it walks the 22 records. For each record whose first byte is nonzero and whose mode byte (offset `0x0F`) equals the pass, it calls the handler `g_MenuPanels[record[1]]`, one of nine. Panel contents and drawing are in [UI and text drawing](../../systems/ui/). Field actors are in [areas and the field](../../systems/areas/).
 
 ## Local UI modes
 
@@ -117,15 +117,15 @@ The effect table is a table of transitions and not of game phases. Phase code ca
 
 The table gives the fixed counts and where each comes from.
 
-| Limit          | Value                                             | Source                                       |
-| -------------- | ------------------------------------------------- | -------------------------------------------- |
-| Callback slots | 4                                                 | `CallbackInitThreads`, `CallbackStopAll`     |
-| Thread stack   | 512 bytes per slot, tops `0x801FF600..0x801FFC00` | `CallbackInitThreads`                        |
-| Title states   | 8                                                 | `s_TitleStates`                              |
-| UI local modes | 21                                                | `UI_DispatchLocalMode`                       |
-| Panel tasks    | 22 tasks, 9 handlers                              | `Menu_ResetPanelTasks`, `Menu_RunPanelTasks` |
-| Actor rows     | 30 rows of 152 bytes                              | `Actor_FindFree`                             |
-| Field slots    | 20 rows of 116 bytes                              | `Actor_FindFreeSlot`                         |
+| Limit          | Value                                             | Source                                          |
+| -------------- | ------------------------------------------------- | ----------------------------------------------- |
+| Callback slots | 4                                                 | `CallbackInitThreads`, `CallbackStopAll`        |
+| Thread stack   | 512 bytes per slot, tops `0x801FF600..0x801FFC00` | `CallbackInitThreads`                           |
+| Title states   | 8                                                 | `s_TitleStates`                                 |
+| UI local modes | 21                                                | `UI_DispatchLocalMode`                          |
+| Panel tasks    | 22 tasks, 9 handlers                              | `Menu_ResetPanelTasks`, `Menu_UpdatePanelTasks` |
+| Actor rows     | 30 rows of 152 bytes                              | `Actor_FindFree`                                |
+| Field slots    | 20 rows of 116 bytes                              | `Actor_FindFreeSlot`                            |
 
 ## Open questions
 

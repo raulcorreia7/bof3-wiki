@@ -52,7 +52,7 @@ The shared window also holds `batl_end` (id `0x142`) and `batl_ovr` (`0x143`), t
 
 The boss window is 210,944 bytes, from `0x800C1800` to the next window at `0x800F5000`. Battle code reaches a boss module through the callback table `D_801EB298` in `emi/battle/battle/03`: 63 rows, row 0 null, rows 1 to 62 pointing into `0x800C1804..0x800C1EB0`. The battle-effect modules have no static caller in the executable, so their entry path is `[unknown]`; the [open questions](../../appendix/open-questions/) list it.
 
-A battle-effect module starts with its id and then a table of callbacks, which are addresses of functions in the same module. Its step function (`BMagic_RunStep`; the address differs per module) copies the first three callbacks to the stack and calls the one that the scratchpad step byte selects (`g_SpadWork + 1`, `0x1F800044`). Some modules select the step with byte 2 instead of byte 1. The modules call PsyQ GTE and GPU functions (`rsin`, `rcos`, `GetGraphType`, `SetDrawMode`, `SetSemiTrans`), the executable's primitive helper `GFX_AddPrim`, and the resident battle overlays.
+A battle-effect module starts with its id and then a table of callbacks, which are addresses of functions in the same module. Its step function (`BMagic_DispatchMode`; the address differs per module) copies the first three callbacks to the stack and calls the one that the scratchpad step byte selects (`g_SpadWork + 1`, `0x1F800044`). Some modules select the step with byte 2 instead of byte 1. The modules call PsyQ GTE and GPU functions (`rsin`, `rcos`, `GetGraphType`, `SetDrawMode`, `SetSemiTrans`), the executable's primitive helper `GFX_AddPrim`, and the resident battle overlays.
 
 ## Executable layout
 
@@ -85,7 +85,7 @@ flowchart TD
     B -- no --> D["other area: party size rows,<br/>full party on screen"]
     C --> E["Area_DrawScene: one engine"]
     D --> E
-    E --> F["Area_RunParty, Area_DrawActors, Area_DrawCellLayer"]
+    E --> F["Area_UpdateParty, Area_DrawActors, Area_DrawCellLayer"]
     G["Battle_Update"] --> E
 ```
 
@@ -95,7 +95,7 @@ The flag changes three behaviors:
 - **Cell layer.** With bit 0 set, `Area_DrawCellLayer (exe/slus_004_22@0x80155B40)` and `func_801530D0 (exe/slus_004_22@0x801530D0)` skip the column count minus 2 columns, never fewer than 0.
 - **Shading and camera.** `func_80153DE8 (exe/slus_004_22@0x80153DE8)` sets the shade flag to `0x80` when bit 0 is set. It sets the camera height to 0 for fishing areas (bit `0x08`) and to `Area_SampleHeight` of the scroll target otherwise.
 
-One renderer draws both map kinds and battle: GTE-rotated textured quads. `Area_DrawScene (exe/slus_004_22@0x8014BA54)` runs the record list, `Area_DrawActors` and the cell layers, and `Area_DrawParts` and `Area_DrawGouraudQuads` project parts through the GTE. There is no separate flat-cell renderer for towns. The four `Actor` rows that `Area_RunParty` steps (`g_Actors`) are the party's map objects in every map kind and in battle ([field](../field/#actor-rows)).
+One renderer draws both map kinds and battle: GTE-rotated textured quads. `Area_DrawScene (exe/slus_004_22@0x8014BA54)` runs the record list, `Area_DrawActors` and the cell layers, and `Area_DrawParts` and `Area_DrawGouraudQuads` project parts through the GTE. There is no separate flat-cell renderer for towns. The four `Actor` rows that `Area_UpdateParty` steps (`g_Actors`) are the party's map objects in every map kind and in battle ([field](../field/#actor-rows)).
 
 ## PsyQ SDK
 

@@ -28,7 +28,7 @@ Every frame is therefore a short turn for each live thread. Slot 0 usually holds
 |    1 | `VSync(2)`                                                                      | wait until two vertical blanks have passed since the previous `VSync` call               |
 |    2 | `rand()`                                                                        | advance the PsyQ random state once                                                       |
 |    3 | `PutDispEnv`, `PutDrawEnv`                                                      | apply the environments of the record that the previous pass built                        |
-|    4 | `GFX_UploadPalette`, `GFX_RunTransferQueue`                                     | copy the staged palette and the queued images to VRAM                                    |
+|    4 | `GFX_UploadPalette`, `GFX_UpdateTransferQueue`                                  | copy the staged palette and the queued images to VRAM                                    |
 |    5 | `DrawOTag`                                                                      | start the GPU on the ordering table that the previous pass built                         |
 |    6 | `SYS_UpdateKeyState`                                                            | read controller 1                                                                        |
 |    7 | `SND_UpdateVoiceStatus (exe/slus_004_22@0x8015D044)`                            | refresh the status bytes of the 24 SPU voices                                            |
@@ -72,7 +72,7 @@ Holding Select and Start together returns the game to the first boot callback. T
 
 ## Loader tick
 
-`EMI_Update (exe/slus_004_22@0x80163010)` looks at `g_EmiServiceMode`. In mode 1 it runs `EMI_UpdateStream`, the disc read for overlays and data. In mode 2 it runs `SND_ServiceXA`, the XA audio player. In any other mode it does nothing. [Loading](../loading/) covers the loader and the [audio system](../../systems/audio/) covers XA.
+`EMI_Update (exe/slus_004_22@0x80163010)` looks at `g_EmiServiceMode`. In mode 1 it runs `EMI_UpdateStream`, the disc read for overlays and data. In mode 2 it runs `SND_UpdateXA`, the XA audio player. In any other mode it does nothing. [Loading](../loading/) covers the loader and the [audio system](../../systems/audio/) covers XA.
 
 ## Late frames
 
@@ -82,15 +82,15 @@ A random encounter does not start in a frame whose drawing ended late. `SYS_Capt
 
 The table gives the fixed sizes of the loop and where each comes from.
 
-| Limit                         | Value                                                 | Source                                                                      |
-| ----------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------- |
-| Ordering table layers         | 8                                                     | `ClearOTagR(..., 8)` in `SYS_Main`; `SYS_PrepareFrame`; `SYS_SubmitFrame`   |
-| Primitive arena per buffer    | `0x80020000 + b * 0x9000`, size 36,812                | `SYS_PrepareFrame`, `GFX_AddPrim`                                           |
-| Display                       | 320 x 240, buffers at y = 0 and y = 0xF0              | `SYS_InitDisplay (exe/slus_004_22@0x8014AE08)`                              |
-| Queued VRAM uploads per frame | 20                                                    | `GFX_RunTransferQueue` reads halves from `D_80145A54[0..19]` and `[20..39]` |
-| Upload kinds                  | 3: raw `LoadImage`, RGB555 expand (1), LZSS (2)       | `GFX_RunTransferQueue (exe/slus_004_22@0x8014E6D0)`                         |
-| Staged palette                | 256 x 32 pixels at VRAM (0, 0x1E0), from `0x80037800` | `GFX_UploadPalette (exe/slus_004_22@0x8014E22C)`                            |
-| Soft reset hold               | 61 passes, about 2 seconds                            | `SYS_Main`                                                                  |
+| Limit                         | Value                                                 | Source                                                                         |
+| ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Ordering table layers         | 8                                                     | `ClearOTagR(..., 8)` in `SYS_Main`; `SYS_PrepareFrame`; `SYS_SubmitFrame`      |
+| Primitive arena per buffer    | `0x80020000 + b * 0x9000`, size 36,812                | `SYS_PrepareFrame`, `GFX_AddPrim`                                              |
+| Display                       | 320 x 240, buffers at y = 0 and y = 0xF0              | `SYS_InitDisplay (exe/slus_004_22@0x8014AE08)`                                 |
+| Queued VRAM uploads per frame | 20                                                    | `GFX_UpdateTransferQueue` reads halves from `D_80145A54[0..19]` and `[20..39]` |
+| Upload kinds                  | 3: raw `LoadImage`, RGB555 expand (1), LZSS (2)       | `GFX_UpdateTransferQueue (exe/slus_004_22@0x8014E6D0)`                         |
+| Staged palette                | 256 x 32 pixels at VRAM (0, 0x1E0), from `0x80037800` | `GFX_UploadPalette (exe/slus_004_22@0x8014E22C)`                               |
+| Soft reset hold               | 61 passes, about 2 seconds                            | `SYS_Main`                                                                     |
 
 ## Open questions
 
@@ -104,7 +104,7 @@ The table gives the fixed sizes of the loop and where each comes from.
 ## Sources and confidence
 
 - **Confidence:** medium. The order of the pass, the records and the limits are read in the code, but the frame rate, the GPU overlap and the unit of the late-frame value are `[inferred]` from the PsyQ contract.
-- **Evidence:** the code of `SYS_Main`, `SYS_PrepareFrame`, `SYS_SubmitFrame`, `GFX_AddPrim`, `GFX_RunTransferQueue`, `SYS_UpdateKeyState`, `CallbackRun` and `EMI_Update`; the play clock of `func_80198CAC`.
+- **Evidence:** the code of `SYS_Main`, `SYS_PrepareFrame`, `SYS_SubmitFrame`, `GFX_AddPrim`, `GFX_UpdateTransferQueue`, `SYS_UpdateKeyState`, `CallbackRun` and `EMI_Update`; the play clock of `func_80198CAC`.
 
 ## Related
 
