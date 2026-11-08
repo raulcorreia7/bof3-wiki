@@ -111,9 +111,9 @@ A hit returns 0, `func_801B0E44` sets `g_GameStateIndex = 5`, and the transition
 
 In entry state 2, `Game_RunFieldState` first runs `Game_RunScenarioEntry` (the scenario's `entry_00`, then the event stage; see [scenario](../scenario/)). Then it runs `Area_RunFrame (emi/etc/game/00@0x801991B8)`. Last, it maps the request code `g_GameStateIndex` to the next entry state:
 
-| Request code | 1   | 2   | 3          | 4   | 5             | 6   | 7   | 8   | 9   |
-| ------------ | --- | --- | ---------- | --- | ------------- | --- | --- | --- | --- |
-| Entry state  | 3   | 4   | 5 (battle) | 6   | 1 (area load) | 7   | 9   | 10  | 11  |
+| Request code | 1 | 2 | 3          | 4 | 5             | 6 | 7 | 8  | 9  |
+| ------------ | - | - | ---------- | - | ------------- | - | - | -- | -- |
+| Entry state  | 3 | 4 | 5 (battle) | 6 | 1 (area load) | 7 | 9 | 10 | 11 |
 
 Roles of the states are in [phases](../phases/).
 

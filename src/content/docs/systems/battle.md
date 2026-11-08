@@ -41,10 +41,10 @@ The step threshold comes from the area's [zone list](../areas/#zone-list). `func
 
 The pair `(base, cap)` comes from `s_EncounterStepThresholds (emi/etc/game/00@0x801CD1B8)`. The total doubles when any party member has trait `(3, 0x15)` (`func_801C38F4`) and halves when any has trait `(3, 0x14)`. Which abilities those traits belong to is `[unknown]`. The table gives the pair for each `rate`.
 
-| `rate` | 0   | 1   | 2   | 3   | 4   | 5   | 6   | 7   |
-| ------ | --- | --- | --- | --- | --- | --- | --- | --- |
-| base   | 0   | 120 | 96  | 72  | 24  | 16  | 8   | 0   |
-| cap    | 0   | 60  | 48  | 36  | 12  | 8   | 4   | 0   |
+| `rate` | 0 | 1   | 2  | 3  | 4  | 5  | 6 | 7 |
+| ------ | - | --- | -- | -- | -- | -- | - | - |
+| base   | 0 | 120 | 96 | 72 | 24 | 16 | 8 | 0 |
+| cap    | 0 | 60  | 48 | 36 | 12 | 8  | 4 | 0 |
 
 A base of 0 means no encounters. Higher `rate` values give shorter walks between battles.
 

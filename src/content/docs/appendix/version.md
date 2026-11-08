@@ -3,7 +3,7 @@ title: "Game version"
 description: "Every page describes one release: Breath of Fire III (USA) for the PlayStation, serial SLUS-00422, as the Redump image with the checksums listed here."
 ---
 
-Every page describes one release: _Breath of Fire III_ (USA) for the PlayStation, serial `SLUS-00422`, in the Redump image whose files and checksums this page lists. Another region or revision can differ in addresses, sizes and contents, so check the image before you apply a page to it.
+Every page describes one release: *Breath of Fire III* (USA) for the PlayStation, serial `SLUS-00422`, in the Redump image whose files and checksums this page lists. Another region or revision can differ in addresses, sizes and contents, so check the image before you apply a page to it.
 
 ## Release
 

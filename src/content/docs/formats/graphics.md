@@ -175,7 +175,7 @@ Every CLUT and TPage write in the game code was resolved from literals and `GetC
 
 The proven sites and the terrain rule together join 212 of the 593 type-3 textures to 890 palette rows: 200 terrain sheets (865 distinct rows across the archives, 11 of which also carry a literal site), nine area sprite sheets, two `AREA030` icon sheets and the `BMAGIC/MAGIC218` effect sheet. The other 381 textures have no proven depth or palette. A data check confirms the terrain depth: all 105,308 terrain descriptors have bit 31 clear (8bpp), and the 8bpp decode selects a page and bank that exist in the archive.
 
-A reading of a texture without a join is limited. Read as 16bpp, each VRAM word is one pixel, and 4bpp and 8bpp textures look like noise. A texture and one CLUT row are what a Sony TIM file holds (Sony's _File Formats_ manual, chapter 3), but the game stores no TIM of its own for textures. The six TIM records on the disc are the memory card icons ([save](../save/#icons)).
+A reading of a texture without a join is limited. Read as 16bpp, each VRAM word is one pixel, and 4bpp and 8bpp textures look like noise. A texture and one CLUT row are what a Sony TIM file holds (Sony's *File Formats* manual, chapter 3), but the game stores no TIM of its own for textures. The six TIM records on the disc are the memory card icons ([save](../save/#icons)).
 
 ## Open questions
 

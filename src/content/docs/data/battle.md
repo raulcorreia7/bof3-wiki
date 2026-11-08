@@ -499,7 +499,7 @@ The table below lists every ability with an effect module, read from the retail 
 |  `0x27` | Focus        |            78 |  `0x139` | MAGIC039      |
 |  `0x28` | Enlighten    |            79 |  `0x13A` | MAGIC040      |
 |  `0x29` | Berserk      |            80 |  `0x13B` | MAGIC041      |
-|  `0x2A` | Minds Eye    |            81 |  `0x13C` | MAGIC042      |
+|  `0x2A` | Minds Eye   |            81 |  `0x13C` | MAGIC042      |
 |  `0x2B` | WardOfLight  |           110 |  `0x13D` | MAGIC043      |
 |  `0x2C` | Evil Eye     |            96 |  `0x13E` | MAGIC044      |
 |  `0x2D` | Bone Dart    |            61 |  `0x13F` | MAGIC045      |
@@ -674,7 +674,7 @@ The table below lists every ability with an effect module, read from the retail 
 |  `0xDA` | Aura Breath  |           142 |  `0x1A9` | MAGIC218      |
 |  `0xDB` | Magma Breath |           138 |  `0x1AA` | MAGIC219      |
 |  `0xDC` | Geo Breath   |           136 |  `0x1AB` | MAGIC220      |
-|  `0xDD` | GaeasBreath  |           146 |  `0x1AC` | MAGIC221      |
+|  `0xDD` | GaeasBreath |           146 |  `0x1AC` | MAGIC221      |
 |  `0xDE` | Combustion   |           133 |  `0x1AD` | MAGIC222      |
 |  `0xDF` | Tempest      |           137 |  `0x1AE` | MAGIC223      |
 |  `0xE0` | Hurricane    |           137 |  `0x1AE` | MAGIC223      |

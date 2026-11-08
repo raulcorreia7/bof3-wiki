@@ -25,7 +25,7 @@ Every reference page writes numbers, field types, offsets, citations and evidenc
 
 ## Bits and bit ranges
 
-Bit 0 is the least significant bit, so bit _n_ has the value `1 << n`. A single bit is written "bit 3". A
+Bit 0 is the least significant bit, so bit *n* has the value `1 << n`. A single bit is written "bit 3". A
 range goes from the low bit to the high bit: "bits 4 to 6". A mask names the same bits by value: bits 4 to 6 are mask
 `0x70`. A **nibble** is four bits. The low nibble is bits 0 to 3 and the high nibble is bits 4 to 7.
 
@@ -60,7 +60,7 @@ record name such as `Enemy*`. A run of bytes with no known structure is `u8[n]`.
 reader proves carries the tag `[inferred]`.
 
 The MIPS terms **halfword** (16 bits) and **word** (32 bits) appear in prose about code. In prose about VRAM
-and palettes, a _word_ is one 16-bit VRAM cell, as in "a 16-bit CLUT word". Layout tables use `u16` and `u32`
+and palettes, a *word* is one 16-bit VRAM cell, as in "a 16-bit CLUT word". Layout tables use `u16` and `u32`
 for fields, so one field type has one name on every page.
 
 ## Offsets and addresses

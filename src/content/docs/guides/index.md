@@ -3,11 +3,11 @@ title: "Edit the game"
 description: "Every change to the Breath of Fire III disc follows one cycle: find the entry, extract its payload, change the bytes, rebuild the archive, put the file back and test."
 ---
 
-Every change to the _Breath of Fire III_ disc follows one cycle: find the entry, extract its payload, change the bytes, rebuild the archive, put the file back and test. Seven guides apply the cycle to text, items, characters, sound, maps, graphics and saves. Each one says where the data sits, what to change, which limits the game enforces and how to check the result. The guides link to the pages that own the layouts and do not repeat them.
+Every change to the *Breath of Fire III* disc follows one cycle: find the entry, extract its payload, change the bytes, rebuild the archive, put the file back and test. Seven guides apply the cycle to text, items, characters, sound, maps, graphics and saves. Each one says where the data sits, what to change, which limits the game enforces and how to check the result. The guides link to the pages that own the layouts and do not repeat them.
 
 ## Tasks
 
-The write path says how a change gets back into the game. _In place_ means the guide lists the fields to edit. _Partly_ means some of the data is editable only as raw bytes.
+The write path says how a change gets back into the game. *In place* means the guide lists the fields to edit. *Partly* means some of the data is editable only as raw bytes.
 
 | Task                                       | Write path         | Not yet known                                                           |
 | ------------------------------------------ | ------------------ | ----------------------------------------------------------------------- |
