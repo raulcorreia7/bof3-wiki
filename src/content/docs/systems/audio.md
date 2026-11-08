@@ -59,11 +59,11 @@ Seven bank records (20 bytes each, at `0x8014677C`) tie a VAB id to a RAM window
 
 The active layout decides what fits in SPU RAM:
 
-| Layout | Set by                                                                                                                                                                   | Banks in use | When                         |
-| -----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -----------: | ---------------------------- |
-|      0 | `SYS_StartFrontend`, `Game_StartSelectedGame` and `Game_LeaveTitle` (`emi/etc/game/01`), `Battle_StreamEndOverlay` and `Battle_ReloadPartyBank` (`emi/battle/battle/03`) |            3 | Menus, field, after a battle |
-|      1 | `Battle_LoadPartySprites` (`emi/etc/game/00`)                                                                                                                            |            7 | Battle                       |
-|      2 | `Game_BeginTitle (emi/etc/game/01@0x801D0C90)`                                                                                                                           |            2 | Title screen                 |
+| Layout | Set by                                                                                                                                                                 | Banks in use | When                         |
+| -----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------: | ---------------------------- |
+|      0 | `SYS_StartFrontend`, `Game_StartSelectedGame` and `Game_LeaveTitle` (`emi/etc/game/01`), `Battle_LoadEndOverlay` and `Battle_ReloadPartyBank` (`emi/battle/battle/03`) |            3 | Menus, field, after a battle |
+|      1 | `Battle_LoadPartySprites` (`emi/etc/game/00`)                                                                                                                          |            7 | Battle                       |
+|      2 | `Game_BeginTitle (emi/etc/game/01@0x801D0C90)`                                                                                                                         |            2 | Title screen                 |
 
 Bank 0 carries the music in every layout, with a different window size in each. The sizes are in [RAM and SPU budget per layout](#ram-and-spu-budget-per-layout), [memory](../../concepts/memory/#sound-memory) and [loading](../../concepts/loading/#audio-banks).
 
@@ -101,7 +101,7 @@ Five sources start a track.
 
 The name `g_GamePrevSelection` is misleading: `func_801A0380` writes the track of the area that is about to load, and `func_8019FAA0` reads it. The zone rectangle is described in [area](../areas/#zone-list).
 
-When the area changes to a different track, `Game_RunFieldState` case 5 calls `SND_StartDecrescendo` on the old track (level 100, shape 16) and `SND_StopSequence` after the transition effect. `func_801985C8` does the same for the other exit path.
+When the area changes to a different track, `Game_UpdateField` case 5 calls `SND_StartDecrescendo` on the old track (level 100, shape 16) and `SND_StopSequence` after the transition effect. `func_801985C8` does the same for the other exit path.
 
 ### Music across a battle
 
@@ -143,7 +143,7 @@ XA plays speech and long effects from three disc files, selected by a key. `SND_
 - The start sector is `base + (entry & 0x7FFF) * scale + channel`, with `scale` 8 for group 0 and 16 for the others. The stop bound is the same expression for the next entry, minus 150 sectors (`0x96`). The 150 is probably the CD pregap offset of the position conversion, one table entry is a track start in units of interleaved sectors, and the counter is the XA channel `[inferred]`.
 - `CdlSetfilter` is sent with file `1` and that channel `[inferred]` from the parameter block at `D_80146834`.
 
-`SND_ServiceXA (exe/slus_004_22@0x801638B0)` runs one state of `g_XaStateFuncs[state]` per frame, called by `EMI_Update` while `g_EmiServiceMode == 2`, then increments a timer `D_8014681C`:
+`SND_UpdateXA (exe/slus_004_22@0x801638B0)` runs one state of `g_XaStateFuncs[state]` per frame, called by `EMI_Update` while `g_EmiServiceMode == 2`, then increments a timer `D_8014681C`:
 
 | State | Function                  | Action                                                                                                    |
 | ----: | ------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -159,7 +159,7 @@ XA plays speech and long effects from three disc files, selected by a key. `SND_
 
 A timer above 181 ticks returns to state 1 and counts a retry. The sixth retry, or a CD error bit, sends the machine to state 8. Streaming ends by stopping at the stop bound, not by an end marker in the data. State 7 sets the loader's ready byte to 3, so `EMI_IsReady` is false for the whole stream, and none of the callers waits for it first ([loading](../../concepts/loading/#xa-audio)).
 
-XA callers are the scene scripts (opcode `0x89` in `func_801AB458`, key from the script), `Scene_RunShopSaveEvent` (key 0), `func_801A83DC` (key 9), the shop and save screens (key 0), `commu00` (keys 8 and 10), and battle (`func_801DDF50` in `emi/battle/battle/03`, key `0x1000 + n` from an effect table).
+XA callers are the scene scripts (opcode `0x89` in `func_801AB458`, key from the script), `Scene_StartShopSave` (key 0), `func_801A83DC` (key 9), the shop and save screens (key 0), `commu00` (keys 8 and 10), and battle (`func_801DDF50` in `emi/battle/battle/03`, key `0x1000 + n` from an effect table).
 
 ## Data and limits
 
@@ -175,7 +175,7 @@ XA callers are the scene scripts (opcode `0x89` in `func_801AB458`, key from the
 | Cue banks and records     | Bank nibble indexes 7 readers. 31 records per bank chunk (124 bytes). A disc entry has at most 24 records. | `g_SndCueReaders`                           |
 | Voices per cue            | 1 to 4 `SsUtKeyOnV` calls (layer bits)                                                                     | `SND_PlayCue`                               |
 | XA files                  | Three: slots `0x2A9`, `0x1B2`, `0x2AA`. Keys use 12 bits of index.                                         | `D_80183230`, `SND_ResolveXAStream`         |
-| XA timeout                | 181 ticks, 6 retries                                                                                       | `SND_ServiceXA`                             |
+| XA timeout                | 181 ticks, 6 retries                                                                                       | `SND_UpdateXA`                              |
 | Volume                    | Master `0x7F`, serial `0x6E`                                                                               | `SND_Start`                                 |
 
 ### RAM and SPU budget per layout
@@ -223,7 +223,7 @@ What an edited audio asset must stay within:
 ## Sources and confidence
 
 - **Confidence:** medium. The loading path, the music and battle handling, the cue path and the XA state machine are read in the code. Window and span limits, the reserved-voice meaning and several writers are `[inferred]` or `[unknown]`.
-- **Evidence:** the sound functions in `exe/slus_004_22` (`SND_Init`, `SND_SetBankLayout`, `SND_StartBGM`, `SND_PlayCue`, `SND_ResolveXAStream`, `SND_ServiceXA`), the audio entry loaders `EMI_LoadVabHeader`, `EMI_LoadVabBody`, `EMI_LoadSequence` and `EMI_LoadSoundCues`, the battle entry and exit in `emi/etc/game/00` and `emi/battle/battle/03`, and the static tables `g_BGMTracks`, `D_8018239C`, `D_801823F0` and `D_80182348`. Library behavior follows the PsyQ contract.
+- **Evidence:** the sound functions in `exe/slus_004_22` (`SND_Init`, `SND_SetBankLayout`, `SND_StartBGM`, `SND_PlayCue`, `SND_ResolveXAStream`, `SND_UpdateXA`), the audio entry loaders `EMI_LoadVabHeader`, `EMI_LoadVabBody`, `EMI_LoadSequence` and `EMI_LoadSoundCues`, the battle entry and exit in `emi/etc/game/00` and `emi/battle/battle/03`, and the static tables `g_BGMTracks`, `D_8018239C`, `D_801823F0` and `D_80182348`. Library behavior follows the PsyQ contract.
 
 ## Related
 

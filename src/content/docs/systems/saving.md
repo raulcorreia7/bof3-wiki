@@ -13,13 +13,13 @@ At a save point the player opens a menu, picks a memory card port and a slot, an
 
 Five images share the work: the executable, the resident game program and three overlays. The resident game program only hands control to the overlays.
 
-| Image                                         | Load address | Holds                                          |
-| --------------------------------------------- | ------------ | ---------------------------------------------- |
-| `exe/slus_004_22`                             | `0x8014...`  | card events, the persistent block              |
-| `emi/etc/game/00`                             | `0x80195800` | hand-off to the screens, `Game_ResetGameState` |
-| `emi/etc/shop/00` (`SHOP.EMI` slot `0x266`)   | `0x801D0C00` | save screens, state gather, checksum           |
-| `emi/etc/start/08` (`START.EMI` slot `0x268`) | `0x801D0C00` | load screens, new-game defaults                |
-| `emi/etc/start/09`                            | `0x801EEC00` | card driver, save-icon pixels                  |
+| Image                                         | Load address | Holds                                   |
+| --------------------------------------------- | ------------ | --------------------------------------- |
+| `exe/slus_004_22`                             | `0x8014...`  | card events, the persistent block       |
+| `emi/etc/game/00`                             | `0x80195800` | hand-off to the screens, `Game_NewGame` |
+| `emi/etc/shop/00` (`SHOP.EMI` slot `0x266`)   | `0x801D0C00` | save screens, state gather, checksum    |
+| `emi/etc/start/08` (`START.EMI` slot `0x268`) | `0x801D0C00` | load screens, new-game defaults         |
+| `emi/etc/start/09`                            | `0x801EEC00` | card driver, save-icon pixels           |
 
 `SHOP.EMI` and `START.EMI` both carry the driver ([icons](../../formats/save/#icons)). The window at `0x801EEC00` is shared with battle effect modules, so the driver works only while a save or load screen owns it ([memory](../../concepts/memory/)).
 
@@ -41,42 +41,42 @@ sequenceDiagram
     Ev->>Main: D_8014865C = -2,<br/>g_GameEntryState = 7
     Main->>Main: Game_LoadShopOverlay<br/>EMI_LoadArchive<br/>SHOP
     Main->>Sav: func_80199398 runs<br/>Shop_DispatchStep each<br/>frame
-    Sav->>Drv: state 2 func_801D47AC<br/>CardAccessFile 0 per<br/>port
+    Sav->>Drv: state 2 func_801D47AC<br/>SAVE_AccessFile 0 per<br/>port
     Drv->>Bios: _card_info and<br/>_card_load
     Bios->>Card: probe
-    Sav->>Drv: state 5 func_801D4BBC<br/>CardScanDirectory
+    Sav->>Drv: state 5 func_801D4BBC<br/>SAVE_ScanDirectory
     Drv->>Bios: firstfile and nextfile
-    Sav->>Drv: func_801D7208<br/>CardAccessFile read<br/>0x1C at 0xEA0
+    Sav->>Drv: func_801D7208<br/>SAVE_AccessFile read<br/>0x1C at 0xEA0
     Note over Sav: state 8 slot select,<br/>state 9 or 13 confirm
     alt overwrite, state 10<br/>func_801D51B8
-        Sav->>Drv: CardAccessFile mode 1<br/>size 1
+        Sav->>Drv: SAVE_AccessFile mode 1<br/>size 1
     else new file, state 14<br/>func_801D5894
-        Sav->>Drv: CardAccessFile mode<br/>0x200 creates one<br/>block
+        Sav->>Drv: SAVE_AccessFile mode<br/>0x200 creates one<br/>block
     end
     Sav->>Sav: SAVE_BuildSlotImage<br/>gathers block, header,<br/>checksum
-    Sav->>Drv: CardAccessFile mode 2<br/>size 4,784
+    Sav->>Drv: SAVE_AccessFile mode 2<br/>size 4,784
     Drv->>Bios: open, lseek, write,<br/>close
     Bios->>Card: write 4,864 bytes
     Sav->>Sav: g_SaveCardStatus = 8<br/>or 10, func_801D6CE4<br/>updates the row
     Sav-->>Main: state 0x12<br/>func_801D5D98 leaves,<br/>Game_ReturnFromShop resumes<br/>the field
 ```
 
-- Scene event 10 is `Scene_RunShopSaveEvent (emi/etc/game/00@0x801A802C)`, entry 10 of `g_SceneEvents (emi/etc/game/00@0x801C84BC)`. Its cases 6 and 23 set `D_8014865C = -2` and `g_GameEntryState = 7`. The scripts or objects that select event 10 are not traced `[unknown]`.
-- `g_GameStates[7]` is `Game_RunShopState`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Shop_DispatchStep`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
+- Scene event 10 is `Scene_StartShopSave (emi/etc/game/00@0x801A802C)`, entry 10 of `g_SceneEvents (emi/etc/game/00@0x801C84BC)`. Its cases 6 and 23 set `D_8014865C = -2` and `g_GameEntryState = 7`. The scripts or objects that select event 10 are not traced `[unknown]`.
+- `g_GameStates[7]` is `Game_UpdateShop`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Shop_DispatchStep`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
 - `Shop_DispatchStep` dispatches `D_801E5144` by `D_80148650`. `func_801D0EDC` sets `D_80148650` to `D_80148698 + 2`, which is 3 for the save case. That selects `func_801D39BC`, and entry 3 of its table `D_801E52C4` is `SAVE_DispatchState (emi/etc/shop/00@0x801D46A4)`. It dispatches `D_801E530C` by `D_80148652`.
 - The overwrite path first opens the existing file with mode 1 and size 1, a read of the first 128 bytes. Success proves the file exists (`func_801D51B8`).
-- The new-file path calls `CardAccessFile` with mode `0x200`. The driver creates the file, closes it, reopens it with mode 1 and issues a zero-length read.
+- The new-file path calls `SAVE_AccessFile` with mode `0x200`. The driver creates the file, closes it, reopens it with mode 1 and issues a zero-length read.
 
 ### Building the image
 
 `SAVE_BuildSlotImage (emi/etc/shop/00@0x801D69E0)` runs just before the write. In order:
 
-1. `func_801D7080` builds the title string. `CardBuildFileHeader (emi/etc/start/09@0x801EF27C)` writes the `SC` magic, the icon flag `0x13`, block count 1, the title, the icon palette and three icon frames into the frame at `0x800C1800`.
+1. `func_801D7080` builds the title string. `SAVE_BuildFileHeader (emi/etc/start/09@0x801EF27C)` writes the `SC` magic, the icon flag `0x13`, block count 1, the title, the icon palette and three icon frames into the frame at `0x800C1800`.
 2. It refreshes the fields in the live block that the save adds: the script variables, the area id, the entry kind and position, the nine button masks, and the slot summary row. The summary row is five name bytes from the first party record, the three field-order portraits (a portrait of kind 4 shows as `0xB` unless the loaded character index is 5 or `0xC`), the first record's level, the play clock, and the result of testing event flag `0x92`.
 3. It clears the checksum halfword at block `+0x70` in live RAM, stores `g_GameFlags` as a byte in `D_80145025`, copies the 4,272 bytes from `0x801448D8` into `g_SaveBuffer`, and sums them in 16 bits.
 4. It zeroes the rest of the buffer up to payload offset `0x1E00`, stores the sum at frame `+0x270`, and publishes the slot row.
 
-The write size is 4,784 bytes (a 512-byte header plus the 4,272-byte block). `CardTransferFile` rounds it up to 4,864, so the card gets the zeroed bytes from `0x12B0` to `0x12FF`. The staging fill reaches frame offset `0x2000`, but the card never sees those bytes. The file layout is in [save format](../../formats/save/#layout).
+The write size is 4,784 bytes (a 512-byte header plus the 4,272-byte block). `SAVE_TransferFile` rounds it up to 4,864, so the card gets the zeroed bytes from `0x12B0` to `0x12FF`. The staging fill reaches frame offset `0x2000`, but the card never sees those bytes. The file layout is in [save format](../../formats/save/#layout).
 
 ### Save machine states
 
@@ -115,11 +115,11 @@ The load screen runs only from the start menu, before any game exists.
 ```mermaid
 sequenceDiagram
     participant Title as Game_LeaveTitle,<br/>game/01
-    participant Camp as Game_RunCampMenuLoop,<br/>game/00
+    participant Camp as Game_UpdateCampMenu,<br/>game/00
     participant Menu as Continue menu,<br/>start/08
     participant Load as Load screens 0<br/>to 16,<br/>start/08
     participant Drv as Card driver,<br/>start/09
-    participant Main as Game_RunMainLoop,<br/>game/00
+    participant Main as Game_UpdateMain,<br/>game/00
 
     Title->>Camp: CallbackRegister 0,<br/>then CallbackExit
     Camp->>Camp: Game_LoadCampMenu<br/>streams START slot<br/>0x268
@@ -128,19 +128,19 @@ sequenceDiagram
     Note over Menu: D_801ED7EC 0 =<br/>Continue, nonzero =<br/>New Game
     Menu->>Load: substate 3 when<br/>Continue is chosen
     Load->>Drv: state 3 func_801E5078<br/>probes ports
-    Load->>Drv: state 6 func_801E54A4<br/>CardScanDirectory
+    Load->>Drv: state 6 func_801E54A4<br/>SAVE_ScanDirectory
     Load->>Drv: func_801E77F0 reads<br/>the 0x1C summary row<br/>per slot
     Note over Load: state 9 slot select,<br/>state 10 confirm
-    Load->>Drv: state 11<br/>SAVE_RunLoadVerify<br/>CardAccessFile mode 1<br/>size 4,784
+    Load->>Drv: state 11<br/>SAVE_RunLoadVerify<br/>SAVE_AccessFile mode 1<br/>size 4,784
     Load->>Load: copy 4,272 bytes to<br/>0x801448D8 and sum<br/>them
     alt checksum matches
         Load->>Load: g_SaveCardStatus = 5,<br/>state 13 then 15 then<br/>16
         Load->>Load: SAVE_RunLoadRestore<br/>rebuilds party rows,<br/>scene state, overlay
-        Load->>Main: Camp_EnterMainLoop<br/>recomputes stats,<br/>CallbackReplace
+        Load->>Main: Menu_ExitCamp<br/>recomputes stats,<br/>CallbackReplace
     else mismatch
         Load->>Load: g_SaveCardStatus = 7,<br/>state 13 message, back<br/>to state 2
     end
-    Main->>Main: Game_ResetGameState,<br/>entry state 1, field
+    Main->>Main: Game_NewGame,<br/>entry state 1, field
 ```
 
 ### The continue menu
@@ -183,10 +183,10 @@ After a good read, state 13 shows its message for up to 60 frames or until a but
 4. `Party_BuildBattlers(0)`: build the party rows in `g_BattlePartyBattlers` from the loaded records.
 5. Copy the first 16 block bytes into `g_SceneState` and point `g_SceneFlags` at the scenario's flag word.
 6. Restore the four script variable bytes.
-7. `Scene_RequestOverlay`: stream the scenario overlay for `scenario_id`.
+7. `Scene_LoadOverlay`: stream the scenario overlay for `scenario_id`.
 8. Set camp substate 4.
 
-`Camp_EnterMainLoop (emi/etc/start/08@0x801E62A8)` then runs `func_801E7210` and `Char_RebuildStats` for each of the eight records, so all live stats come from base stats and equipment. It calls `CallbackReplace(Game_RunMainLoop)`. `Game_RunMainLoop` starts at entry state 0, `Game_ResetGameState`. That function reads the saved area id, position and kind from the block and sets `g_GameAreaId = 0xFFFF`. It calls `Game_RequestAreaChange` to store the entry context and set `g_GameStateIndex = 5`, then advances to entry state 1. See [area](../areas/) for the load that follows.
+`Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` then runs `func_801E7210` and `Char_RebuildStats` for each of the eight records, so all live stats come from base stats and equipment. It calls `CallbackReplace(Game_UpdateMain)`. `Game_UpdateMain` starts at entry state 0, `Game_NewGame`. That function reads the saved area id, position and kind from the block and sets `g_GameAreaId = 0xFFFF`. It calls `Game_RequestAreaChange` to store the entry context and set `g_GameStateIndex = 5`, then advances to entry state 1. See [area](../areas/) for the load that follows.
 
 `SAVE_RunLoadVerify (emi/etc/start/08@0x801E5A00)` also restores `g_GameFlags` from `D_80145025`. On a match it sets stereo or mono sound from the byte at `0x80144951`, a block field (`SsSetStereo` or `SsSetMono`).
 
@@ -215,14 +215,14 @@ The load copies before it verifies. `SAVE_RunLoadVerify` copies the 4,272 bytes 
 
 The message for a status is a text resource: `Resolve(status + 0x85)` in the save screens and `Resolve(code + 0xA6)` in the load screens. The strings are not decoded `[unknown]`.
 
-What the driver does in `CardAccessFile (emi/etc/start/09@0x801EEC30)`:
+What the driver does in `SAVE_AccessFile (emi/etc/start/09@0x801EEC30)`:
 
-- It makes up to 30 attempts at `CardPollInfo` and `CardPollSoftwareEvents`. If the status stays pending or timeout, it returns -1.
-- On status OK it calls `CardPollLoad` (60 frames), then opens and transfers. A `CardPollLoad` failure returns -1.
+- It makes up to 30 attempts at `SAVE_PollCardInfo` and `SAVE_PollSoftwareEvents`. If the status stays pending or timeout, it returns -1.
+- On status OK it calls `SAVE_PollCardLoad` (60 frames), then opens and transfers. A `SAVE_PollCardLoad` failure returns -1.
 - On status NEW it calls `func_801EF148`, which clears the card (`_card_clear`) and waits for the hardware event, up to 60 tries, then goes on as for OK.
 - On status timeout or any other value it returns -1.
-- `CardOpenFile (emi/etc/start/09@0x801EF96C)` retries `open` 120 times with one `VSync` between tries. On failure it re-polls the card. When it creates a file, it scans the directory and sets status 4 if the summed file sizes plus one block exceed the capacity bound, else status 3. The test is `total + (blocks << 13) > 0x1E000`, which is 122,880 bytes or 15 blocks.
-- `CardTransferFile (emi/etc/start/09@0x801EFB44)` retries a failed `read` or `write` once per `CardPollInfo`, up to 60 times, and returns -1 when the card reports a timeout.
+- `SAVE_OpenFile (emi/etc/start/09@0x801EF96C)` retries `open` 120 times with one `VSync` between tries. On failure it re-polls the card. When it creates a file, it scans the directory and sets status 4 if the summed file sizes plus one block exceed the capacity bound, else status 3. The test is `total + (blocks << 13) > 0x1E000`, which is 122,880 bytes or 15 blocks.
+- `SAVE_TransferFile (emi/etc/start/09@0x801EFB44)` retries a failed `read` or `write` once per `SAVE_PollCardInfo`, up to 60 times, and returns -1 when the card reports a timeout.
 
 How each card state looks to the player:
 
@@ -255,16 +255,16 @@ An edited save keeps the checksum rule and a file name that the directory scan l
 ## Open questions
 
 - Which scripts or objects select scene event 10, and whether other callers set `D_8014865C = -2`. Settled by: searching the scenario and area event data for the event byte.
-- Any game-over, continue or autosave path to the card. None was found. Settled by: searching for other callers of `CardAccessFile`.
+- Any game-over, continue or autosave path to the card. None was found. Settled by: searching for other callers of `SAVE_AccessFile`.
 - The setter of save status 11, `D_801E6110` and `D_80143BB4` in state 18, and the strings behind each message. Settled by: reading the writers and decoding the text resources `0x85` and `0xA6` onward.
-- Whether a load resumes the save-point event: bytes `0x801448EB` to `0x801448ED` are inside the saved block. Settled by: saving during the event, then tracing `Scene_RunEventHandler` after the load.
+- Whether a load resumes the save-point event: bytes `0x801448EB` to `0x801448ED` are inside the saved block. Settled by: saving during the event, then tracing `Scene_UpdateEvent` after the load.
 - Driver `open`, `format` and `_card_*` semantics `[inferred]`. Settled by: PsyQ documentation or a read of the library.
 - Icon pixels and the title text are not decoded. Settled by: decoding the three icon blocks and `D_801E5434` ([save format](../../formats/save/#title)).
 
 ## Sources and confidence
 
 - **Confidence:** medium. The flow, the state machines and the card driver are read in the code. The status vocabulary, some setters and the library semantics are `[unknown]` or `[inferred]`.
-- **Evidence:** the save machine `SAVE_DispatchState` and `SAVE_BuildSlotImage` in `emi/etc/shop/00`, the load machine `SAVE_RunLoadVerify` and `SAVE_RunLoadRestore` in `emi/etc/start/08`, and the card driver `CardAccessFile`, `CardOpenFile` and `CardTransferFile` in `emi/etc/start/09`.
+- **Evidence:** the save machine `SAVE_DispatchState` and `SAVE_BuildSlotImage` in `emi/etc/shop/00`, the load machine `SAVE_RunLoadVerify` and `SAVE_RunLoadRestore` in `emi/etc/start/08`, and the card driver `SAVE_AccessFile`, `SAVE_OpenFile` and `SAVE_TransferFile` in `emi/etc/start/09`.
 
 ## Related
 

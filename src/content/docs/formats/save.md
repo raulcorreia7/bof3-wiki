@@ -12,14 +12,14 @@ The table lists the fixed properties of a save file.
 | Fact                   | Value                                                                     |
 | ---------------------- | ------------------------------------------------------------------------- |
 | File name              | `BASLUS-00422BOF3` followed by a two-digit slot number (`%02d`)           |
-| Listing prefix         | the first 16 characters of the name, `CardScanDirectory(..., 0x10)`       |
+| Listing prefix         | the first 16 characters of the name, `SAVE_ScanDirectory(..., 0x10)`      |
 | Blocks per save        | 1 (8 KiB); the file is created with block count 1                         |
 | Bytes written and read | 4,784 from file offset 0, rounded up to 4,864                             |
 | RAM image              | `0x800C1800`; file offset `n` is at `0x800C1800 + n`                      |
 | Rows in the save menu  | 3 (the listing keeps names whose last digit is 0 to 2)                    |
 | Card capacity check    | 15 blocks: `total + (blocks << 13) > 0x1E000` fails with a capacity event |
 
-`CardTransferFile` rounds the size up to a multiple of 128, which gives the 4,864-byte figure. The game writes only the first 4,864 bytes of the 8 KiB block. Whatever the card holds beyond that is what file creation left, and no reader looks at it (`[inferred]`).
+`SAVE_TransferFile` rounds the size up to a multiple of 128, which gives the 4,864-byte figure. The game writes only the first 4,864 bytes of the 8 KiB block. Whatever the card holds beyond that is what file creation left, and no reader looks at it (`[inferred]`).
 
 ## Layout
 
@@ -41,7 +41,7 @@ The file holds the card header, three icon frames, the payload and padding. The 
 | `0x12B0` |    80 | `u8[80]`   | `transfer_pad` | zero pad written by the transfer                                    |
 | `0x1300` | 3,328 |            | unnamed        | not written by the game                                             |
 
-`CardBuildFileHeader (emi/etc/start/09@0x801EF27C)` writes bytes `0x00` to `0x1FF`. The call `SAVE_BuildSlotImage (emi/etc/shop/00@0x801D69E0)` passes block count 1 and flag `0x13`.
+`SAVE_BuildFileHeader (emi/etc/start/09@0x801EF27C)` writes bytes `0x00` to `0x1FF`. The call `SAVE_BuildSlotImage (emi/etc/shop/00@0x801D69E0)` passes block count 1 and flag `0x13`.
 
 The payload is the 4,272-byte span of live game state that starts at `0x801448D8`, the save work block. The scene event flags `g_SceneEventFlags (exe/slus_004_22@0x80144F28)` are at `+0x650` in it. A file offset `n` of `0x200` or more is RAM address `0x801446D8 + n`, and the field offsets in [game records](../../data/records/#save-layout) use that frame.
 
@@ -55,7 +55,7 @@ The BIOS card menu shows one to three 16x16 icon frames. The game does not store
 | CLUT block  |   44 | 16 colors, VRAM position (256, 480)                     |
 | image block |  140 | 4 by 16 words                                           |
 
-`CardBuildFileHeader` copies the 32-byte CLUT of icon 0 to file offset `0x60` and a 128-byte pixel block to each of `0x80`, `0x100` and `0x180`. The flag byte at `0x02` decides which icon feeds which frame:
+`SAVE_BuildFileHeader` copies the 32-byte CLUT of icon 0 to file offset `0x60` and a 128-byte pixel block to each of `0x80`, `0x100` and `0x180`. The flag byte at `0x02` decides which icon feeds which frame:
 
 |   Flag | Frame 0 | Frame 1 | Frame 2 |
 | -----: | ------: | ------: | ------: |
@@ -94,13 +94,13 @@ To patch a save by hand, change bytes in `0x200..0x12B0`, set the halfword at `0
 
 The overlay `etc/start/09` holds the card routines. The save menu and the shop overlay also carry copies of some of them.
 
-| Function (all `emi/etc/start/09`)   | Role                                                                                                                                                                                       |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CardAccessFile (@0x801EEC30)`      | waits for the card, opens the file and transfers it. Modes: 0 probe, 1 read, 2 write, `0x200` create then reopen to write. Its first parameter is the block count, not a port              |
-| `CardOpenFile (@0x801EF96C)`        | builds the path with prefix `bu00:` or `bu10:` from `g_SaveCardPort`, then `open`. The creation flag is the block count shifted left 16 bits, ORed with `0x200`. It retries for 120 frames |
-| `CardTransferFile (@0x801EFB44)`    | `lseek`, then `read` or `write` at `0x800C1800 + offset`. The size rounds up and the offset rounds down to a multiple of 128                                                               |
-| `CardScanDirectory (@0x801EFCA8)`   | `firstfile` and `nextfile` over the `BASLUS-00422BOF3` pattern into `D_8018E990` (24-byte entries: name 20, size 4)                                                                        |
-| `CardBuildFileHeader (@0x801EF27C)` | writes bytes 0 to 3, the title, the palette and the frames                                                                                                                                 |
+| Function (all `emi/etc/start/09`)    | Role                                                                                                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SAVE_AccessFile (@0x801EEC30)`      | waits for the card, opens the file and transfers it. Modes: 0 probe, 1 read, 2 write, `0x200` create then reopen to write. Its first parameter is the block count, not a port              |
+| `SAVE_OpenFile (@0x801EF96C)`        | builds the path with prefix `bu00:` or `bu10:` from `g_SaveCardPort`, then `open`. The creation flag is the block count shifted left 16 bits, ORed with `0x200`. It retries for 120 frames |
+| `SAVE_TransferFile (@0x801EFB44)`    | `lseek`, then `read` or `write` at `0x800C1800 + offset`. The size rounds up and the offset rounds down to a multiple of 128                                                               |
+| `SAVE_ScanDirectory (@0x801EFCA8)`   | `firstfile` and `nextfile` over the `BASLUS-00422BOF3` pattern into `D_8018E990` (24-byte entries: name 20, size 4)                                                                        |
+| `SAVE_BuildFileHeader (@0x801EF27C)` | writes bytes 0 to 3, the title, the palette and the frames                                                                                                                                 |
 
 The save menu fills its rows with a read of 28 bytes at file offset `0xEA0`. The transfer rounds the offset down to `0xE80` and the size up to 128, so it fetches `0xE80` to `0xEFF`. That span holds the save name (`+0xEA0`), portrait ids (`+0xEA5`), level (`+0xEA8`), timer (`+0xEAC`) and fairy job (`+0xEF0`). The BIOS owns the card's own directory (block 0 and its 128-byte frames), and the game never writes it. Raw 128 KiB emulator images and DexDrive headers wrap this format and are outside the game.
 
@@ -114,7 +114,7 @@ The save menu fills its rows with a read of 28 bytes at file offset `0xEA0`. The
 ## Sources and confidence
 
 - **Confidence:** medium. The header, checksum and card calls are read in the code, but the unnamed payload bytes, the seventh title digit and the load-time header check are open, and two minor claims are `[inferred]`.
-- **Evidence:** the `etc/start/08`, `etc/start/09` and `etc/shop/00` overlays unless a row says otherwise: `CardBuildFileHeader`, `SAVE_BuildSlotImage`, `SAVE_RunLoadVerify` and the card routines of `etc/start/09`, plus a scan of every archive for the TIM and CLUT headers of the icons. The frame layout and the directory block follow [psx-spx](https://psx-spx.consoledev.net/controllersandmemorycards/#memory-card-data-format) ([sources](../../appendix/sources/)). The community save editor listed in [sources](../../appendix/sources/) agrees on the checksum region.
+- **Evidence:** the `etc/start/08`, `etc/start/09` and `etc/shop/00` overlays unless a row says otherwise: `SAVE_BuildFileHeader`, `SAVE_BuildSlotImage`, `SAVE_RunLoadVerify` and the card routines of `etc/start/09`, plus a scan of every archive for the TIM and CLUT headers of the icons. The frame layout and the directory block follow [psx-spx](https://psx-spx.consoledev.net/controllersandmemorycards/#memory-card-data-format) ([sources](../../appendix/sources/)). The community save editor listed in [sources](../../appendix/sources/) agrees on the checksum region.
 
 ## Related
 

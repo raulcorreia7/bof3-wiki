@@ -60,7 +60,7 @@ Pages: [phases](../../systems/phases/#open-questions), [scenario](../../systems/
 | What scenario 16 draws, and when it raises the popup request                 | Read the `scena16` overlay.                                                                           |
 | Story meaning of each scenario and each flag bit                             | Read each controller's mode table and the `SYS_SetFlag` sites.                                        |
 | Mode and state counts of the 18 undecoded controllers                        | Read the five-word block and the table after it for each.                                             |
-| The caller that enters `Scene_RunEffect`, and the `SCE15EF*` overlays        | Find the call into `0x801D0C10` from `SCENA10` and `SCENA15`.                                         |
+| The caller that enters `Scene_UpdateEffect`, and the `SCE15EF*` overlays     | Find the call into `0x801D0C10` from `SCENA10` and `SCENA15`.                                         |
 | Purpose of `SCENA17`                                                         | Trace the ending path.                                                                                |
 | Roles of event ids 5, 6, 10, 27, 44, 55 and the `0x801F....` handlers        | Read each handler and the writers of `D_801448EB` (`func_801B6674` and others).                       |
 | Reader of the `flags_01 & 0x20` bit set by `func_8019A904`                   | Find its readers.                                                                                     |
@@ -158,9 +158,9 @@ Pages: [saving](../../systems/saving/#open-questions), [state](../../systems/sta
 | Question                                                                                                          | What would settle it                                                                      |
 | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Which scripts or objects select scene event 10, and whether other callers set `D_8014865C = -2`                   | Search the scenario and area event data for the event byte.                               |
-| Any game-over, continue or autosave path to the card                                                              | None was found. Search for other callers of `CardAccessFile`.                             |
+| Any game-over, continue or autosave path to the card                                                              | None was found. Search for other callers of `SAVE_AccessFile`.                            |
 | The setter of save status 11, `D_801E6110` and `D_80143BB4` in state 18, and the strings behind each message      | Read the writers and decode the text resources `0x85` and `0xA6` onward.                  |
-| Whether a load resumes the save-point event (bytes `0x801448EB` to `0x801448ED` are inside the saved block)       | Save during the event, then trace `Scene_RunEventHandler` after the load.                 |
+| Whether a load resumes the save-point event (bytes `0x801448EB` to `0x801448ED` are inside the saved block)       | Save during the event, then trace `Scene_UpdateEvent` after the load.                     |
 | Driver `open`, `format` and `_card_*` semantics                                                                   | PsyQ documentation `[inferred]`. A read of the library would confirm them.                |
 | Entry values at `D_80145E98`, `D_80145EC4` and `D_80145EC8`                                                       | Trace the writers of those cells in the area code `[inferred]`.                           |
 | Block content between `0x80144F60` and `0x80144FC0`, `0x80144FC4` and `0x80144FE4`, `0x80145025` and `0x8014504C` | Find readers and writers of those addresses.                                              |

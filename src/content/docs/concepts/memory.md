@@ -61,7 +61,7 @@ The table runs from low to high addresses. A size that says "up to" is the large
 | `0x801EEC00`             | up to 16,076  | shared code window                 | battle end and game over, spell code, dialogue, `START` entry 9, `SHOP` entry 8, some area code                                |
 | `0x801F2C00`             | up to 16,324  | area program window                | the program of the current area, from 200 archives                                                                             |
 | `0x801F6C00`             | up to 32,384  | scenario window                    | the controller of the current scenario, one of 20, ends at `0x801FEA80`                                                        |
-| `0x801FF000`             | -             | `SYS_RunLogo`                      | stack for the `Exec` of `LOGO.EXE`                                                                                             |
+| `0x801FF000`             | -             | `SYS_StartLogo`                    | stack for the `Exec` of `LOGO.EXE`                                                                                             |
 | `0x801FF400..0x801FFC00` | 2,048         | `CallbackInitThreads`              | four 512-byte callback thread stacks                                                                                           |
 
 The area band is the busiest. A typical area archive writes, in order: the sound bank and cue table, the scene table, the script bank, graphics, three palette slices, the area table, the encounter table, the text bank, the map bundle and last the area program at `0x801F2C00`. [Loading](../loading/#area) walks through this.
@@ -84,7 +84,7 @@ An overlay's own variables sit in its window and are lost when another archive r
 Resident code reaches overlay code through tables of function pointers:
 
 - The scene-object handler table `g_ActorHandlers` (187 entries, one per object type; [areas](../../systems/areas/#staged-scene-objects)) and the scene event table `g_SceneEvents` mix handlers in the resident program (`0x8019xxxx`, `0x801Axxxx`) with handlers in the scene window (`0x801Dxxxx`), the area program window and the scenario window.
-- `g_SceneScenes (emi/etc/game/00@0x801C8454)` holds 20 pointers into the scenario window, and `Game_RunScenarioEntry (emi/etc/game/00@0x801A782C)` calls `entry_00` of the selected one.
+- `g_SceneScenes (emi/etc/game/00@0x801C8454)` holds 20 pointers into the scenario window, and `Game_UpdateScenario (emi/etc/game/00@0x801A782C)` calls `entry_00` of the selected one.
 - `g_GameModeHandlers (emi/etc/game/00@0x801C7B54)` holds `Battle_Update (emi/battle/battle/03@0x801D1014)` at index 5.
 - `battle/03` (`0x801D0C00`) and `battle/15` (`0x80096800`) come from one battle archive and coexist. `BATTLE.EMI` and `BATTLE2.EMI` are byte-identical.
 
@@ -107,7 +107,7 @@ The table gives the top of each stack.
 | Stack                      | Top                            | Set by                                             |
 | -------------------------- | ------------------------------ | -------------------------------------------------- |
 | Main                       | `0x80200000`                   | `stup1`; it replaces the header value `0x801FFFF0` |
-| `LOGO.EXE` `Exec`          | `0x801FF000`                   | `SYS_RunLogo`                                      |
+| `LOGO.EXE` `Exec`          | `0x801FF000`                   | `SYS_StartLogo`                                    |
 | Callback slot `i` (0 to 3) | `0x801FF400 + 0x200 * (i + 1)` | `CallbackInitThreads`                              |
 
 `stup1` leaves 32,768 bytes for the main stack: the heap ends at `0x801F8004`. The range `0x801F8000..0x80200000` already holds most of the scenario window and the thread stacks. The thread stacks end at `0x801FFC00`, so the main stack has 1,024 bytes above them. A deeper main stack writes into slot 3's stack. `[inferred]` The game does its work in the threads, and the real depth of the main stack is `[unknown]`. The `Exec` stack is used only while the logo runs.

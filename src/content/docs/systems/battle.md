@@ -75,7 +75,7 @@ The entry and exit substates test these bits of `g_BattleOptions` (masks `0x01`,
 
 ## Entry state 5
 
-`Game_RunFieldState` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_RunBattleState (emi/etc/game/00@0x80197A24)` then calls `g_GameModeHandlers[g_GameEntrySubstate]` once per frame. The eight substates are the field-side wrapper around the battle:
+`Game_UpdateField` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_UpdateBattle (emi/etc/game/00@0x80197A24)` then calls `g_GameModeHandlers[g_GameEntrySubstate]` once per frame. The eight substates are the field-side wrapper around the battle:
 
 | Substate | Function (`emi/etc/game/00`)                      | Work                                                                                                                               |
 | -------: | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -99,10 +99,10 @@ Unless `g_BattleOptions & 0x40` is set, substate 3 copies 1,376 bytes of the seq
 `Battle_Update` runs once per frame in a fixed order:
 
 1. `Battle_DispatchMode`, but only when `g_BattleState` bit `0x0002` (boss window busy) is clear, no panel task 0 is live (or the mode is 5), and `g_BattleEventFlags & 2` is clear (or the mode is 5).
-2. `Battle_RunParty`, `Battle_RunEnemies`, `Battle_RunEvents`, `func_801527E4`, `Battle_RunEffects`.
+2. `Battle_UpdateParty`, `Battle_UpdateEnemies`, `Battle_UpdateEvents`, `func_801527E4`, `Battle_UpdateEffects`.
 3. `Battle_UpdatePartyActors`, `Battle_UpdateEnemyActors`.
 4. `func_801A0514` (scripted battle) or `func_801A061C` (random battle): the battle scene draw.
-5. `Area_RunParty`, `Actor_DispatchAll`, `GFX_UpdatePaletteAnimations`, `func_8019625C`, `Menu_RunPanelTasks`, `Area_DrawScene`.
+5. `Area_UpdateParty`, `Actor_DispatchAll`, `GFX_UpdatePaletteAnimations`, `func_8019625C`, `Menu_UpdatePanelTasks`, `Area_DrawScene`.
 
 `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)` first calls `g_BossBattleEventHook(3)` when `g_BattleEncounter != 0` and the mode is not 0. Then it calls `g_BattlePhases[g_BattleMode]`. Mode 0 calls `Battle_DispatchStep`. Modes 1 to 5 read a step table by `g_BattleStep`, and some steps read a sub-table by `g_BattleSubStep`.
 
@@ -144,7 +144,7 @@ Step 0, `func_801D1228`, clears the battle state block, counts living party slot
 
 Step 1, `Battle_DispatchEntrance (emi/battle/battle/03@0x801D17C4)`, runs four sub-steps from `g_BattleEntrances` (`0x801D0C1C`):
 
-1. `Battle_ReserveStagePanels` arms the selection panels and writes the initiative text when `g_BattleSurprise` is 1 or 2.
+1. `Battle_OpenPanels` arms the selection panels and writes the initiative text when `g_BattleSurprise` is 1 or 2.
 2. `Battle_WaitUiMode` waits for the UI mode byte to read 1.
 3. `Battle_InitPanels` presets the seven panel widths.
 4. `Battle_EnterIntro` waits for `EMI_IsReady` and the intro helper, calls `func_801D93E4` with 1 (2 when `g_BattleSurprise >= 2`) and `func_801D9428(2)`, zeroes step and sub-step, and sets `g_BattleMode` to 1.
@@ -173,17 +173,17 @@ Mode 5 has five steps, each with a sub-table in `D_801EACD4`.
 
 | Step | Sub-table    | Role                                                                                                             |
 | ---: | ------------ | ---------------------------------------------------------------------------------------------------------------- |
-|    0 | `D_801EACE8` | The third sub-step is `Battle_StreamEndOverlay`, the chooser.                                                    |
+|    0 | `D_801EACE8` | The third sub-step is `Battle_LoadEndOverlay`, the chooser.                                                      |
 |    1 | `D_801EACF4` | Ends in `func_801EEC58`, the `BATL_END` entry (victory).                                                         |
 |    2 | `D_801EAD00` | Ends in `func_801EEC04`, the `BATL_OVR` entry (defeat).                                                          |
 |    3 | `D_801EAD0C` | Reloads the area slot (`0x2AB + area`), then sets step 4.                                                        |
 |    4 | `D_801EAD20` | Exit: free battlers, stream slot `0x256` (`AFLDKWA`), restore BGM, `Battle_WriteBackParty`, wait for the window. |
 
-The chooser, `Battle_StreamEndOverlay (emi/battle/battle/03@0x801D6A14)`, waits until no party row has bit `0x2000` and `g_BattleRowCursor == g_BattlePartyCount`. If the result is not defeat, it ANDs every party member's status with `0xBF5F`, which keeps KO (`0x4000`), poison (`0x80`) and confusion (`0x20`). A member with status bit `0x800` first gets HP, AP and willpower set to their maximums. For a random battle it then sets step 2 on defeat (`g_BattleResult` bit 0) or step 1 on victory (bit 1). It calls `g_BattleChooseEndingHook` and `SND_SetBankLayout(0)`, and streams slot 1 (`BATL_END`) for step 1 or slot 2 (`BATL_OVR`) for step 2. In a scripted battle, `g_BattleChooseEndingHook` sets the step. That the boss hook does this is `[inferred]`.
+The chooser, `Battle_LoadEndOverlay (emi/battle/battle/03@0x801D6A14)`, waits until no party row has bit `0x2000` and `g_BattleRowCursor == g_BattlePartyCount`. If the result is not defeat, it ANDs every party member's status with `0xBF5F`, which keeps KO (`0x4000`), poison (`0x80`) and confusion (`0x20`). A member with status bit `0x800` first gets HP, AP and willpower set to their maximums. For a random battle it then sets step 2 on defeat (`g_BattleResult` bit 0) or step 1 on victory (bit 1). It calls `g_BattleChooseEndingHook` and `SND_SetBankLayout(0)`, and streams slot 1 (`BATL_END`) for step 1 or slot 2 (`BATL_OVR`) for step 2. In a scripted battle, `g_BattleChooseEndingHook` sets the step. That the boss hook does this is `[inferred]`.
 
 **Victory.** `BATL_END` runs at `0x801EEC00`. Its entry is the image head plus `0x58`, and it dispatches on `g_BattleUiStep`. `Battle_GrantQueuedItems (emi/battle/batl_end/00@0x801EF870)` grants the queued items (`D_80146327`: a count, 16 item words, 16 levels) through `Party_AddItem` and sets `g_BattleStep = 4`. The experience and money payout code lives in the same image and is not traced `[unknown]`.
 
-**Defeat.** `BATL_OVR` also runs at `0x801EEC00`. Its entry is the image head plus 4. `Battle_RunGameOver (emi/battle/batl_ovr/00@0x801EF0A8)` fades the screen, frees the palette rows, clears `g_BattleEncounter`, `g_BattleOptions` and the mode bytes, then runs `SND_Exit` and `CallbackReplace(SYS_StartFrontend)`. The game returns to the first load and the title.
+**Defeat.** `BATL_OVR` also runs at `0x801EEC00`. Its entry is the image head plus 4. `Battle_UpdateGameOver (emi/battle/batl_ovr/00@0x801EF0A8)` fades the screen, frees the palette rows, clears `g_BattleEncounter`, `g_BattleOptions` and the mode bytes, then runs `SND_Exit` and `CallbackReplace(SYS_StartFrontend)`. The game returns to the first load and the title.
 
 **Exit.** Step 4, sub-step 2 is `Battle_WriteBackParty (emi/battle/battle/03@0x801D7350)`. It revives party rows with status bit `0x4000` (KO): current HP and willpower become 1, `fatigue` rises by 1 while it is below 5, the status loses bit `0x4000`, and the flag byte loses bit `0x04`. Living rows are untouched. It then zeroes every battle byte and increments `g_GameEntrySubstate` to 6. Substate 7 hands control back to the field (`g_GameEntryState = 2`).
 
@@ -193,7 +193,7 @@ The chooser, `Battle_StreamEndOverlay (emi/battle/battle/03@0x801D6A14)`, waits 
 
 A scripted boss battle runs extra code from a boss module, the code entry of a `BOSSnnn.EMI` archive. It sits at `0x800C1800` and is entry 16 of the archive (entry 13 for boss001, boss004, boss022, boss025 and boss031). Random battles do not load one.
 
-`Boss_InstallBattleHooks` stores three function pointers: `Boss_ChooseBattleEnding` into `g_BattleChooseEndingHook` (`0x801463A4`), `Boss_EndBattle` into `g_BattleEndHook` (`0x801463A8`) and `Boss_HandleBattleEvent` into `g_BossBattleEventHook` (`0x801463AC`). Each of the 35 boss modules has its own copy. A `jal` never calls it. `Battle_RunEnemies` runs, for each of the 8 enemy slots, `D_801EB298[enemy->unk_F0]()` in a scripted battle and `D_801EB294[enemy->unk_F0]()` (one entry, `func_801E31C8`) otherwise. `D_801EB298` has 63 entries, and the targets lie in the boss window (`func_800C1804` onward). For boss015 the target `func_800C18F0` is the installer's address, so the installer runs as the per-frame enemy handler of a boss whose kind index matches. That every module is reached this way is `[inferred]`; the table-to-module match for the other 34 is `[unknown]`.
+`Boss_InstallBattleHooks` stores three function pointers: `Boss_ChooseBattleEnding` into `g_BattleChooseEndingHook` (`0x801463A4`), `Boss_EndBattle` into `g_BattleEndHook` (`0x801463A8`) and `Boss_HandleBattleEvent` into `g_BossBattleEventHook` (`0x801463AC`). Each of the 35 boss modules has its own copy. A `jal` never calls it. `Battle_UpdateEnemies` runs, for each of the 8 enemy slots, `D_801EB298[enemy->unk_F0]()` in a scripted battle and `D_801EB294[enemy->unk_F0]()` (one entry, `func_801E31C8`) otherwise. `D_801EB298` has 63 entries, and the targets lie in the boss window (`func_800C1804` onward). For boss015 the target `func_800C18F0` is the installer's address, so the installer runs as the per-frame enemy handler of a boss whose kind index matches. That every module is reached this way is `[inferred]`; the table-to-module match for the other 34 is `[unknown]`.
 
 Installer addresses in the boss window, by module. A module that has more than one installer publishes variants of the three hooks.
 
@@ -216,7 +216,7 @@ Installer addresses in the boss window, by module. A module that has more than o
 | `BATL_RET` 4, `BATL_RE2` 3               | `func_801D3E80`; several sites in `battle/battle/15` | effect banks                                |
 | `BATL_DRA` 0                             | `func_800A4700` (`battle/battle/15`)                 | effect bank                                 |
 | `COMN_SE` 8                              | `func_801D656C`                                      | sound bank                                  |
-| `BATL_END` 1 or `BATL_OVR` 2             | `Battle_StreamEndOverlay`                            | `0x801EEC00`                                |
+| `BATL_END` 1 or `BATL_OVR` 2             | `Battle_LoadEndOverlay`                              | `0x801EEC00`                                |
 | `AREA` `0x2AB + area`, `AFLDKWA` `0x256` | mode 5 steps 3 and 4                                 | area image, field sound                     |
 
 The loader streams one archive at a time, and callers wait on `EMI_IsReady` ([loading](../../concepts/loading/)). The overlay windows are in [memory](../../concepts/memory/).

@@ -32,7 +32,7 @@ flowchart TD
     C --> E["SYS_SubmitFrame: AddPrims, 8 layers into the OT"]
     E --> F["next pass: DrawOTag(entry 7)"]
     F --> G["GPU: layer 7 first, layer 0 last"]
-    H["GFX_UploadPalette, GFX_RunTransferQueue"] -->|"LoadImage, before DrawOTag"| G
+    H["GFX_UploadPalette, GFX_UpdateTransferQueue"] -->|"LoadImage, before DrawOTag"| G
 ```
 
 `LoadImage` calls run in the loop step before `DrawOTag`. Whether the GPU finishes each copy before the draw starts is `[unknown]`.
@@ -140,7 +140,7 @@ Palette animations read 4-byte steps (`dst`, `src`, `count`, `wait`) and copy `c
 
 ## Sprite sheet queue
 
-`GFX_RunTransferQueue (exe/slus_004_22@0x8014E6D0)` runs once per frame after the palette upload. Each of up to 20 entries holds an `x` and `y` (`D_80145A54[0..19]` and `D_80145A54[20..39]`) and a record pointer (`D_80145A04[0..19]`). The record is `w`, `h`, a kind word and the payload at `+8`. Kind 1 expands packed RGB555 pixels to one byte per component and uploads them. Kind 2 decodes LZSS and uploads. Any other kind is a raw `LoadImage`. The count `D_80145A00` is then cleared.
+`GFX_UpdateTransferQueue (exe/slus_004_22@0x8014E6D0)` runs once per frame after the palette upload. Each of up to 20 entries holds an `x` and `y` (`D_80145A54[0..19]` and `D_80145A54[20..39]`) and a record pointer (`D_80145A04[0..19]`). The record is `w`, `h`, a kind word and the payload at `+8`. Kind 1 expands packed RGB555 pixels to one byte per component and uploads them. Kind 2 decodes LZSS and uploads. Any other kind is a raw `LoadImage`. The count `D_80145A00` is then cleared.
 
 `Actor_SelectScriptBank` does not test the count before it queues, so a 21st entry in one frame writes past the table.
 
@@ -183,7 +183,7 @@ Each row gives a limit, where the code shows it and what an asset must stay with
 | Dynamic palette cells | 4 rows by 16 cells = 64 cells                      | `D_80145D54`, `GFX_AllocPaletteCell`       | Fades and animated sprites share these 64 cells; free-run search, no compaction.                 |
 | Fade records          | 32                                                 | `GFX_AllocPaletteFade` (`0x20`)            | Returns `0xFF` when full.                                                                        |
 | Palette animations    | 8                                                  | `GFX_StartPaletteAnimation`                | Returns `0xFF` when full.                                                                        |
-| Sheet upload queue    | 20 per frame                                       | `GFX_RunTransferQueue`, `D_80145A00`       | At most 20 sprite records change sheets in one frame; no overflow check.                         |
+| Sheet upload queue    | 20 per frame                                       | `GFX_UpdateTransferQueue`, `D_80145A00`    | At most 20 sprite records change sheets in one frame; no overflow check.                         |
 | Texture pages         | 16 columns by 2 rows of 64 by 256                  | `Area_DrawObjectSprite`                    | Record page byte `+0x25` below 32.                                                               |
 | Cell shapes           | 16 sizes                                           | `g_SpriteSizes`                            | Sprite sheet cells use these sizes only.                                                         |
 | Scene packet records  | 56 per frame, loop bound 55                        | `SYS_PrepareFrame`, `func_8014BC70`        | At most 55 or 56 scene layers in an area map `[inferred]`.                                       |
@@ -203,7 +203,7 @@ Each row gives a limit, where the code shows it and what an asset must stay with
 ## Sources and confidence
 
 - **Confidence:** medium. The pipeline, the palette chain and the limits are read in the code. The layer meanings, the VRAM allocation and the scene-object merge are `[unknown]` or `[inferred]`.
-- **Evidence:** the frame functions `SYS_PrepareFrame`, `GFX_AddPrim` and `SYS_SubmitFrame`, the palette functions `GFX_ResetPalette`, `GFX_UploadPalette` and `Area_BuildClut`, the sprite draw functions `Area_DrawObjectSprite` and `Area_DrawScene`, and the queue function `GFX_RunTransferQueue`, all in `exe/slus_004_22`. Layer usage comes from the layer literals at the call sites.
+- **Evidence:** the frame functions `SYS_PrepareFrame`, `GFX_AddPrim` and `SYS_SubmitFrame`, the palette functions `GFX_ResetPalette`, `GFX_UploadPalette` and `Area_BuildClut`, the sprite draw functions `Area_DrawObjectSprite` and `Area_DrawScene`, and the queue function `GFX_UpdateTransferQueue`, all in `exe/slus_004_22`. Layer usage comes from the layer literals at the call sites.
 
 ## Related
 

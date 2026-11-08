@@ -7,13 +7,13 @@ Two PS-X executables, `SLUS_004.22` and `LOGO/LOGO.EXE`, and the boot file `SYST
 
 ## Files
 
-| Path                |        Size (bytes) |     LBA | Kind                                   | Read by                               |
-| ------------------- | ------------------: | ------: | -------------------------------------- | ------------------------------------- |
-| `SYSTEM.CNF`        |                  70 | 187,467 | text, 4 `KEY = value` lines            | the BIOS (boot)                       |
-| `SLUS_004.22`       |           1,445,888 | 187,468 | PS-X EXE, resident game                | the BIOS, from `BOOT`                 |
-| `LOGO/LOGO.EXE`     |             122,880 | 187,407 | PS-X EXE, Capcom logo                  | `SYS_RunLogo`, through `SYS_LoadExec` |
-| `LOGO/CAPCOM30.STR` |           2,365,440 | 186,252 | MDEC video and XA, see [STR](../str/)  | `LOGO.EXE`, by a fixed sector number  |
-| license sectors     | 28,032 (12 x 2,336) |    0-11 | license text and logo, outside ISO9660 | the BIOS only                         |
+| Path                |        Size (bytes) |     LBA | Kind                                   | Read by                                 |
+| ------------------- | ------------------: | ------: | -------------------------------------- | --------------------------------------- |
+| `SYSTEM.CNF`        |                  70 | 187,467 | text, 4 `KEY = value` lines            | the BIOS (boot)                         |
+| `SLUS_004.22`       |           1,445,888 | 187,468 | PS-X EXE, resident game                | the BIOS, from `BOOT`                   |
+| `LOGO/LOGO.EXE`     |             122,880 | 187,407 | PS-X EXE, Capcom logo                  | `SYS_StartLogo`, through `SYS_LoadExec` |
+| `LOGO/CAPCOM30.STR` |           2,365,440 | 186,252 | MDEC video and XA, see [STR](../str/)  | `LOGO.EXE`, by a fixed sector number    |
+| license sectors     | 28,032 (12 x 2,336) |    0-11 | license text and logo, outside ISO9660 | the BIOS only                           |
 
 The disc also has one CDDA track (track 2, 37,044,044 bytes). Every sample in it is zero. No function that was read issues `CdlPlay`, so nothing in the code read so far plays it. Code that was not read is outside that search, so "nothing plays it" is `[inferred]`.
 
@@ -55,19 +55,19 @@ The BIOS reads the file, and the game never opens it. `TCB` and `EVENT` size the
 
 ## Boot chain
 
-The BIOS reads `SYSTEM.CNF` and loads `SLUS_004.22`. The game first runs the logo program as a nested executable, then returns and starts the frontend. [Boot](../../systems/boot/#the-logo-program) describes `SYS_RunLogo` and `SYS_LoadExec`.
+The BIOS reads `SYSTEM.CNF` and loads `SLUS_004.22`. The game first runs the logo program as a nested executable, then returns and starts the frontend. [Boot](../../systems/boot/#the-logo-program) describes `SYS_StartLogo` and `SYS_LoadExec`.
 
 ```mermaid
 flowchart TD
     B["BIOS reads SYSTEM.CNF"] --> S["SLUS_004.22 at 0x80096800"]
-    S --> L["SYS_RunLogo 0x8014AEE0"]
+    S --> L["SYS_StartLogo 0x8014AEE0"]
     L --> X["SYS_LoadExec 0x8014E0FC: LOGO.EXE"]
     X --> G["LOGO.EXE: CAPCOM30.STR by LBA"]
     G --> R["Exec returns; SYS_InitHardware"]
     R --> F["frontend and game"]
 ```
 
-`SYS_RunLogo` passes the path `\LOGO\LOGO.EXE;1` to `SYS_LoadExec`.
+`SYS_StartLogo` passes the path `\LOGO\LOGO.EXE;1` to `SYS_LoadExec`.
 
 `LOGO.EXE` finds the video by sector number, not by file name. It stores the start LBA as the 32-bit constant `D_801D8BB0 (exe/logo@0x801D8BB0)`, which is `0x0002D78C` (186,252), the LBA of `CAPCOM30.STR` (checked against the directory). Moving the STR file requires the same change in `LOGO.EXE`.
 
@@ -103,7 +103,7 @@ The table lists data that editors look for in the main executable, and whether i
 ## Sources and confidence
 
 - **Confidence:** high. The header fields, the file table and the boot files were read and checked on every file; only the use of the CDDA track and of `STACK` is `[inferred]`.
-- **Evidence:** the PS-X headers of both executables, the `SYSTEM.CNF` text, the ISO9660 directory records compared with `g_EmiSlotLbas`, and `SYS_RunLogo`, `SYS_LoadExec` and `EMI_GetArchiveSector`.
+- **Evidence:** the PS-X headers of both executables, the `SYSTEM.CNF` text, the ISO9660 directory records compared with `g_EmiSlotLbas`, and `SYS_StartLogo`, `SYS_LoadExec` and `EMI_GetArchiveSector`.
 
 ## Related
 

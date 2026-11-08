@@ -13,7 +13,7 @@ Every pass of that loop does the same thing. It waits for the display, swaps the
 
 The first callback loads the first archive, `FIRST.EMI`, with the EMI loader, and then registers a second callback in the next slot. That callback loads `GAME.EMI`, which holds the resident game program and the title overlay, and runs the title. The loader reads the disc in the background of the frame loop, so a callback waits for it with a yield and never blocks a frame. [Loading](../loading/) describes how a request flows through the loader, and [disc and files](../../formats/disc/) lists what the disc holds.
 
-From the title, a choice leads to the start menu, which offers a new game or a saved one. Either choice installs `Game_RunMainLoop` in slot 0. That function runs a 12-entry state table once per pass. The field is one state in that table, and menus, battles and shops are the others. Within the field, the area code runs each frame and a story controller (a scenario overlay) drives events. When the game needs more code, such as a battle or a scenario, it asks the loader to stream an overlay into its window, and then calls into it. [Phases](../../systems/phases/) follows the transitions, and [memory](../memory/) shows which images share which RAM.
+From the title, a choice leads to the start menu, which offers a new game or a saved one. Either choice installs `Game_UpdateMain` in slot 0. That function runs a 12-entry state table once per pass. The field is one state in that table, and menus, battles and shops are the others. Within the field, the area code runs each frame and a story controller (a scenario overlay) drives events. When the game needs more code, such as a battle or a scenario, it asks the loader to stream an overlay into its window, and then calls into it. [Phases](../../systems/phases/) follows the transitions, and [memory](../memory/) shows which images share which RAM.
 
 ```mermaid
 flowchart TD
@@ -22,7 +22,7 @@ flowchart TD
     logo --> first["slot 0: load FIRST"]
     first --> game["slot 1: load GAME, run title"]
     game --> menu["start menu"]
-    menu --> loop["slot 0: Game_RunMainLoop"]
+    menu --> loop["slot 0: Game_UpdateMain"]
     loop --> field["field, menu, battle, shop"]
     field -. "stream overlay" .-> loop
 ```

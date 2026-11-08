@@ -45,15 +45,15 @@ Under the fade, the game frees the old area's objects, streams the new archive, 
 
 An area change begins when the party steps on an exit cell or when code calls `Game_RequestAreaChange (emi/etc/game/00@0x8019FA28)`. Either one stages a destination and sets the request code `g_GameStateIndex` to 5. The staged destination has four values: `g_GameContextSeed` (the area id), `g_GameEntryPosX` and `g_GameEntryPosY` (16.16 positions) and `g_GameContextKind`.
 
-On the next frame `Game_RunFieldState (emi/etc/game/00@0x80197378)` sees request 5, sets the arrival effect with `UI_SetMode(g_GameEntryMode)` and moves to entry state 1. That is `Game_RunAreaLoadState (emi/etc/game/00@0x801971E8)`, which passes the staged values to `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)`, the only function that loads an area.
+On the next frame `Game_UpdateField (emi/etc/game/00@0x80197378)` sees request 5, sets the arrival effect with `UI_SetMode(g_GameEntryMode)` and moves to entry state 1. That is `Game_UpdateAreaLoad (emi/etc/game/00@0x801971E8)`, which passes the staged values to `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)`, the only function that loads an area.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant S as func_801B0E44<br/>step test
     participant X as func_801A0048<br/>exit lookup
-    participant F as Game_RunFieldState<br/>field state
-    participant L as Game_RunAreaLoadState<br/>load state
+    participant F as Game_UpdateField<br/>field state
+    participant L as Game_UpdateAreaLoad<br/>load state
     participant A as func_8019FAA0<br/>area load
     participant E as EMI loader
     participant R as scenario<br/>entry_00
@@ -68,25 +68,25 @@ sequenceDiagram
     A->>A: CallbackWait(1)<br/>until EMI_IsReady
     A->>A: bind AreaLoad, flags,<br/>party, palette matrix
     A->>A: Area_RunSetupStream(entry->handler),<br/>entry->callback()
-    A->>R: mode_02 = 1,<br/>Game_RunScenarioEntry
+    A->>R: mode_02 = 1,<br/>Game_UpdateScenario
     L->>L: g_GameStateIndex = 0,<br/>g_GameEntryState = 2
 ```
 
 `func_8019FAA0` runs these steps in this order.
 
-| Step | Call                                                                             | Effect                                                                                                                                                 |
-| ---: | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-|    1 | `Actor_ClearAll`, `GFX_ResetPaletteFades`                                        | Free the 20 staged scene objects and clear palette fades.                                                                                              |
-|    2 | `SND_StartBGM(g_GamePrevSelection, 100, 8)`                                      | Start the BGM chosen for the previous cell, or set `g_SndBgmId = 0xFF` when there is none.                                                             |
-|    3 | `EMI_LoadArchive(seed + 0x2AB)` and poll                                         | Only when the id differs from `g_GameAreaId` and `g_GameStateIndex` is 5. The poll blocks the callback thread, one `CallbackWait(1)` per frame.        |
-|    4 | read `g_AreaLoads[g_GameAreaId]`                                                 | Copy `AreaLoad.flag_32` to `g_GameRequestFlags` and mark a palette upload pending.                                                                     |
-|    5 | `GFX_ResetPalette`, `func_801BFF9C`                                              | `func_801BFF9C` places the party rows from the map kind (world map, battlefield, fishing, camp or walked area).                                        |
-|    6 | `func_801A0348`, `func_80153DE8`, `SetColorMatrix`                               | Cache the zone kind of the arrival cell. Run map setup. Load the GTE color matrix from `AreaLoad.matrix`, or the default `D_8018214C` when it is null. |
-|    7 | `Scene_Start` when `g_SceneState.flags_01 & 0x80`                                | Advance the story chapter ([scenario](../scenario/#chapter-advance)).                                                                                  |
-|    8 | `Area_RunSetupStream(AreaLoad.handler)`, `AreaLoad.callback()`                   | Build the area's entities and objects, then run the area's own setup code if the callback is set.                                                      |
-|    9 | `SYS_ClearFlag(g_SceneEventFlags, 0x1C)`, `mode_02 = 1`, `Game_RunScenarioEntry` | Let the scenario react to the arrival.                                                                                                                 |
+| Step | Call                                                                           | Effect                                                                                                                                                 |
+| ---: | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|    1 | `Actor_ClearAll`, `GFX_ResetPaletteFades`                                      | Free the 20 staged scene objects and clear palette fades.                                                                                              |
+|    2 | `SND_StartBGM(g_GamePrevSelection, 100, 8)`                                    | Start the BGM chosen for the previous cell, or set `g_SndBgmId = 0xFF` when there is none.                                                             |
+|    3 | `EMI_LoadArchive(seed + 0x2AB)` and poll                                       | Only when the id differs from `g_GameAreaId` and `g_GameStateIndex` is 5. The poll blocks the callback thread, one `CallbackWait(1)` per frame.        |
+|    4 | read `g_AreaLoads[g_GameAreaId]`                                               | Copy `AreaLoad.flag_32` to `g_GameRequestFlags` and mark a palette upload pending.                                                                     |
+|    5 | `GFX_ResetPalette`, `func_801BFF9C`                                            | `func_801BFF9C` places the party rows from the map kind (world map, battlefield, fishing, camp or walked area).                                        |
+|    6 | `func_801A0348`, `func_80153DE8`, `SetColorMatrix`                             | Cache the zone kind of the arrival cell. Run map setup. Load the GTE color matrix from `AreaLoad.matrix`, or the default `D_8018214C` when it is null. |
+|    7 | `Scene_Start` when `g_SceneState.flags_01 & 0x80`                              | Advance the story chapter ([scenario](../scenario/#chapter-advance)).                                                                                  |
+|    8 | `Area_RunSetupStream(AreaLoad.handler)`, `AreaLoad.callback()`                 | Build the area's entities and objects, then run the area's own setup code if the callback is set.                                                      |
+|    9 | `SYS_ClearFlag(g_SceneEventFlags, 0x1C)`, `mode_02 = 1`, `Game_UpdateScenario` | Let the scenario react to the arrival.                                                                                                                 |
 
-Back in `Game_RunAreaLoadState`, a fishing area (`flag_32 & 8`) goes to entry state 8. Every other area goes to entry state 2 with `g_GameStateIndex = 0`, the running field. The arrival effect is `UI_SetMode(g_GameRequestKind)`; `g_GameRequestKind` is 11 when the area id is among the first 11 words of `D_801C8384`, otherwise 1. Fishing and the fairy village are in [screens](../screens/).
+Back in `Game_UpdateAreaLoad`, a fishing area (`flag_32 & 8`) goes to entry state 8. Every other area goes to entry state 2 with `g_GameStateIndex = 0`, the running field. The arrival effect is `UI_SetMode(g_GameRequestKind)`; `g_GameRequestKind` is 11 when the area id is among the first 11 words of `D_801C8384`, otherwise 1. Fishing and the fairy village are in [screens](../screens/).
 
 ### Doors
 
@@ -109,7 +109,7 @@ A hit returns 0, `func_801B0E44` sets `g_GameStateIndex = 5`, and the transition
 
 ## Per-frame update
 
-In entry state 2, `Game_RunFieldState` first runs `Game_RunScenarioEntry` (the scenario's `entry_00`, then the event stage; see [scenario](../scenario/)). Then it runs `Area_RunFrame (emi/etc/game/00@0x801991B8)`. Last, it maps the request code `g_GameStateIndex` to the next entry state:
+In entry state 2, `Game_UpdateField` first runs `Game_UpdateScenario` (the scenario's `entry_00`, then the event stage; see [scenario](../scenario/)). Then it runs `Area_RunFrame (emi/etc/game/00@0x801991B8)`. Last, it maps the request code `g_GameStateIndex` to the next entry state:
 
 | Request code | 1 | 2 | 3          | 4 | 5             | 6 | 7 | 8  | 9  |
 | ------------ | - | - | ---------- | - | ------------- | - | - | -- | -- |
@@ -126,7 +126,7 @@ Roles of the states are in [phases](../phases/).
 |     3 | `func_80199440`               | Camera and scroll target `[unknown]`.                                                          |
 |     4 | `func_801A06D8`               | Run the 30 entity rows (`g_Actors`).                                                           |
 |     5 | `func_801527E4`               | Calls `func_801F2C04` when the area id is `0xBD` (see the [area format](../../formats/area/)). |
-|     6 | `Area_RunParty`               | Step the party rows `[inferred]`.                                                              |
+|     6 | `Area_UpdateParty`            | Step the party rows `[inferred]`.                                                              |
 |     7 | `func_801BDAB8`               | Party follow and formation `[unknown]`.                                                        |
 |     8 | `func_801A0514`               | Stamp draw mode on the entity rows and run per-row draw helpers.                               |
 |     9 | `Actor_DispatchAll`           | Run the staged scene objects.                                                                  |
@@ -185,15 +185,15 @@ The table lists the counts and ranges that the code enforces. Other limits are i
 
 The staged destination of an area change sits in work variables of the executable (`exe/slus_004_22`), `0x80143F10..0x80143F1F`. [Phases](../phases/) lists the state variables that the transition also uses.
 
-| Address      | Type          | Name                  | Meaning                                                                                             |
-| ------------ | ------------- | --------------------- | --------------------------------------------------------------------------------------------------- |
-| `0x80143F10` | `u16`         | `g_GameContextSeed`   | Staged destination area.                                                                            |
-| `0x80143F14` | `s32 (16.16)` | `g_GameEntryPosX`     | Staged destination x.                                                                               |
-| `0x80143F18` | `s32 (16.16)` | `g_GameEntryPosY`     | Staged destination y.                                                                               |
-| `0x80143F1C` | `u8`          | `g_GameContextKind`   | Staged kind byte. Bit 7 selects the world-map arrival.                                              |
-| `0x80143F1D` | `u8`          | `g_GameRequestKind`   | Request kind: `func_801A02E8` writes it, `Game_RunAreaLoadState` reads it.                          |
-| `0x80143F1E` | `u8`          | `g_GameEntryMode`     | Arrival effect: `Game_RunAreaLoadState` selects it, `Game_RunFieldState` passes it to `UI_SetMode`. |
-| `0x80143F1F` | `u8`          | `g_GamePrevSelection` | Previous selection: `func_801A0380` writes it, `Game_RunFieldState` compares it.                    |
+| Address      | Type          | Name                  | Meaning                                                                                         |
+| ------------ | ------------- | --------------------- | ----------------------------------------------------------------------------------------------- |
+| `0x80143F10` | `u16`         | `g_GameContextSeed`   | Staged destination area.                                                                        |
+| `0x80143F14` | `s32 (16.16)` | `g_GameEntryPosX`     | Staged destination x.                                                                           |
+| `0x80143F18` | `s32 (16.16)` | `g_GameEntryPosY`     | Staged destination y.                                                                           |
+| `0x80143F1C` | `u8`          | `g_GameContextKind`   | Staged kind byte. Bit 7 selects the world-map arrival.                                          |
+| `0x80143F1D` | `u8`          | `g_GameRequestKind`   | Request kind: `func_801A02E8` writes it, `Game_UpdateAreaLoad` reads it.                        |
+| `0x80143F1E` | `u8`          | `g_GameEntryMode`     | Arrival effect: `Game_UpdateAreaLoad` selects it, `Game_UpdateField` passes it to `UI_SetMode`. |
+| `0x80143F1F` | `u8`          | `g_GamePrevSelection` | Previous selection: `func_801A0380` writes it, `Game_UpdateField` compares it.                  |
 
 An edited area must keep these limits.
 
@@ -217,7 +217,7 @@ An edited area must keep these limits.
 ## Sources and confidence
 
 - **Confidence:** medium. The load sequence, the exits, the setup-stream framing and the limits are read in the code. Setup record kinds 1 to 9, A and B, the condition tests and four per-frame functions are not decoded.
-- **Evidence:** `func_8019FAA0`, `Game_RunFieldState`, `Game_RunAreaLoadState`, `func_801A0048`, `Area_RunFrame`, `Area_RunSetupStream` and `func_801A3F3C` in `emi/etc/game/00`, the `g_AreaLoads` table in the executable, and the zone list and the dispatch tables read from RAM.
+- **Evidence:** `func_8019FAA0`, `Game_UpdateField`, `Game_UpdateAreaLoad`, `func_801A0048`, `Area_RunFrame`, `Area_RunSetupStream` and `func_801A3F3C` in `emi/etc/game/00`, the `g_AreaLoads` table in the executable, and the zone list and the dispatch tables read from RAM.
 
 ## Related
 

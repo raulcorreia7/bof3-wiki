@@ -29,9 +29,9 @@ All addresses are fixed RAM. The table gives the address, row size and row count
 | candidate entries          | `0x801463DC` |   12 |     8 | `emi/etc/game/00`, `emi/battle/battle/15`                   |
 | player work rows           | `0x80145E90` |  320 |     3 | both overlays                                               |
 | enemy work rows            | `0x801EB630` |  280 |     8 | both overlays                                               |
-| queued action slots        | `0x801EC330` |  120 |    48 | `Battle_RunEffects (emi/battle/battle/03@0x801E5824)`       |
+| queued action slots        | `0x801EC330` |  120 |    48 | `Battle_UpdateEffects (emi/battle/battle/03@0x801E5824)`    |
 | panel tasks                | `0x80148330` |   36 |    22 | `func_801E9074`, `func_801EA1E0`, `func_801DA69C`           |
-| event slots                | `0x801EB4F0` |   12 |     - | `Battle_RunEvents (emi/battle/battle/03@0x801DE43C)`        |
+| event slots                | `0x801EB4F0` |   12 |     - | `Battle_UpdateEvents (emi/battle/battle/03@0x801DE43C)`     |
 
 ### Battler slots
 
@@ -434,8 +434,8 @@ the row count. The table shows each table's address, size and reader.
 | ------------------------------- | -----------: | ---: | ----------------------------------------- | ----------------------------------------------------------- |
 | `g_BattlePhases`                | `0x801D0C04` |    6 | battle mode `0x801462E0`                  | `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)`     |
 | `g_BattleEntrances`             | `0x801D0C1C` |    4 | sub-step `0x801462E2`                     | `Battle_DispatchEntrance (emi/battle/battle/03@0x801D17C4)` |
-| `g_BattleEvents`                | `0x801D0C84` |    5 | event slot's kind bit                     | `Battle_RunEvents (emi/battle/battle/03@0x801DE43C)`        |
-| `g_BattleEffectStages`          | `0x801D0CC0` |    4 | queued slot mode `+0x06`                  | `Battle_RunEffects (emi/battle/battle/03@0x801E5824)`       |
+| `g_BattleEvents`                | `0x801D0C84` |    5 | event slot's kind bit                     | `Battle_UpdateEvents (emi/battle/battle/03@0x801DE43C)`     |
+| `g_BattleEffectStages`          | `0x801D0CC0` |    4 | queued slot mode `+0x06`                  | `Battle_UpdateEffects (emi/battle/battle/03@0x801E5824)`    |
 | `g_BattleEffectStage0Funcs`     | `0x801D0CD0` |   19 | queued slot handler index `+0x05`, mode 0 | `func_801E5AF4`                                             |
 | `g_BattleEffectStage1Funcs`     | `0x801D0D1C` |  110 | queued slot handler index `+0x05`, mode 1 | `func_801E5B8C`                                             |
 | `g_BattleEffectStage3Funcs`     | `0x801D0ED4` |    8 | queued slot handler index `+0x05`, mode 3 | `func_801E5C1C`                                             |
@@ -686,12 +686,12 @@ The table below lists every ability with an effect module, read from the retail 
 
 The battle code reads these fixed values. The table lists the source and the meaning of each.
 
-| Value                  | Source                                          | Meaning                                                                   |
-| ---------------------- | ----------------------------------------------- | ------------------------------------------------------------------------- |
-| escape thresholds      | `0x800B44F0`, six bytes `0x20`-`0x34`           | steps of 4, starting at 32                                                |
-| difficulty thresholds  | `0x800B50DC`, eight bytes `1,2,4,8,12,16,24,48` | indexed by the ability high nibble `+0x0D`                                |
-| palette stage row      | `0x80035600`, 64-byte rows                      | one per battler slot (index << 6); `GFX_StagePalette` copies 32 halfwords |
-| accessory effect table | `0x80149EC8`, four-byte pointers                | indexed by `accessory_id - 1`, bound `0x17` (23 entries)                  |
+| Value                  | Source                                          | Meaning                                                                  |
+| ---------------------- | ----------------------------------------------- | ------------------------------------------------------------------------ |
+| escape thresholds      | `0x800B44F0`, six bytes `0x20`-`0x34`           | steps of 4, starting at 32                                               |
+| difficulty thresholds  | `0x800B50DC`, eight bytes `1,2,4,8,12,16,24,48` | indexed by the ability high nibble `+0x0D`                               |
+| palette stage row      | `0x80035600`, 64-byte rows                      | one per battler slot (index << 6); `GFX_LoadPalette` copies 32 halfwords |
+| accessory effect table | `0x80149EC8`, four-byte pointers                | indexed by `accessory_id - 1`, bound `0x17` (23 entries)                 |
 
 Overlays loaded at `0x80096800` (`emi/battle/battle/15` and the boss archives) carry their own copy of
 the byte tables, each indexed directly by the record id. These are the ability call table at
