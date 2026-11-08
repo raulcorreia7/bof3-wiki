@@ -126,7 +126,7 @@ All of them first call `func_8014FC00(0)`, which emits a draw-mode packet with t
 
 The fade body `GFX_StepScreenFade` draws a 320 by 240 `TILE` with gray level `position >> 7`, semi-transparent with draw mode `GetTPage(1, abr, 0x140, 0)`, and adds the step to a 16-bit level each frame until the sign bit flips. The frame count is `0x8000 / step`. The thread then calls `CallbackExit`, so every effect ends its slot. That `abr = 2` is a subtractive blend, a fade to black, is PlayStation GPU behavior rather than game data `[inferred]`. The modes with camera changes were read only for their loop shape `[unknown]`.
 
-`g_UiWindowEffectBusy` (`0x80143C40`) is the flag other code tests before it starts input or a new effect. The readers are `UI_SetMode` and the title code (`UI_WaitTitleInput` at `0x801D0F00`, `UI_UpdateChoicePrompt` at `0x801D0FB8`, `UI_DrawChoicePrompt` at `0x801D11E4`, all `emi/etc/game/01`). No writer is in the resident code. The overlay functions `func_801D74D4`, `func_80198780` and `func_801985C8` touch it, but who sets it is `[unknown]`.
+`g_UiWindowEffectBusy` (`0x80143C40`) is the flag other code tests before it starts input or a new effect. The readers are `UI_SetMode` and the title code (`UI_WaitTitleInput` at `0x801D0F00`, `UI_UpdateChoicePrompt` at `0x801D0FB8`, `UI_DrawChoicePrompt` at `0x801D11E4`, all `emi/etc/game/01`). No writer is in the resident code. The overlay functions `func_801D74D4`, `Game_LoadAbilityMenu` and `func_801985C8` touch it, but who sets it is `[unknown]`.
 
 ## State variables
 
@@ -168,7 +168,7 @@ The table lists the limits of the text engine and what a replacement asset must 
 | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | Per-step roles of message states 4, 5 and 7                              | Read the 8, 6 and 2 step functions and the shop and start-menu callers.                   |
 | Source of `D_80144950` (message speed) and the row count of `D_8017F5B4` | Search writers of `D_80144950` in the options menu.                                       |
-| Who writes `g_UiWindowEffectBusy`                                        | Read `func_801D74D4`, `func_80198780`, `func_801985C8`.                                   |
+| Who writes `g_UiWindowEffectBusy`                                        | Read `func_801D74D4`, `Game_LoadAbilityMenu`, `func_801985C8`.                            |
 | Overlay owners of six `g_MenuPanels` handlers                            | Map each address to its overlay window and archive.                                       |
 | Panel fill drawing and the pass-order meaning of modes 0, 1, 2           | Read `func_80158FE0`, `func_801598F4`, `func_80159A20`.                                   |
 | Battle messages (`g_BattleMessageState`) use a separate path             | Read the `emi/battle/battle/03` message functions.                                        |

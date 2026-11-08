@@ -80,15 +80,15 @@ The entry and exit substates test these bits of `g_BattleOptions` (masks `0x01`,
 | Substate | Function (`emi/etc/game/00`)                      | Work                                                                                                                               |
 | -------: | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 |        0 | `func_80197A60`                                   | `func_801BEDD0`, field redraw, advance.                                                                                            |
-|        1 | `func_80197AA4`                                   | Wait for the field to be ready, change the camera pitch, stream `BPLU` (scroll direction bit 1) or `BPLD` character bank, advance. |
+|        1 | `Battle_LoadPartySprites`                         | Wait for the field to be ready, change the camera pitch, stream `BPLU` (scroll direction bit 1) or `BPLD` character bank, advance. |
 |        2 | `func_80197C1C`                                   | Wait for the loader and the camera.                                                                                                |
-|        3 | `func_80197C94`                                   | Pause BGM, save the sequence table, stream the battle archive, reset the battle bytes.                                             |
+|        3 | `Battle_LoadBattleArchive`                        | Pause BGM, save the sequence table, stream the battle archive, reset the battle bytes.                                             |
 |        4 | `func_80197E54`                                   | Wait for the archive and set `g_BattlePartyCount = Party_CountOrder(1)`.                                                           |
 |        5 | `Battle_Update (emi/battle/battle/03@0x801D1014)` | The battle itself, every frame.                                                                                                    |
 |        6 | `func_80197EFC`                                   | Field-side redraw, advance.                                                                                                        |
 |        7 | `func_80197F48`                                   | Restore BGM and scroll, clear `g_BattleOptions` and `g_BattleEncounter`, return to state 2.                                        |
 
-`func_80197C94` picks the archive to stream. For a scripted battle it is `D_801CD86C[s_BattleModeRecords[g_BattleEncounter * 4 + 3]]`. For a random battle it is slot 6 (`BATTLE`) when `g_SceneState.scenario_id < 8` and slot 7 (`BATTLE2`) otherwise. `D_801CD86C` has 42 `u16` entries: slot 6, then the `BOSS` slots `0x1B3` to `0x1DA` in a game-specific order, then `0xFFFF`.
+`Battle_LoadBattleArchive` picks the archive to stream. For a scripted battle it is `g_BossArchiveSlots[s_BattleModeRecords[g_BattleEncounter * 4 + 3]]`. For a random battle it is slot 6 (`BATTLE`) when `g_SceneState.scenario_id < 8` and slot 7 (`BATTLE2`) otherwise. `g_BossArchiveSlots` has 42 `u16` entries: slot 6, then the `BOSS` slots `0x1B3` to `0x1DA` in a game-specific order, then `0xFFFF`.
 
 Unless `g_BattleOptions & 0x40` is set, substate 3 copies 1,376 bytes of the sequence table (`D_80148A50` to `D_8018E268`) away, and substate 7 copies them back ([audio](../audio/)).
 
@@ -136,7 +136,7 @@ stateDiagram-v2
 |    4 | `func_801D4AC0`                  |     3 | `D_801EACBC`. Sub-table `D_801EACC8[3]`.                                                       |
 |    5 | `func_801D6774`                  |     5 | `D_801EACD4`. Sub-tables `D_801EACE8`, `D_801EACF4`, `D_801EAD00`, `D_801EAD0C`, `D_801EAD20`. |
 
-The mode names in the diagram come from the shape of the steps and from `func_801D656C`, which either returns to mode 1 or leaves for mode 5. They are `[inferred]`. Mode 3 also clears `g_BattleState` bit `0x0010` (command armed) when a button in `D_80145AC4` is held. Some step functions, for example `Battle_WaitUiMode` and `func_801D7234`, advance their sub-step through a pointer that is written during the wait.
+The mode names in the diagram come from the shape of the steps and from `func_801D656C`, which either returns to mode 1 or leaves for mode 5. They are `[inferred]`. Mode 3 also clears `g_BattleState` bit `0x0010` (command armed) when a button in `D_80145AC4` is held. Some step functions, for example `Battle_WaitUiMode` and `Battle_ReloadMusicBank`, advance their sub-step through a pointer that is written during the wait.
 
 ### Mode 0: reset and entrance
 
@@ -147,7 +147,7 @@ Step 1, `Battle_DispatchEntrance (emi/battle/battle/03@0x801D17C4)`, runs four s
 1. `Battle_ReserveStagePanels` arms the selection panels and writes the initiative text when `g_BattleSurprise` is 1 or 2.
 2. `Battle_WaitUiMode` waits for the UI mode byte to read 1.
 3. `Battle_InitPanels` presets the seven panel widths.
-4. `Battle_EnterIntro` waits for `EMI_LoaderIsReady` and the intro helper, calls `func_801D93E4` with 1 (2 when `g_BattleSurprise >= 2`) and `func_801D9428(2)`, zeroes step and sub-step, and sets `g_BattleMode` to 1.
+4. `Battle_EnterIntro` waits for `EMI_IsReady` and the intro helper, calls `func_801D93E4` with 1 (2 when `g_BattleSurprise >= 2`) and `func_801D9428(2)`, zeroes step and sub-step, and sets `g_BattleMode` to 1.
 
 ### Modes 1 to 4: one round
 
@@ -209,8 +209,8 @@ Installer addresses in the boss window, by module. A module that has more than o
 
 | Archive (slot)                           | Loaded by                                            | Window                                      |
 | ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------- |
-| `BPLU` `0x1EE` or `BPLD` `0x1DB` family  | entry substate 1 (`EMI_StreamFamilyArchive`)         | character bank                              |
-| `BATTLE` 6, `BATTLE2` 7, `BOSS` `0x1B3+` | entry substate 3 (`func_80197C94`)                   | battle overlay; boss module at `0x800C1800` |
+| `BPLU` `0x1EE` or `BPLD` `0x1DB` family  | entry substate 1 (`EMI_GetArchiveId`)                | character bank                              |
+| `BATTLE` 6, `BATTLE2` 7, `BOSS` `0x1B3+` | entry substate 3 (`Battle_LoadBattleArchive`)        | battle overlay; boss module at `0x800C1800` |
 | `ENEMY` `0x9 + area`                     | `func_801D1228` (random battle)                      | enemy bank                                  |
 | `BATL_SE` 5                              | `func_801D277C`, `func_801D25A0`, `func_8009B488`    | sound bank                                  |
 | `BATL_RET` 4, `BATL_RE2` 3               | `func_801D3E80`; several sites in `battle/battle/15` | effect banks                                |
@@ -219,7 +219,7 @@ Installer addresses in the boss window, by module. A module that has more than o
 | `BATL_END` 1 or `BATL_OVR` 2             | `Battle_StreamEndOverlay`                            | `0x801EEC00`                                |
 | `AREA` `0x2AB + area`, `AFLDKWA` `0x256` | mode 5 steps 3 and 4                                 | area image, field sound                     |
 
-The loader streams one archive at a time, and callers wait on `EMI_LoaderIsReady` ([loading](../../concepts/loading/)). The overlay windows are in [memory](../../concepts/memory/).
+The loader streams one archive at a time, and callers wait on `EMI_IsReady` ([loading](../../concepts/loading/)). The overlay windows are in [memory](../../concepts/memory/).
 
 ## Data and limits
 
@@ -240,7 +240,7 @@ An edit must keep these limits.
 - **Formation weights.** Make the eight weights total 16. A lower total sends high rolls to formation 0. A higher total makes the last formations unreachable.
 - **Enemy slots.** A formation with no enemy id in slots 0 to 2 can roll no active enemy, and the field step then continues without a battle.
 - **Zone rate.** Keep `rate` at 7 or less.
-- **New scripted battle.** It needs a record in `s_BattleModeRecords`, an archive column that exists in `D_801CD86C`, and a boss module in the `BOSS` archive when its enemies use a boss handler.
+- **New scripted battle.** It needs a record in `s_BattleModeRecords`, an archive column that exists in `g_BossArchiveSlots`, and a boss module in the `BOSS` archive when its enemies use a boss handler.
 
 ## Open questions
 

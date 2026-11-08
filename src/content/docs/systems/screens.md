@@ -37,8 +37,8 @@ The [glossary](../../appendix/glossary/) defines request code and entry state.
 flowchart TD
     A["actor kind 5 or<br/>scene event 10"] -->|"g_GameEntryState = 7"| S["state 7: shop and save<br/>SHOP 0x266"]
     F["state 2: field<br/>Game_RunFieldState"]
-    F <-->|"enter: code 6<br/>return: func_801983D8"| S
-    F <-->|"enter: code 1<br/>return: func_801976EC"| M["state 3: menu<br/>STATUS 0x269"]
+    F <-->|"enter: code 6<br/>return: Game_ReturnFromShop"| S
+    F <-->|"enter: code 1<br/>return: Game_ReturnFromMenu"| M["state 3: menu<br/>STATUS 0x269"]
     F <-->|"enter: code 9<br/>return: code 0"| C["state 11:<br/>scene camera"]
 ```
 
@@ -51,7 +51,7 @@ flowchart TD
     L <-->|"enter: flag 0x08<br/>return: func_801985C8"| P["state 8: fishing<br/>area030/04"]
 ```
 
-Every screen state has the same three substates. Substate 0 starts the overlay stream and waits for `EMI_LoaderIsReady`. The middle substate runs one frame of the screen and `Menu_RunPanelTasks`. The last substate re-streams the character bank (`EMI_StreamFamilyArchive` with the `PL` family) and returns to state 2 with `g_GameEntrySubstate = 0` and `g_GameStateIndex = 0`.
+Every screen state has the same three substates. Substate 0 starts the overlay stream and waits for `EMI_IsReady`. The middle substate runs one frame of the screen and `Menu_RunPanelTasks`. The last substate re-streams the character bank (`EMI_GetArchiveId` with the `PL` family) and returns to state 2 with `g_GameEntrySubstate = 0` and `g_GameStateIndex = 0`.
 
 The state functions are `Game_RunMenuState (emi/etc/game/00@0x801975E4)` (state 3), `Game_RunShopState (emi/etc/game/00@0x80198234)` (7), `Game_RunFishingState (emi/etc/game/00@0x801984AC)` (8), `Game_RunAbilityMenuState (emi/etc/game/00@0x80198744)` (9), `Game_RunStatusMenuState (emi/etc/game/00@0x80198904)` (10) and `Game_RunSceneCameraState (emi/etc/game/00@0x80198AC4)` (11).
 
@@ -61,13 +61,13 @@ Code 1 calls `UI_SetMode(2)` and `func_80198BC4(0)`, then sets state 3, substate
 
 | Substate | Function (`emi/etc/game/00`) | Work                                                                                         |
 | -------: | ---------------------------- | -------------------------------------------------------------------------------------------- |
-|        0 | `func_80197620`              | Stream STATUS, copy palettes 1 and 2, `D_80148650 = 0`, `UI_SetMode(3)`, `func_80198C38(1)`. |
+|        0 | `Game_LoadMenuOverlay`       | Stream STATUS, copy palettes 1 and 2, `D_80148650 = 0`, `UI_SetMode(3)`, `func_80198C38(1)`. |
 |        1 | `func_80199368`              | `Game_RunScenarioEntry`, `Menu_DispatchStep`, `Menu_RunPanelTasks`.                          |
-|        2 | `func_801976EC`              | Leave: restore the character bank, reload the fairy village, re-enter the area, state 2.     |
+|        2 | `Game_ReturnFromMenu`        | Leave: restore the character bank, reload the fairy village, re-enter the area, state 2.     |
 
 `Menu_DispatchStep (emi/etc/start/08@0x801D1740)` runs `D_801EC35C[D_80148650]`, nine step functions. The program is STATUS entry 0. The start menu (New Game, Load Game) runs the same bytes from `START.EMI` entry 8, a copy of `BIN/ETC/STATUS.EMI` entry 0. The nine steps have no established names or roles `[unknown]`. The load-game steps are in [saving](../saving/).
 
-`func_801976EC` leaves in one of four ways, by the conditions in the table:
+`Game_ReturnFromMenu` leaves in one of four ways, by the conditions in the table:
 
 | Condition                                                              | Result                                                                                      |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -86,13 +86,13 @@ State 7 runs `g_GameStateHandlers` (`0x801C7B7C`):
 | -------: | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 |        0 | `Game_LoadShopOverlay`       | If a shop actor is selected and its `+0x18` is 9, return to state 2 at once. Otherwise stream SHOP and copy palettes 1 and 2. |
 |        1 | `func_80199398`              | Field frame, `Area_RunParty`, panels, `Shop_DispatchStep`.                                                                    |
-|        2 | `func_801983D8`              | Restore the character bank, stream COMMU00 when the area has flag `0x10`, return to state 2.                                  |
+|        2 | `Game_ReturnFromShop`        | Restore the character bank, stream COMMU00 when the area has flag `0x10`, return to state 2.                                  |
 
 `Shop_DispatchStep (emi/etc/shop/00@0x801D0EA0)` runs `D_801E5144[11]` by `D_80148650`. Entry 0, `func_801D0EDC`, is the selector. It reads `D_8014865C`. A negative value (a script or code origin) sets the step to `D_80148698 + 2`. A shop-actor index copies the actor row's `+0x18` and adds 2, and copies `+0x1C` to `D_80148699`. Actor kind 9 never reaches the screen (see `Game_LoadShopOverlay`). The other ten entries are the screens. Only step 3 is identified, the save screen ([saving](../saving/)). The roles of steps 2 and 4 to 10 are `[unknown]`.
 
 ## BATE and SHISU (entry states 9 and 10)
 
-States 9 and 10 have the same shape. Substate 0 (`func_80198780` and `func_80198940`) calls `UI_SetMode(2)`, waits two frames, streams the slot (BATE `0x257`, SHISU `0x265`), copies palettes 1 and 2, and advances. Substate 1 (`func_801993F0` and `func_80199418`) runs `func_801D0D9C` or `func_801D0D80` plus `Menu_RunPanelTasks`. Substate 2 (`GameRunMapLoadHandshake`) streams the character bank, calls `UI_SetMode(3)`, waits for the effect, and returns to state 2.
+States 9 and 10 have the same shape. Substate 0 (`Game_LoadAbilityMenu` and `Game_LoadStatusMenu`) calls `UI_SetMode(2)`, waits two frames, streams the slot (BATE `0x257`, SHISU `0x265`), copies palettes 1 and 2, and advances. Substate 1 (`func_801993F0` and `func_80199418`) runs `func_801D0D9C` or `func_801D0D80` plus `Menu_RunPanelTasks`. Substate 2 (`GameRunMapLoadHandshake`) streams the character bank, calls `UI_SetMode(3)`, waits for the effect, and returns to state 2.
 
 Each overlay starts with an `OverlayHeader`, then a step entry that dispatches a step table by `D_80148650`, with sub-tables indexed by `D_80148651` and `D_80148652`. Only `scena06` stores request code 7, and only `scena11` stores code 8. No other program on the disc stores either value to `g_GameStateIndex`.
 
@@ -198,9 +198,9 @@ The master menu is not an entry state. `g_SceneEvents[4]` is `Master_RunSceneEve
 
 The fairy village is an area (`flag_32` bit 4), not an entry state.
 
-- After the menu (`func_801976EC`) and the shop and save screens (`func_801983D8`) return, the code streams COMMU00 (`0x258`) and calls `func_801F03D0` when the area has the flag. The reload is likely needed because the screen overlays take over the shared window `[inferred]`.
+- After the menu (`Game_ReturnFromMenu`) and the shop and save screens (`Game_ReturnFromShop`) return, the code streams COMMU00 (`0x258`) and calls `func_801F03D0` when the area has the flag. The reload is likely needed because the screen overlays take over the shared window `[inferred]`.
 - `Fairy_VillageInit` (`emi/etc/commu00/00`) acts when `g_GameAreaId != D_80143F04`. When no fairy is active it calls `Fairy_JoinVillage` three times (one per party slot) and seeds five counters from `g_BattleCount`.
-- COMMU01 to 05 (`0x259`, `0x25A` and `0x25B`, `0x25C`, `0x25D`, `0x25E`) are streamed one per step by `func_801F1770`, `func_801F1EB0`, `func_801F1FD8`, `func_801F222C` and `func_801F22C8`. Each advances `D_801448EC`, and all dispatch on the COMMU step byte `D_801F294C`, which COMMU00 owns.
+- COMMU01 to 05 (`0x259`, `0x25A` and `0x25B`, `0x25C`, `0x25D`, `0x25E`) are streamed one per step by `Fairy_LoadCommu01`, `Fairy_LoadCommu02`, `Fairy_LoadCommu03`, `Fairy_LoadCommu04` and `Fairy_LoadCommu05`. Each advances `D_801448EC`, and all dispatch on the COMMU step byte `D_801F294C`, which COMMU00 owns.
 
 That the five COMMU screens are scene events, and which game action opens each, is `[inferred]`. The fairy job rows and the 60-job table are in [field](../../data/field/#fairy-village-and-fishing).
 

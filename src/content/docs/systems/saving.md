@@ -39,7 +39,7 @@ sequenceDiagram
     participant Card as Memory card
 
     Ev->>Main: D_8014865C = -2,<br/>g_GameEntryState = 7
-    Main->>Main: Game_LoadShopOverlay<br/>EMI_LoaderStreamInitSlot<br/>SHOP
+    Main->>Main: Game_LoadShopOverlay<br/>EMI_LoadArchive<br/>SHOP
     Main->>Sav: func_80199398 runs<br/>Shop_DispatchStep each<br/>frame
     Sav->>Drv: state 2 func_801D47AC<br/>CardAccessFile 0 per<br/>port
     Drv->>Bios: _card_info and<br/>_card_load
@@ -58,11 +58,11 @@ sequenceDiagram
     Drv->>Bios: open, lseek, write,<br/>close
     Bios->>Card: write 4,864 bytes
     Sav->>Sav: g_SaveCardStatus = 8<br/>or 10, func_801D6CE4<br/>updates the row
-    Sav-->>Main: state 0x12<br/>func_801D5D98 leaves,<br/>func_801983D8 resumes<br/>the field
+    Sav-->>Main: state 0x12<br/>func_801D5D98 leaves,<br/>Game_ReturnFromShop resumes<br/>the field
 ```
 
 - Scene event 10 is `Scene_RunShopSaveEvent (emi/etc/game/00@0x801A802C)`, entry 10 of `g_SceneEvents (emi/etc/game/00@0x801C84BC)`. Its cases 6 and 23 set `D_8014865C = -2` and `g_GameEntryState = 7`. The scripts or objects that select event 10 are not traced `[unknown]`.
-- `g_GameStates[7]` is `Game_RunShopState`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Shop_DispatchStep`. Substate 2, `func_801983D8`, reloads the character archive and returns to entry state 2.
+- `g_GameStates[7]` is `Game_RunShopState`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Shop_DispatchStep`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
 - `Shop_DispatchStep` dispatches `D_801E5144` by `D_80148650`. `func_801D0EDC` sets `D_80148650` to `D_80148698 + 2`, which is 3 for the save case. That selects `func_801D39BC`, and entry 3 of its table `D_801E52C4` is `SAVE_DispatchState (emi/etc/shop/00@0x801D46A4)`. It dispatches `D_801E530C` by `D_80148652`.
 - The overwrite path first opens the existing file with mode 1 and size 1, a read of the first 128 bytes. Success proves the file exists (`func_801D51B8`).
 - The new-file path calls `CardAccessFile` with mode `0x200`. The driver creates the file, closes it, reopens it with mode 1 and issues a zero-length read.

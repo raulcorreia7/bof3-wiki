@@ -15,7 +15,7 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
+import { Card, CardGrid, LinkCard, Steps } from "@astrojs/starlight/components";
 
 This site covers file formats, memory layouts, record tables, text encoding and the code that reads
 them. It is written for modders and fans who know some PlayStation basics but not this game. Every
@@ -62,19 +62,23 @@ lists what the pages do not establish, and [sources](./appendix/sources/) lists 
 
 <CardGrid>
   <Card title="Concepts" icon="open-book">
-    The model every page assumes: notation, memory map, frame loop, scheduler and loading.
+    The model every page assumes: notation, memory map, frame loop, scheduler
+    and loading.
   </Card>
   <Card title="Systems" icon="setting">
-    How each part runs: boot, phases, scenario, areas, battle, screens, UI, rendering, audio, saving.
+    How each part runs: boot, phases, scenario, areas, battle, screens, UI,
+    rendering, audio, saving.
   </Card>
   <Card title="Formats" icon="document">
-    Byte layouts of the files on the disc, from the EMI container to the memory card save.
+    Byte layouts of the files on the disc, from the EMI container to the memory
+    card save.
   </Card>
   <Card title="Data tables" icon="list-format">
     Row layouts, counts and strides of the tables the game reads at run time.
   </Card>
   <Card title="Guides" icon="pencil">
-    How to change text, items, characters, sound, maps, graphics and saves, and what to keep intact.
+    How to change text, items, characters, sound, maps, graphics and saves, and
+    what to keep intact.
   </Card>
   <Card title="Appendix" icon="information">
     Glossary, open questions, documentation coverage and sources.
@@ -83,25 +87,25 @@ lists what the pages do not establish, and [sources](./appendix/sources/) lists 
 
 ## Start with your goal
 
-| You want to                             | Read                                                                                                                                                   |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Read a number, offset or citation       | [Notation and conventions](./concepts/notation/)                                                                                                       |
-| Understand how the game runs            | [Architecture overview](./concepts/architecture/), then [boot](./systems/boot/) and [frame loop](./concepts/frame-loop/)                               |
-| Read a file format                      | [EMI container](./formats/emi/), then [graphics](./formats/graphics/), [audio](./formats/audio/), [areas](./formats/area/)                             |
-| Edit items, skills, enemies or shops    | [Edit items, skills and shops](./guides/items/), [edit characters and enemies](./guides/characters/), [game records](./data/records/)                  |
-| Edit text or dialogue                   | [Edit text and dialogue](./guides/text/), [game text](./data/text/)                                                                                    |
-| Edit music, sound effects or voices     | [Edit sound and music](./guides/sound/), [audio formats](./formats/audio/), [STR and XA](./formats/str/), [audio system](./systems/audio/)             |
+| You want to                             | Read                                                                                                                                                      |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Read a number, offset or citation       | [Notation and conventions](./concepts/notation/)                                                                                                          |
+| Understand how the game runs            | [Architecture overview](./concepts/architecture/), then [boot](./systems/boot/) and [frame loop](./concepts/frame-loop/)                                  |
+| Read a file format                      | [EMI container](./formats/emi/), then [graphics](./formats/graphics/), [audio](./formats/audio/), [areas](./formats/area/)                                |
+| Edit items, skills, enemies or shops    | [Edit items, skills and shops](./guides/items/), [edit characters and enemies](./guides/characters/), [game records](./data/records/)                     |
+| Edit text or dialogue                   | [Edit text and dialogue](./guides/text/), [game text](./data/text/)                                                                                       |
+| Edit music, sound effects or voices     | [Edit sound and music](./guides/sound/), [audio formats](./formats/audio/), [STR and XA](./formats/str/), [audio system](./systems/audio/)                |
 | Edit maps and scenes                    | [Edit maps and scripts](./guides/maps/), [area formats](./formats/area/), [areas and the field](./systems/areas/), [scenario engine](./systems/scenario/) |
-| Edit textures and sprites               | [Edit graphics and textures](./guides/graphics/), [character bank](./formats/character/)                                                               |
-| Edit or inspect a save                  | [Edit saves](./guides/saves/), [memory card save](./formats/save/)                                                                                     |
-| Look up the battle or field data in RAM | [Battle records](./data/battle/), [field and party records](./data/field/)                                                                             |
-| Find a term                             | [Glossary](./appendix/glossary/)                                                                                                                       |
-| See where a fact comes from             | [Sources](./appendix/sources/)                                                                                                                         |
+| Edit textures and sprites               | [Edit graphics and textures](./guides/graphics/), [character bank](./formats/character/)                                                                  |
+| Edit or inspect a save                  | [Edit saves](./guides/saves/), [memory card save](./formats/save/)                                                                                        |
+| Look up the battle or field data in RAM | [Battle records](./data/battle/), [field and party records](./data/field/)                                                                                |
+| Find a term                             | [Glossary](./appendix/glossary/)                                                                                                                          |
+| See where a fact comes from             | [Sources](./appendix/sources/)                                                                                                                            |
 
 ## About this site
 
 The pages describe one release, the US disc `SLUS-00422`. [Game version](./appendix/version/) lists its Redump checksums.
 
-The site holds no game data and no game assets. *Breath of Fire* and the game belong to Capcom, and
+The site holds no game data and no game assets. _Breath of Fire_ and the game belong to Capcom, and
 the PlayStation belongs to Sony; they keep their rights. This site is independent and is not
 affiliated with or endorsed by either company.

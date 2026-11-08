@@ -85,7 +85,7 @@ The loader copies a type-0 entry to the load argument and queues a type-1 entry 
 
 ## Readers
 
-A field-side reader exists. `func_801C1254` reads the container's section offsets (the word at `0x8003B800 + idx * 4`, plus `0x8003B800`) and stores the section in work `+0x4C`. `GFX_StagePalette` reads `section+4` (the palette table), then `table[field]`, and copies 32 colors.
+A field-side reader exists. `func_801C1254` reads the container's section offsets (the word at `0x8003B800 + idx * 4`, plus `0x8003B800`) and stores the section in work `+0x4C`. The section number is the character's position in its party combination: `func_801C1254` searches the three character ids of the loaded row of `D_80181B34` for the actor's character and uses the position as the section index ([party combinations](../../concepts/loading/#characters-and-the-party)). `GFX_StagePalette` reads `section+4` (the palette table), then `table[field]`, and copies 32 colors.
 
 ## Open questions
 
@@ -95,7 +95,7 @@ A field-side reader exists. `func_801C1254` reads the container's section offset
 | Who consumes the loader's published destinations (`D_80146844`, `D_8014677C`, `0x801464B8`)                                                                   | a reader in an overlay; none is known                                                                                                                                                                                                      |
 | Who uploads the pixels: `LoadImage` has 8 direct `jal` sites, all in `exe/slus_004_22`, and no overlay uploads an image                                       | a trace of the node bytes to a primitive                                                                                                                                                                                                   |
 | The node's 16-byte prefix; the tag `0x0080` (`width`, `count`, `size = width * 0x100`); `flags \| offset` table entries; the pixel or script format of a node | a reader of node fields in battle or field code                                                                                                                                                                                            |
-| Whether the five addresses are section positions or party-slot buffers                                                                                        | the code that selects a slot for a character                                                                                                                                                                                               |
+| Whether the five `BPLCHAR` section addresses are the battle reader's section positions                                                                        | The field reader picks section *n* for the *n*-th character of the party combination; a battle overlay that reads the five addresses would settle the battle side                                                                          |
 
 ## Sources and confidence
 

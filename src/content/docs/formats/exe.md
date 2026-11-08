@@ -73,7 +73,7 @@ flowchart TD
 
 ## The disc file table
 
-`g_EmiSlotLbas` in `SLUS_004.22` is an array of 887 `u32` start sector numbers, one per disc file. `EMI_LoaderSlotLba (exe/slus_004_22@0x80162160)` returns `g_EmiSlotLbas[slot_id]`. Every EMI and XA read goes through it ([EMI slot ids](../emi/#disc-slot-ids)). The table is the only place where the game learns where a file starts. The table has these properties.
+`g_EmiSlotLbas` in `SLUS_004.22` is an array of 887 `u32` start sector numbers, one per disc file. `EMI_GetArchiveSector (exe/slus_004_22@0x80162160)` returns `g_EmiSlotLbas[slot_id]`. Every EMI and XA read goes through it ([EMI slot ids](../emi/#disc-slot-ids)). The table is the only place where the game learns where a file starts. The table has these properties.
 
 | Property                                               | Value                                                   |
 | ------------------------------------------------------ | ------------------------------------------------------- |
@@ -94,16 +94,16 @@ The table lists data that editors look for in the main executable, and whether i
 
 | Data                           | Address                                                         | Shape                                                        | Reader or page                                     |
 | ------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------- |
-| XA stream slot ids             | `D_80183230` = `{0x2A9, 0x1B2, 0x2AA}` (S_XA00, MAGIC00, VOICE) | 3 `u32` slot ids                                             | `SND_ResolveXaStream (exe/slus_004_22@0x80163744)` |
+| XA stream slot ids             | `D_80183230` = `{0x2A9, 0x1B2, 0x2AA}` (S_XA00, MAGIC00, VOICE) | 3 `u32` slot ids                                             | `SND_ResolveXAStream (exe/slus_004_22@0x80163744)` |
 | XA cue-array pointers          | `D_8018323C` = `{0x801839C4, 0x801832C4, 0x80183298}`           | 3 pointers to `u16` arrays, see [STR](../str/#xa-cue-tables) | -                                                  |
-| BGM id to slot table           | `D_80181EB8[id]`                                                | slot ids `0xD1`-`0x121`                                      | [EMI](../emi/#disc-slot-ids)                       |
+| BGM id to slot table           | `g_BGMTracks[id]`                                               | slot ids `0xD1`-`0x121`                                      | [EMI](../emi/#disc-slot-ids)                       |
 | Item, ability and level data   | not here: `ETC/GAME.EMI` entry 0                                | [game records](../../data/records/)                          | -                                                  |
 | Save frame, checksum constants | not here                                                        | [save format](../save/)                                      | -                                                  |
 
 ## Sources and confidence
 
 - **Confidence:** high. The header fields, the file table and the boot files were read and checked on every file; only the use of the CDDA track and of `STACK` is `[inferred]`.
-- **Evidence:** the PS-X headers of both executables, the `SYSTEM.CNF` text, the ISO9660 directory records compared with `g_EmiSlotLbas`, and `SYS_RunLogo`, `SYS_LoadExec` and `EMI_LoaderSlotLba`.
+- **Evidence:** the PS-X headers of both executables, the `SYSTEM.CNF` text, the ISO9660 directory records compared with `g_EmiSlotLbas`, and `SYS_RunLogo`, `SYS_LoadExec` and `EMI_GetArchiveSector`.
 
 ## Related
 

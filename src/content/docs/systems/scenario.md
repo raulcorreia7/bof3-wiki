@@ -13,7 +13,7 @@ A smaller layer, the event stage, runs one-off handlers chosen by an event id. T
 
 1. Writes `n` to `g_SceneState.scenario_id` and zeroes the rest of the state (`mode_02`, `state_04`, `step_05`, `timer_06`, `flags_01`).
 2. Clears the first 32 flags of scenario `n`'s flag word and points `g_SceneFlags` at that word.
-3. Streams the scenario's code from EMI slot `n + 0x295` (`Scene_RequestOverlay`), waiting with `CallbackWait(1)` until `EMI_LoaderIsReady` reports done. During the wait it calls `func_801992B8` each frame once an area is loaded and the game state index is not 5.
+3. Streams the scenario's code from EMI slot `n + 0x295` (`Scene_RequestOverlay`), waiting with `CallbackWait(1)` until `EMI_IsReady` reports done. During the wait it calls `func_801992B8` each frame once an area is loaded and the game state index is not 5.
 4. Runs `Game_RunScenarioEntry` once.
 
 ```mermaid
@@ -27,8 +27,8 @@ sequenceDiagram
     participant U as Game_RunSceneUpdate
     C->>S: scenario id n
     S->>S: reset g_SceneState,<br/>clear flag word n
-    S->>E: EMI_LoaderStreamInitSlot(n<br/>+ 0x295)
-    S->>S: CallbackWait(1)<br/>until EMI_LoaderIsReady
+    S->>E: EMI_LoadArchive(n<br/>+ 0x295)
+    S->>S: CallbackWait(1)<br/>until EMI_IsReady
     S->>R: stream complete
     R->>O: g_SceneScenes[n]->entry_00()
     O->>O: table[mode_02]()

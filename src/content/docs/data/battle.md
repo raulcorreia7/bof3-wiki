@@ -348,19 +348,19 @@ Three more tables belong to the panels.
 `g_BattleState` (`0x801462E8`) is the shared latch that both overlays poll. The table gives the
 setter and the reader of each bit.
 
-|      Bit | Name             | Set by                                  | Read as                                                                  |
-| -------: | ---------------- | --------------------------------------- | ------------------------------------------------------------------------ |
-| `0x0002` | window busy      | boss windows                            | `Battle_Update` tests it                                                 |
-| `0x0004` | effect playing   | the hit endings and every effect module | the closing step waits for the effect                                    |
-| `0x0010` | command armed    | command menu                            | menu steps                                                               |
-| `0x0040` | reprisal pending | a won reprisal roll                     | the turn's closing step                                                  |
-| `0x0080` | critical         | critical-hit roll                       | damage and popup readers                                                 |
-| `0x0400` | effect loading   | the effect stream request               | action steps wait until `EMI_LoaderIsReady (exe/slus_004_22@0x80162D00)` |
-| `0x0800` | AP paid          | AP spend                                | action gate                                                              |
-| `0x1000` | reprisal done    | the answer's own hit ending             | the next closing step clears it                                          |
-| `0x2000` | damage applied   | damage application                      | popup and end-of-hit steps                                               |
-| `0x4000` | over             | battle end                              | both overlays                                                            |
-| `0x8000` | reload party     | the reload path                         | the reload path clears it                                                |
+|      Bit | Name             | Set by                                  | Read as                                                            |
+| -------: | ---------------- | --------------------------------------- | ------------------------------------------------------------------ |
+| `0x0002` | window busy      | boss windows                            | `Battle_Update` tests it                                           |
+| `0x0004` | effect playing   | the hit endings and every effect module | the closing step waits for the effect                              |
+| `0x0010` | command armed    | command menu                            | menu steps                                                         |
+| `0x0040` | reprisal pending | a won reprisal roll                     | the turn's closing step                                            |
+| `0x0080` | critical         | critical-hit roll                       | damage and popup readers                                           |
+| `0x0400` | effect loading   | the effect stream request               | action steps wait until `EMI_IsReady (exe/slus_004_22@0x80162D00)` |
+| `0x0800` | AP paid          | AP spend                                | action gate                                                        |
+| `0x1000` | reprisal done    | the answer's own hit ending             | the next closing step clears it                                    |
+| `0x2000` | damage applied   | damage application                      | popup and end-of-hit steps                                         |
+| `0x4000` | over             | battle end                              | both overlays                                                      |
+| `0x8000` | reload party     | the reload path                         | the reload path clears it                                          |
 
 The effect loading bit stays set from the action's effect stream request until the loader is ready
 (`func_801D3F6C`). Bit `0x0008` is also used. `func_801D277C` and `func_8009B828` set it and
