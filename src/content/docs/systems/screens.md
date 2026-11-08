@@ -132,13 +132,13 @@ It then raises the record's stats at once. Target 3 goes to defense and base def
 
 `func_801D0D80 (emi/etc/shisu/00@0x801D0D80)` runs `D_801D96DC[D_80148650]`, a table of five steps:
 
-| Step | Function        | Work                                                                                                                  |
-| ---: | --------------- | --------------------------------------------------------------------------------------------------------------------- |
-|    0 | `func_801D0DBC` | Counts four held items into `g_MenuStatusItems.held`, clears `used` and `unk_08`-`unk_0A`, sets `unk_0B`.             |
-|    1 | `func_801D0E4C` | Open: `UI_SetMode(3)`, then wait for the effect.                                                                      |
-|    2 | `func_801D11A4` | The play, by `D_801D9700[D_80148651]`.                                                                                |
-|    3 | `func_801D0F24` | Close: `UI_SetMode(2)`, then wait for the effect.                                                                     |
-|    4 | `func_801D1018` | Use the items, score, rank and leave (`Menu_ResetPanelTasks`, then `g_GameEntrySubstate` plus 1).                     |
+| Step | Function        | Work                                                                                                      |
+| ---: | --------------- | --------------------------------------------------------------------------------------------------------- |
+|    0 | `func_801D0DBC` | Counts four held items into `g_MenuStatusItems.held`, clears `used` and `unk_08`-`unk_0A`, sets `unk_0B`. |
+|    1 | `func_801D0E4C` | Open: `UI_SetMode(3)`, then wait for the effect.                                                          |
+|    2 | `func_801D11A4` | The play, by `D_801D9700[D_80148651]`.                                                                    |
+|    3 | `func_801D0F24` | Close: `UI_SetMode(2)`, then wait for the effect.                                                         |
+|    4 | `func_801D1018` | Use the items, score, rank and leave (`Menu_ResetPanelTasks`, then `g_GameEntrySubstate` plus 1).         |
 
 The four items are `0x4D`, `0x23`, `0x24` and `0x56` (`ITEM_MACKEREL`, `ITEM_SHALY_SEED`, `ITEM_VINEGAR`, `ITEM_HORSERADISH`). The play moves one item at a time from `held[i]` to `used[i]` (`func_801D14C0`). `used[0]` stops at 1 and `used[1]` stops at 20. `func_801D11F4` adds 1 to `unk_08`, the round count.
 

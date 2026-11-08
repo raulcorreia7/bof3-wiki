@@ -167,16 +167,16 @@ The table lists the symbols that carry the phase state. All of them are work var
 
 ## Open questions
 
-| Question                                                       | What would settle it                                                                     |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| The menu trigger for code 1 and Start-in-field for code 9      | Read the callers of `func_801B2A00` and `func_801B5910`                                  |
-| Where name entry runs                                          | Read the `g_MenuCampSubFuncs` tables `D_801ECCF8`, `D_801ECD1C` and `D_801ED138`         |
-| Entry paths of the shop, master, fishing and the fairy village | Callers of `EMI_LoaderStreamInitSlot` with `0x266`, `0x267`, `0x258` and the area flags  |
-| World map code                                                 | Read the world area overlays that load flag bit 0 selects                                |
-| Boss entry                                                     | Read the callback table `D_801EB298` of `battle/03` and its callers                      |
-| What reaches the credits and the end-of-game restart           | Trace the `scena15` to `scena19` assembly and the users of `ENDKANJI`                    |
-| The exit from `BATL_END` to the field                          | Read the exit calls in `batl_end/00`                                                     |
-| What scenario 16 draws, and when it raises the popup request   | Read the `scena16` overlay                                                               |
+| Question                                                       | What would settle it                                                                    |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| The menu trigger for code 1 and Start-in-field for code 9      | Read the callers of `func_801B2A00` and `func_801B5910`                                 |
+| Where name entry runs                                          | Read the `g_MenuCampSubFuncs` tables `D_801ECCF8`, `D_801ECD1C` and `D_801ED138`        |
+| Entry paths of the shop, master, fishing and the fairy village | Callers of `EMI_LoaderStreamInitSlot` with `0x266`, `0x267`, `0x258` and the area flags |
+| World map code                                                 | Read the world area overlays that load flag bit 0 selects                               |
+| Boss entry                                                     | Read the callback table `D_801EB298` of `battle/03` and its callers                     |
+| What reaches the credits and the end-of-game restart           | Trace the `scena15` to `scena19` assembly and the users of `ENDKANJI`                   |
+| The exit from `BATL_END` to the field                          | Read the exit calls in `batl_end/00`                                                    |
+| What scenario 16 draws, and when it raises the popup request   | Read the `scena16` overlay                                                              |
 
 ## Sources and confidence
 
