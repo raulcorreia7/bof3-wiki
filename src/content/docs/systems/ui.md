@@ -20,14 +20,14 @@ Every conversation, menu label and number goes through one text engine in the re
 A string reaches the screen in five steps.
 
 1. **Bank in RAM.** The EMI loader copies an area archive's message bank to `0x80010000` ([loading](../../concepts/loading/)). `Message_StartAreaMessage` and `Message_StartRequest` read that address as the bank.
-2. **Request.** Game code calls `Message_StartAreaMessage (exe/slus_004_22@0x80150224)` with a message index, or `Resource_RequestArea (exe/slus_004_22@0x80150284)` with a resource id. The first reads the `u16` at `0x80010000 + index * 2` and adds `0x80010000`. The second calls `Resource_GetText (exe/slus_004_22@0x801502D0)`, which uses the table at `0x8001A000`: `(id >> 12) & 0xC` selects a base word, then a `u16` offset table follows. Both store the record pointer in `D_801490AC` and `D_801490B0`, store the request in `g_MessageRequest`, and call `UI_ResetMessage`.
+2. **Request.** Game code calls `Message_StartAreaMessage (exe/slus_004_22@0x80150224)` with a message index, or `Message_Request (exe/slus_004_22@0x80150284)` with a resource id. The first reads the `u16` at `0x80010000 + index * 2` and adds `0x80010000`. The second calls `Message_GetText (exe/slus_004_22@0x801502D0)`, which uses the table at `0x8001A000`: `(id >> 12) & 0xC` selects a base word, then a `u16` offset table follows. Both store the record pointer in `D_801490AC` and `D_801490B0`, store the request in `g_MessageRequest`, and call `UI_ResetMessage`.
 3. **Engine.** `UI_UpdateLayout (exe/slus_004_22@0x801503E0)` runs once per frame while the panel is open. It dispatches the message state (8 states) and the selection state (6 states), then redraws the message.
 4. **Glyph.** `UI_DrawMessageScript (exe/slus_004_22@0x80150470)` walks the script from the start each frame and draws `D_801490B9` characters, one `UI_DrawText` call per character at 8 pixels advance. The script step `func_8015083C` adds one to `D_801490B9` per character. Because the whole message is redrawn each frame, this counter is the typewriter effect.
 5. **Sprite.** `UI_DrawTextGlyphs` builds one `SPRT` per glyph and calls `GFX_AddPrim` on layer 1 ([rendering](../rendering/)).
 
 ```mermaid
 flowchart TD
-    A["area bank at 0x80010000"] --> B["Message_StartAreaMessage / Resource_RequestArea"]
+    A["area bank at 0x80010000"] --> B["Message_StartAreaMessage / Message_Request"]
     B --> C["D_801490AC / D_801490B0 = record pointer"]
     C --> D["UI_UpdateLayout each frame"]
     D --> E["message state 0: func_8015083C steps the script"]
@@ -74,7 +74,7 @@ The diagram shows only the transitions out of state 0, from the `switch` in `fun
 
 ## Windows and panels
 
-The text box is the panel in `g_MenuPanelTasks` slot 0. `UI_ResetMessage (exe/slus_004_22@0x80150304)` calls `Menu_ArmPanelTask(0, 0)`, which sets the slot active with handler index 0, and sets the slot's mode byte to 2. Handler 0 is `func_80158F80`. It picks one of three sub-kinds from the byte `+2` through `D_80149B30`: `func_80158FE0`, `func_801598F4` or `func_80159A20`. `func_80158FE0` runs the five panel states of `D_80149B3C`, indexed by the byte `+3`: `func_80159050`, `func_8015920C`, `func_80159510`, `func_80159580`, `func_801598B8`. The panel task machine itself (22 slots, 9 handlers, three passes) is in [scheduler](../../concepts/scheduler/#work-record-tables).
+The text box is the panel in `g_MenuPanelTasks` slot 0. `UI_ResetMessage (exe/slus_004_22@0x80150304)` calls `Menu_OpenPanelTask(0, 0)`, which sets the slot active with handler index 0, and sets the slot's mode byte to 2. Handler 0 is `func_80158F80`. It picks one of three sub-kinds from the byte `+2` through `D_80149B30`: `func_80158FE0`, `func_801598F4` or `func_80159A20`. `func_80158FE0` runs the five panel states of `D_80149B3C`, indexed by the byte `+3`: `func_80159050`, `func_8015920C`, `func_80159510`, `func_80159580`, `func_801598B8`. The panel task machine itself (22 slots, 9 handlers, three passes) is in [scheduler](../../concepts/scheduler/#work-record-tables).
 
 A box opens by growing from a point to its full size, stays, then shrinks:
 
@@ -124,7 +124,7 @@ All of them first call `func_8014FC00(0)`, which emits a draw-mode packet with t
 | 13, 14, 15, 16      | `+0x200 / -0x200` with `F514` or `F5F0`         | Slow fades, 64 frames.             |
 | 19                  | `GFX_RunBlackFade(0x100, 1, 0)`                 | Very slow fade, 128 frames.        |
 
-The fade body `GFX_StepScreenFade` draws a 320 by 240 `TILE` with gray level `position >> 7`, semi-transparent with draw mode `GetTPage(1, abr, 0x140, 0)`, and adds the step to a 16-bit level each frame until the sign bit flips. The frame count is `0x8000 / step`. The thread then calls `CallbackExit`, so every effect ends its slot. That `abr = 2` is a subtractive blend, a fade to black, is PlayStation GPU behavior rather than game data `[inferred]`. The modes with camera changes were read only for their loop shape `[unknown]`.
+The fade body `GFX_UpdateScreenFade` draws a 320 by 240 `TILE` with gray level `position >> 7`, semi-transparent with draw mode `GetTPage(1, abr, 0x140, 0)`, and adds the step to a 16-bit level each frame until the sign bit flips. The frame count is `0x8000 / step`. The thread then calls `CallbackExit`, so every effect ends its slot. That `abr = 2` is a subtractive blend, a fade to black, is PlayStation GPU behavior rather than game data `[inferred]`. The modes with camera changes were read only for their loop shape `[unknown]`.
 
 `g_UiWindowEffectBusy` (`0x80143C40`) is the flag other code tests before it starts input or a new effect. The readers are `UI_SetMode` and the title code (`UI_WaitTitleInput` at `0x801D0F00`, `UI_UpdateChoicePrompt` at `0x801D0FB8`, `UI_DrawChoicePrompt` at `0x801D11E4`, all `emi/etc/game/01`). No writer is in the resident code. The overlay functions `func_801D74D4`, `Game_LoadAbilityMenu` and `func_801985C8` touch it, but who sets it is `[unknown]`.
 
@@ -156,7 +156,7 @@ The table lists the limits of the text engine and what a replacement asset must 
 | Variable string             | 32 bytes per entry; the budget is 33 steps because the cursor steps past the operand first       | `g_TextVariables[][0x20]`                                      | Variable text stays under 32 bytes.                                     |
 | Bank link                   | 17 characters                                                                                    | `UI_DrawMessageScript`                                         | A linked message shows at most 17 characters.                           |
 | Message bank offsets        | `u16` offsets from `0x80010000`                                                                  | `Message_StartAreaMessage`                                     | A bank is under 64 KiB; the record pointer is `0x80010000 + u16`.       |
-| Resource groups             | 4 (id bits 14 and 15)                                                                            | `Resource_GetText` mask `0xC`                                  | Resource ids use groups 0 to 3, index below `0x4000`.                   |
+| Resource groups             | 4 (id bits 14 and 15)                                                                            | `Message_GetText` mask `0xC`                                   | Resource ids use groups 0 to 3, index below `0x4000`.                   |
 | Window size                 | 200 by 54 or 120 by 54 pixels                                                                    | `func_80159050`                                                | Message text fits the box: glyphs advance 8 pixels, a newline moves 14. |
 | Window positions            | 8 per set, 2 sets                                                                                | `g_MenuPanelOrigins`, `D_801490CE`                             | Position index below 8.                                                 |
 | Glyph sheet                 | 31 columns of 8 by 12 cells at texture page `0x2F`; 32 columns of 8 by 8; 21 columns of 12 by 12 | `UI_DrawTextGlyphs`, `UI_DrawTextString`, `UI_DrawGlyphString` | A replacement font keeps the cell grid and page.                        |

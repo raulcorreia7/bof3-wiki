@@ -35,7 +35,7 @@ flowchart TD
 
 ### Row layouts
 
-The table gives each row's size and the offset of each field. Each field carries its type. A `description` is a little-endian `u16` resource id in the `0x4000`-based id space of `Resource_GetText` ([text](../text/#references)).
+The table gives each row's size and the offset of each field. Each field carries its type. A `description` is a little-endian `u16` resource id in the `0x4000`-based id space of `Message_GetText` ([text](../text/#references)).
 
 | Table        | Size | Fields (offset)                                                                                                                                                                                                                                    |
 | ------------ | ---: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -214,7 +214,7 @@ Community save editors use a second origin that starts at the zenny field, so an
 | `+0x882`          |               | three character ids (`D_80144F5A`), indexing `g_CharSlot`                              |              |
 | `+0x885`          |               | three character ids (`D_80144F5D`), swapped against `D_80144F5A`                       |              |
 | `+0x8E8`          |               | running clock, `Clock` format (`g_PlayClock`)                                          |              |
-| `+0x90C`          |               | best catch per fish (`g_FishBestCatch`)                                                |              |
+| `+0x90C`          |               | best catch per fish (`g_FishingBestCatch`)                                             |              |
 | `+0xE70`          |       `0x5F8` | dragon genes                                                                           | `[inferred]` |
 | `+0xE7C`          |       `0x604` | celerity countdown timer, `Clock` format ([clock](../field/#inventory-money-and-time)) |              |
 | `+0xE80`          |       `0x608` | bonebreak countdown timer, `Clock` format                                              |              |

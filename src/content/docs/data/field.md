@@ -14,7 +14,7 @@ The table gives the address, row size and row count of each object. Several obje
 | Object                  |      Address | Size | Count | Readers                                                                                                    |
 | ----------------------- | -----------: | ---: | ----: | ---------------------------------------------------------------------------------------------------------- |
 | actor rows              | `0x80146888` |  152 |    30 | `func_801A06D8 (emi/etc/game/00@0x801A06D8)`, area, plchar and scenario overlays                           |
-| published actor pointer | `0x80146884` |    4 |     1 | `Area_RunParty (exe/slus_004_22@0x8015A758)`, `func_8015A7E8 (exe/slus_004_22@0x8015A7E8)`                 |
+| published actor pointer | `0x80146884` |    4 |     1 | `Area_UpdateParty (exe/slus_004_22@0x8015A758)`, `func_8015A7E8 (exe/slus_004_22@0x8015A7E8)`              |
 | scratchpad work pointer | `0x1F800044` |    4 |     1 | every field, plchar, world and scenario overlay                                                            |
 | field slots             | `0x80143FC8` |  116 |    20 | `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)`, scene overlays and the setup stream's type-`E` record   |
 | party records           | `0x80144968` |  164 |     8 | see [records](../records/#character-and-master-data)                                                       |
