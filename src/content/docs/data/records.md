@@ -154,16 +154,16 @@ The record holds two copies of the stats. The "base" copy at `0x3C` is what leve
 
 Whelp stores character id 10 in its record, not 7. Every starting record has `master id` `0xFF`, so no character starts with a master. The opening values are:
 
-| Character | Level | HP | AP | Power | Defense | Agility | Intellect |
-| --------- | ----: | -: | -: | ----: | ------: | ------: | --------: |
-| Ryu       |     1 | 20 | 11 |    12 |      10 |       8 |        10 |
-| Nina      |     5 | 27 | 33 |    13 |      13 |      14 |        24 |
-| Garr      |    13 | 99 |  7 |    58 |      44 |      17 |        21 |
-| Teepo     |     1 | 22 | 13 |    13 |      10 |      10 |        12 |
-| Rei       |     5 | 42 | 12 |    23 |      15 |      19 |        22 |
-| Momo      |    10 | 52 | 40 |    30 |      25 |      15 |        50 |
-| Peco      |     1 | 40 |  8 |    18 |      14 |       3 |         4 |
-| Whelp     |     0 | 15 | 15 |    10 |       8 |       4 |         8 |
+| Character | Level |  HP |  AP | Power | Defense | Agility | Intellect |
+| --------- | ----: | --: | --: | ----: | ------: | ------: | --------: |
+| Ryu       |     1 |  20 |  11 |    12 |      10 |       8 |        10 |
+| Nina      |     5 |  27 |  33 |    13 |      13 |      14 |        24 |
+| Garr      |    13 |  99 |   7 |    58 |      44 |      17 |        21 |
+| Teepo     |     1 |  22 |  13 |    13 |      10 |      10 |        12 |
+| Rei       |     5 |  42 |  12 |    23 |      15 |      19 |        22 |
+| Momo      |    10 |  52 |  40 |    30 |      25 |      15 |        50 |
+| Peco      |     1 |  40 |   8 |    18 |      14 |       3 |         4 |
+| Whelp     |     0 |  15 |  15 |    10 |       8 |       4 |         8 |
 
 ### Level growth and level-ups
 
@@ -394,9 +394,9 @@ Rate 0 never drops because the code skips the row. Rate 1 and rate 0 hold the sa
 
 Pilfer (ability 65) and Steal (ability 216) take the target's first drop row. The roll is in each ability's effect overlay, not in the battle overlays: `func_801EEC90 (emi/bmagic/magic065/00@0x801EEC90)` for Pilfer and `func_801EECDC (emi/bmagic/magic216/00@0x801EECDC)` for Steal run the same code. The roll passes when `rand() & 0xFF` is less than `steal rate × factor`, so the probability is `steal rate × factor / 256`. The row's rate byte (battler `+0x9A`) indexes an eight-byte steal-rate table in the overlay.
 
-| Rate       |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
-| ---------- | -: | -: | -: | -: | -: | -: | -: | -: |
-| Steal rate |  0 |  1 |  3 |  6 | 12 | 16 | 32 | 32 |
+| Rate       |   0 |   1 |   2 |   3 |   4 |   5 |   6 |   7 |
+| ---------- | --: | --: | --: | --: | --: | --: | --: | --: |
+| Steal rate |   0 |   1 |   3 |   6 |  12 |  16 |  32 |  32 |
 
 The factor comes from the user's agility (party battler `+0x98`) minus the target's (enemy battler `+0xA8`).
 

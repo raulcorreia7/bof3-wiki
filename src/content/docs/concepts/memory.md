@@ -32,7 +32,7 @@ The table runs from low to high addresses. A size that says "up to" is the large
 | `0x8001A000`             | up to 16,872  | `FIRST`, `BATTLE`, `BOSS` archives | text resource table                                                                                                            |
 | `0x80020000..0x80032000` | 73,728        | `SYS_PrepareFrame`                 | two primitive banks of 36,864 bytes, picked by the buffer index                                                                |
 | `0x80032000`             | 5,000         | area archive                       | area table, read as nibbles by `func_801C6FD4`                                                                                 |
-| `0x800327A0`             | -             | `EMI_DecodeBegin`                  | LZ77 decoder context                                                                                                           |
+| `0x800327A0`             | -             | `LZ77_DecodeBegin`                 | LZ77 decoder context                                                                                                           |
 | `0x80033800`             | 16,384        | `GFX_ResetPalette`                 | palette arena; archives load CLUT slices at `0x80033A00`, `0x80033C00`, `0x80033E00`, `0x80035800`, `0x80036C00`, `0x80036E00` |
 | `0x80037800`             | 16,384        | `g_GraphicsPaletteDst`             | palette work area: 32 rows of 512 bytes, uploaded by `GFX_UploadPalette`                                                       |
 | `0x8003B800`             | -             | `PLCHAR`, `BPLCHAR`, `BMAGIC`      | decompression destination for character and effect graphics                                                                    |
@@ -42,7 +42,7 @@ The table runs from low to high addresses. A size that says "up to" is the large
 | `0x800D3800`             | up to 65,236  | area archive                       | area script bank                                                                                                               |
 | `0x800E3800`             | up to 412     | area archive                       | scene table                                                                                                                    |
 | `0x800E4000`             | 1,160         | area archive                       | encounter table                                                                                                                |
-| `0x800E4800..0x800F0800` | 49,152        | `EMI_LoaderStreamInitSlot`         | CD ring: one header slot and 23 ring slots of 2,048 bytes; the area work window shares it                                      |
+| `0x800E4800..0x800F0800` | 49,152        | `EMI_LoadArchive`                  | CD ring: one header slot and 23 ring slots of 2,048 bytes; the area work window shares it                                      |
 | `0x800F0800`             | 3,692         | `BATTLE`, `BOSS` archives          | battle script bank                                                                                                             |
 | `0x800F5000`             | up to 8,784   | 3 area archives                    | extra area code block                                                                                                          |
 | `0x80104000`             | up to 84,584  | area archive                       | map bundle                                                                                                                     |
@@ -98,7 +98,7 @@ The first 733,184 bytes of the payload are zero with a few stamp words. They res
 
 ## Scratchpad
 
-The scratchpad is the 1 KiB of fast RAM at `0x1F800000`. `g_SpadWork` is a pointer cell at `0x1F800044`, which the overlay handlers use to reach the record they step ([scheduler](../scheduler/)). `EMI_DecodeBegin (exe/slus_004_22@0x80164028)` points the LZ77 source at scratchpad offset 6 and its limit at `0x400`, so the decoder treats the whole scratchpad as a sector window. How the two uses share the space is `[unknown]`. The decoder runs only during a load.
+The scratchpad is the 1 KiB of fast RAM at `0x1F800000`. `g_SpadWork` is a pointer cell at `0x1F800044`, which the overlay handlers use to reach the record they step ([scheduler](../scheduler/)). `LZ77_DecodeBegin (exe/slus_004_22@0x80164028)` points the LZ77 source at scratchpad offset 6 and its limit at `0x400`, so the decoder treats the whole scratchpad as a sector window. How the two uses share the space is `[unknown]`. The decoder runs only during a load.
 
 ## Stacks
 
@@ -130,11 +130,11 @@ The [audio system](../../systems/audio/#ram-and-spu-budget-per-layout) lists the
 
 The code addresses VRAM only through `LoadImage` rectangles. Three uses are fixed in code:
 
-| Rectangle                                                     | Source                    | Writer                                                            |
-| ------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------- |
-| (0, 0x1E0, 0x100, 0x20)                                       | `0x80037800` palette work | `GFX_UploadPalette`                                               |
-| 32 by 32 blocks at `x = column * 32`, `y = (row & 0x3F) * 32` | ring sectors              | `EMI_LoaderUploadSector`, bounded to x below 1001 and y below 501 |
-| 24-wide slices                                                | logo decode buffer        | `Logo_DecodeSlice`                                                |
+| Rectangle                                                     | Source                    | Writer                                                           |
+| ------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| (0, 0x1E0, 0x100, 0x20)                                       | `0x80037800` palette work | `GFX_UploadPalette`                                              |
+| 32 by 32 blocks at `x = column * 32`, `y = (row & 0x3F) * 32` | ring sectors              | `EMI_UploadSectorImage`, bounded to x below 1001 and y below 501 |
+| 24-wide slices                                                | logo decode buffer        | `Logo_DecodeSlice`                                               |
 
 The full split of VRAM between frame buffers, textures and palettes is `[unknown]`; see [rendering](../../systems/rendering/).
 
@@ -153,7 +153,7 @@ The full split of VRAM between frame buffers, textures and palettes is `[unknown
 ## Sources and confidence
 
 - **Confidence:** medium. The ranges and sizes are measured on every archive, but the stack depth, the SPU end addresses, the VRAM split and which occupant a window holds are `[inferred]` or `[unknown]`.
-- **Evidence:** the load address and size of every entry over all archives on the disc; the executable header and the code of `stup1`, `stup2`, `SYS_PrepareFrame`, `EMI_DecodeBegin`, `GFX_ResetPalette`, `SND_SetBankLayout` and `CallbackInitThreads`.
+- **Evidence:** the load address and size of every entry over all archives on the disc; the executable header and the code of `stup1`, `stup2`, `SYS_PrepareFrame`, `LZ77_DecodeBegin`, `GFX_ResetPalette`, `SND_SetBankLayout` and `CallbackInitThreads`.
 
 ## Related
 

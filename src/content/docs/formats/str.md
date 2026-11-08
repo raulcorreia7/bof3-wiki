@@ -19,7 +19,7 @@ The XA subheader holds `[file, channel, submode, coding]` twice. The CD hardware
 
 ### Files
 
-`LOGO.EXE` plays the movie at boot ([executables](../exe/#boot-chain)). The game plays the three audio banks through `SND_StartXaStream` ([Audio system](../../systems/audio/)).
+`LOGO.EXE` plays the movie at boot ([executables](../exe/#boot-chain)). The game plays the three audio banks through `SND_StartXAStream` ([Audio system](../../systems/audio/)).
 
 | Path                      | Content                   |
 | ------------------------- | ------------------------- |
@@ -45,7 +45,7 @@ In `S_XA00.STR`, after the first 463 sectors, each 8-sector period holds one sec
 
 ## XA cue tables
 
-A sound request is a key, and `SND_ResolveXaStream (exe/slus_004_22@0x80163744)` turns it into the first and last sector of one cue in the stream.
+A sound request is a key, and `SND_ResolveXAStream (exe/slus_004_22@0x80163744)` turns it into the first and last sector of one cue in the stream.
 
 The key is `(stream << 12) | cue_index`. Stream 0 is `S_XA00.STR`, stream 1 is `MAGIC00.STR` and stream 2 is `VOICE.STR`. The three slot ids are in `D_80183230` (`0x2A9`, `0x1B2`, `0x2AA`), and the file start is `g_EmiSlotLbas[slot]` ([executables](../exe/#the-disc-file-table)). The cue array for each stream is `D_8018323C[stream]`, a pointer to a `u16` array in the executable at `0x801839C4`, `0x801832C4` and `0x80183298`.
 
@@ -115,7 +115,7 @@ The 30 frames per second and double-speed figures come from the stream's size an
 ## Sources and confidence
 
 - **Confidence:** medium. The sector classes, the cue arrays and the STR header are read from every sector and every array, but the content of the unplayed Form 1 sectors, the 150-sector offset and the game's playback schedule are not established.
-- **Evidence:** the sector counts and subheaders of every sector of the four files, a walk of the three cue arrays in `SLUS_004.22` that checks every cue, the video chunk headers, and `SND_ResolveXaStream`, `Logo_Init` and `Logo_DrawFrame`. The STR chunk header follows [psx-spx](https://psx-spx.consoledev.net/cdromformat/) ([sources](../../appendix/sources/)).
+- **Evidence:** the sector counts and subheaders of every sector of the four files, a walk of the three cue arrays in `SLUS_004.22` that checks every cue, the video chunk headers, and `SND_ResolveXAStream`, `Logo_Init` and `Logo_DrawFrame`. The STR chunk header follows [psx-spx](https://psx-spx.consoledev.net/cdromformat/) ([sources](../../appendix/sources/)).
 
 ## Related
 

@@ -348,19 +348,19 @@ Three more tables belong to the panels.
 `g_BattleState` (`0x801462E8`) is the shared latch that both overlays poll. The table gives the
 setter and the reader of each bit.
 
-|      Bit | Name             | Set by                                  | Read as                                                                  |
-| -------: | ---------------- | --------------------------------------- | ------------------------------------------------------------------------ |
-| `0x0002` | window busy      | boss windows                            | `Battle_Update` tests it                                                 |
-| `0x0004` | effect playing   | the hit endings and every effect module | the closing step waits for the effect                                    |
-| `0x0010` | command armed    | command menu                            | menu steps                                                               |
-| `0x0040` | reprisal pending | a won reprisal roll                     | the turn's closing step                                                  |
-| `0x0080` | critical         | critical-hit roll                       | damage and popup readers                                                 |
-| `0x0400` | effect loading   | the effect stream request               | action steps wait until `EMI_LoaderIsReady (exe/slus_004_22@0x80162D00)` |
-| `0x0800` | AP paid          | AP spend                                | action gate                                                              |
-| `0x1000` | reprisal done    | the answer's own hit ending             | the next closing step clears it                                          |
-| `0x2000` | damage applied   | damage application                      | popup and end-of-hit steps                                               |
-| `0x4000` | over             | battle end                              | both overlays                                                            |
-| `0x8000` | reload party     | the reload path                         | the reload path clears it                                                |
+|      Bit | Name             | Set by                                  | Read as                                                            |
+| -------: | ---------------- | --------------------------------------- | ------------------------------------------------------------------ |
+| `0x0002` | window busy      | boss windows                            | `Battle_Update` tests it                                           |
+| `0x0004` | effect playing   | the hit endings and every effect module | the closing step waits for the effect                              |
+| `0x0010` | command armed    | command menu                            | menu steps                                                         |
+| `0x0040` | reprisal pending | a won reprisal roll                     | the turn's closing step                                            |
+| `0x0080` | critical         | critical-hit roll                       | damage and popup readers                                           |
+| `0x0400` | effect loading   | the effect stream request               | action steps wait until `EMI_IsReady (exe/slus_004_22@0x80162D00)` |
+| `0x0800` | AP paid          | AP spend                                | action gate                                                        |
+| `0x1000` | reprisal done    | the answer's own hit ending             | the next closing step clears it                                    |
+| `0x2000` | damage applied   | damage application                      | popup and end-of-hit steps                                         |
+| `0x4000` | over             | battle end                              | both overlays                                                      |
+| `0x8000` | reload party     | the reload path                         | the reload path clears it                                          |
 
 The effect loading bit stays set from the action's effect stream request until the loader is ready
 (`func_801D3F6C`). Bit `0x0008` is also used. `func_801D277C` and `func_8009B828` set it and
@@ -499,7 +499,7 @@ The table below lists every ability with an effect module, read from the retail 
 |  `0x27` | Focus        |            78 |  `0x139` | MAGIC039      |
 |  `0x28` | Enlighten    |            79 |  `0x13A` | MAGIC040      |
 |  `0x29` | Berserk      |            80 |  `0x13B` | MAGIC041      |
-|  `0x2A` | Minds Eye   |            81 |  `0x13C` | MAGIC042      |
+|  `0x2A` | Minds Eye    |            81 |  `0x13C` | MAGIC042      |
 |  `0x2B` | WardOfLight  |           110 |  `0x13D` | MAGIC043      |
 |  `0x2C` | Evil Eye     |            96 |  `0x13E` | MAGIC044      |
 |  `0x2D` | Bone Dart    |            61 |  `0x13F` | MAGIC045      |
@@ -674,7 +674,7 @@ The table below lists every ability with an effect module, read from the retail 
 |  `0xDA` | Aura Breath  |           142 |  `0x1A9` | MAGIC218      |
 |  `0xDB` | Magma Breath |           138 |  `0x1AA` | MAGIC219      |
 |  `0xDC` | Geo Breath   |           136 |  `0x1AB` | MAGIC220      |
-|  `0xDD` | GaeasBreath |           146 |  `0x1AC` | MAGIC221      |
+|  `0xDD` | GaeasBreath  |           146 |  `0x1AC` | MAGIC221      |
 |  `0xDE` | Combustion   |           133 |  `0x1AD` | MAGIC222      |
 |  `0xDF` | Tempest      |           137 |  `0x1AE` | MAGIC223      |
 |  `0xE0` | Hurricane    |           137 |  `0x1AE` | MAGIC223      |

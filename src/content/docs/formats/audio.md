@@ -15,7 +15,7 @@ Each `BIN/BGM/BGMxxx.EMI` is a bank plus a sequence package: type 6 is the VAB h
 
 An XA audio sector holds 18 sound groups of 128 bytes in its 2,324-byte payload. [STR and XA playback](../str/#sector-layout) describes the rest of the sector and the stream files. The subheader byte `coding` has bit 0 for stereo (1) or mono (0), and bit 2 for 18,900 Hz (1) or 37,800 Hz (0). The game uses `0x00` (mono, 37,800 Hz) and `0x01` (stereo, 37,800 Hz). The `channel` field separates interleaved streams. The last sector of a channel (submode bit `0x80`) is valid audio.
 
-A 128-byte sound group holds 16 parameter bytes, then 28 data words of 4 bytes. The group carries eight sound units of 28 samples each, and every unit has its own parameter byte. Bytes 4 to 11 are the parameters of units 0 to 7. Bytes 0 to 3 copy bytes 4 to 7, and bytes 12 to 15 copy bytes 8 to 11. In each parameter byte, bits 0 to 3 are `shift` and bits 4 to 5 are `filter`, so one group can change its pair up to eight times. Sample *j* of unit *u* is in data word *j*, byte `u / 2`: the low nibble for an even unit and the high nibble for an odd unit. A mono group plays units 0 to 7 in order, which gives 224 samples. A stereo group sends the even units to the left channel and the odd units to the right, which gives 112 samples per channel.
+A 128-byte sound group holds 16 parameter bytes, then 28 data words of 4 bytes. The group carries eight sound units of 28 samples each, and every unit has its own parameter byte. Bytes 4 to 11 are the parameters of units 0 to 7. Bytes 0 to 3 copy bytes 4 to 7, and bytes 12 to 15 copy bytes 8 to 11. In each parameter byte, bits 0 to 3 are `shift` and bits 4 to 5 are `filter`, so one group can change its pair up to eight times. Sample _j_ of unit _u_ is in data word _j_, byte `u / 2`: the low nibble for an even unit and the high nibble for an odd unit. A mono group plays units 0 to 7 in order, which gives 224 samples. A stereo group sends the even units to the left channel and the odd units to the right, which gives 112 samples per channel.
 
 ## VAB bank
 
@@ -78,7 +78,7 @@ The header is followed by the program table, the tone table and the VAG size tab
 
 **Program table.** The table always has 128 records. `ps` counts the records whose `tones` byte is nonzero, not the table length. The `tones` bytes of those records sum to `ts` (1,020 of 1,020). Their indices are the playable program numbers, and they may run past `ps`. The linked code walks all 128 records and writes the running count of nonzero-`tones` records into `ProgAtr.reserved1`. That count is the tone block that the program's notes select.
 
-**Tone table.** The table has `ps` blocks of 16 slots, one block per playable record, packed in record order. Block *b* belongs to the *b*-th record with `tones != 0` (1,020 of 1,020). A slot is live when its `vag` field is nonzero. The live slots of a block are its first `tones` slots (4,416 of 4,416 blocks), and every live slot's `prog` field names its own record's index (4,416 of 4,416). Slots past the live count are stale authoring bytes, and a writer must keep them unchanged. 35 of them carry a volume with no `vag`.
+**Tone table.** The table has `ps` blocks of 16 slots, one block per playable record, packed in record order. Block _b_ belongs to the _b_-th record with `tones != 0` (1,020 of 1,020). A slot is live when its `vag` field is nonzero. The live slots of a block are its first `tones` slots (4,416 of 4,416 blocks), and every live slot's `prog` field names its own record's index (4,416 of 4,416). Slots past the live count are stale authoring bytes, and a writer must keep them unchanged. 35 of them carry a volume with no `vag`.
 
 **VAG size table.** Unit 0 is 0, the null sample. Units 1 to `vs` add up to the body size: `sum(units[1..=vs]) * 8 == len(VB)` in all 1,020 banks, and every nonzero unit is a multiple of 16 bytes. Units past `vs` are stale in 180 headers. They are never read, and a writer keeps them unchanged. The linked code sums `vs + 1` units at 8 bytes per unit from version 5 on, stops at 256 units and rejects a body above 512 KiB.
 
@@ -252,7 +252,7 @@ The main executable has these entry points for sound:
 | `0x8015CEBC` | `SND_Exit`              | all-key-off, close active VAB ids, release seven slots, disable reverb           |
 | `0x8015D044` | `SND_UpdateVoiceStatus` | poll all 24 SPU voices into the game voice-state table                           |
 | `0x8015DF18` | `SND_PlayCue`           | queued cue dispatcher; `SsUtKeyOnV` and detailed voice-volume operations         |
-| `0x80161BBC` | `SND_RequestBgm`        | ensure one logical audio bank is active, starting the EMI stream when it differs |
+| `0x80161BBC` | `SND_RequestBGM`        | ensure one logical audio bank is active, starting the EMI stream when it differs |
 | `0x80161C20` | `SND_PlayBgm`           | start the selected BGM cue and record its id in `g_SndBgmId`                     |
 | `0x80161CD0` | `SND_FadeOutBgm`        | fade out the selected BGM cue                                                    |
 

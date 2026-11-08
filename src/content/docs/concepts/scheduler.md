@@ -15,7 +15,7 @@ The [frame loop](../frame-loop/) gives game code one turn per frame through `Cal
 | `CallbackExit (exe/slus_004_22@0x8014B8B0)`    | empty the slot and close the thread                                                         |
 | `CallbackReplace (exe/slus_004_22@0x8014B954)` | close the thread and reopen the slot with another callback on the next pass                 |
 
-`CallbackRegister (exe/slus_004_22@0x8014B854)` puts a callback in a slot and marks the slot open. `CallbackStopAll (exe/slus_004_22@0x8014B33C)` empties every occupied slot and closes its thread. A callback that waits for a disc read polls with `CallbackWait(1)` until `EMI_LoaderIsReady` returns nonzero. This is how every overlay swap blocks its own thread and no other.
+`CallbackRegister (exe/slus_004_22@0x8014B854)` puts a callback in a slot and marks the slot open. `CallbackStopAll (exe/slus_004_22@0x8014B33C)` empties every occupied slot and closes its thread. A callback that waits for a disc read polls with `CallbackWait(1)` until `EMI_IsReady` returns nonzero. This is how every overlay swap blocks its own thread and no other.
 
 ```mermaid
 stateDiagram-v2
