@@ -73,13 +73,13 @@ Over the whole disc this is 1,686,656 bytes of `0x2E` TOC fill and 7,440,017 byt
 
 ## Entry types
 
-The type is a loader command. Types 4 and 5 never appear in a TOC (0 of 6,344 rows). They are internal loader states, and `g_EmiEntryHandlers` points both at `EMI_LoaderReadToc`. Types 2 and 9 have a handler, but no entry uses them on this disc.
+The type is a loader command. Types 4 and 5 never appear in a TOC (0 of 6,344 rows). They are internal loader states, and `g_EmiEntryHandlers` points both at `EMI_ReadToc`. Types 2 and 9 have a handler, but no entry uses them on this disc.
 
 | Type | Loader treatment                                                 | Entries | Payload bytes | Note                                                 |
 | ---: | ---------------------------------------------------------------- | ------: | ------------: | ---------------------------------------------------- |
 |  `0` | copy to RAM at the load argument; code or data                   |   2,623 |    39,534,564 | 429 code, 98 mixed, 945 data, 1,098 asset, 53 empty  |
 |  `1` | queue for decompression, then copy to RAM                        |      65 |    12,723,580 | all [LZ77](../lz77/); 21,753,944 bytes decoded       |
-|  `2` | same handler as type 1 (`EMI_LoaderQueuePayload`)                |       0 |             - |                                                      |
+|  `2` | same handler as type 1 (`EMI_LoadCompressed`)                    |       0 |             - |                                                      |
 |  `3` | raw [graphics](../graphics/#type-3-load-argument) upload to VRAM |     593 |   112,312,320 | every payload is a multiple of 2,048 bytes           |
 |  `6` | VAB header (VH)                                                  |   1,020 |     4,904,832 | every header starts `pBAV`                           |
 |  `7` | VAB body (VB)                                                    |   1,020 |    79,157,504 | header size equals the VH `fsize` field in all 1,020 |
@@ -114,26 +114,26 @@ A BOSS archive loads banks 0, 1, 2 and 6 together. [Audio](../audio/) explains w
 
 ## Disc slot ids
 
-The game names an archive by its slot id, the archive's index in the disc file list. `EMI_LoaderStreamInitSlot (exe/slus_004_22@0x80161FDC)` takes the slot id and reads the start sector from `g_EmiSlotLbas[slot_id]`. For example, `0x261` is `FIRST.EMI` and `0x262` is `GAME.EMI`. The list is in ascending sector order, so each directory is one contiguous run of slots. [Disc and files](../disc/#directories) gives the slot range of each directory, and the [executable page](../exe/#the-disc-file-table) describes the table.
+The game names an archive by its slot id, the archive's index in the disc file list. `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` takes the slot id and reads the start sector from `g_EmiSlotLbas[slot_id]`. For example, `0x261` is `FIRST.EMI` and `0x262` is `GAME.EMI`. The list is in ascending sector order, so each directory is one contiguous run of slots. [Disc and files](../disc/#directories) gives the slot range of each directory, and the [executable page](../exe/#the-disc-file-table) describes the table.
 
 Do not confuse the slot id with the entry slot, which is the TOC index inside one archive. The table names the caller that picks the slot for each directory.
 
-| Directory    | Caller that picks the slot                                                                                                                                                                                                    |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BATTLE/*`   | fixed ids 0-8 in `emi/battle/battle/03` and `emi/battle/battle/15`                                                                                                                                                            |
-| `BENEMY`     | `func_801D1228 (emi/battle/battle/03@0x801D1228)`: `g_GameAreaId + 9`                                                                                                                                                         |
-| `BGM`        | `SND_RequestBgm (exe/slus_004_22@0x80161BBC)`: the table `D_80181EB8[id]` holds the slot (`0xD1`-`0x121`)                                                                                                                     |
-| `BMAGIC`     | `func_800AE1F8 (emi/battle/battle/15@0x800AE1F8)` and `func_800AE2D4 (emi/battle/battle/15@0x800AE2D4)`: `BattleSelection.id` from the table at `0x800B65F8` (`0x122`-`0x1B1`)                                                |
-| `BMAG_XA`    | `SND_StartXaStream`, key `0x1000 + n`                                                                                                                                                                                         |
-| `BOSS`       | no static caller found                                                                                                                                                                                                        |
-| `BPLCHAR`    | `EMI_StreamFamilyArchive` families 1 and 2; `func_801E7948 (emi/battle/battle/03@0x801E7948)`; id tables `D_800B4A64` and `D_800B4A68` (`0x232`-`0x23B`), `func_801E75B0 (emi/battle/battle/03@0x801E75B0)` (`0x23C`-`0x23F`) |
-| `ETC/*`      | fixed ids (`0x256`-`0x25F`, `0x262`, `0x266`, `0x268`, `0x269`) in `emi/etc/game/00`, `emi/etc/game/01`, `emi/etc/commu00/00` and `emi/battle/battle/03`                                                                      |
-| `PLCHAR`     | `EMI_StreamFamilyArchive` families 0 and 3                                                                                                                                                                                    |
-| `SCENARIO`   | `Scene_RequestOverlay (emi/etc/game/00@0x801A7804)`: `scenario_id + 661` (`0x295` is `SCENA00`)                                                                                                                               |
-| `SCE_XA`     | `SND_StartXaStream`, key kinds 0 and 2                                                                                                                                                                                        |
-| `WORLD00-04` | `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)` and `func_801D7108 (emi/battle/battle/03@0x801D7108)`: `area + 0x2AB`                                                                                                            |
+| Directory    | Caller that picks the slot                                                                                                                                                                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BATTLE/*`   | fixed ids 0-8 in `emi/battle/battle/03` and `emi/battle/battle/15`                                                                                                                                                                                                                                                   |
+| `BENEMY`     | `func_801D1228 (emi/battle/battle/03@0x801D1228)`: `g_GameAreaId + 9`                                                                                                                                                                                                                                                |
+| `BGM`        | `SND_RequestBGM (exe/slus_004_22@0x80161BBC)`: the table `g_BGMTracks[id]` holds the slot (`0xD1`-`0x121`)                                                                                                                                                                                                           |
+| `BMAGIC`     | `func_800AE1F8 (emi/battle/battle/15@0x800AE1F8)` and `func_800AE2D4 (emi/battle/battle/15@0x800AE2D4)`: `BattleSelection.id` from the table at `0x800B65F8` (`0x122`-`0x1B1`)                                                                                                                                       |
+| `BMAG_XA`    | `SND_StartXAStream`, key `0x1000 + n`                                                                                                                                                                                                                                                                                |
+| `BOSS`       | `Battle_LoadBattleArchive (emi/etc/game/00@0x80197C94)`: the slot comes from `g_BossArchiveSlots`, indexed by the encounter record (`0x1B3`-`0x1DA`)                                                                                                                                                                 |
+| `BPLCHAR`    | `EMI_GetArchiveId` families 1 and 2 (`BPLD`, `BPLU`, party combination 0-18); `func_801E7948 (emi/battle/battle/03@0x801E7948)` (`BRTD`/`BRTU` `0x201`-`0x208` for combinations 7, 13, 14, 15; tables `D_800B4A64`, `D_800B4A68`); `func_801E75B0` (`REI`, `0x23C`-`0x23F`); `BMagic_Effect` (`RT`, `0x240`-`0x243`) |
+| `ETC/*`      | fixed ids (`0x256`-`0x25F`, `0x260` in `scena17`, `0x262`, `0x265`-`0x269`) in `emi/etc/game/00`, `emi/etc/game/01`, `emi/etc/commu00/00`, `emi/battle/battle/03` and `emi/scenario/scena17/00`                                                                                                                      |
+| `PLCHAR`     | `EMI_GetArchiveId` families 0 and 3 (`PL`, `PLP`, party combination 0-18)                                                                                                                                                                                                                                            |
+| `SCENARIO`   | `Scene_RequestOverlay (emi/etc/game/00@0x801A7804)`: `scenario_id + 661` (`0x295` is `SCENA00`)                                                                                                                                                                                                                      |
+| `SCE_XA`     | `SND_StartXAStream`, key kinds 0 and 2                                                                                                                                                                                                                                                                               |
+| `WORLD00-04` | `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)` and `Battle_ReloadAreaAudio (emi/battle/battle/03@0x801D7108)`: `area + 0x2AB`                                                                                                                                                                                          |
 
-`EMI_StreamFamilyArchive (exe/slus_004_22@0x8016728C)` adds a family bias to the character index, for the four character families:
+`EMI_GetArchiveId (exe/slus_004_22@0x8016728C)` adds a family bias to the character index, for the four character families:
 
 | Family |    Bias | Archives      |
 | -----: | ------: | ------------- |
@@ -142,30 +142,30 @@ Do not confuse the slot id with the entry slot, which is the TOC index inside on
 |    `2` | `0x1EE` | `BPLUxxx`     |
 |    `3` | `0x27D` | `PLPxxx` code |
 
-For example, character index 12 in family 0 is slot `0x26A + 12 = 618`, which is `PL012`. Slots 475, 494 and 637 are `BPLD012`, `BPLU012` and `PLP012`.
+The index is the party combination: the row of the 19-row table `D_80181B34` that lists the three characters the archive set holds ([party combinations](../../concepts/loading/#characters-and-the-party)). Combination 0 is `012` (young Ryu, young Nina, Garr), so family 0 gives slot `0x26A` (618, `PL012`), and slots 475, 494 and 637 are `BPLD012`, `BPLU012` and `PLP012`. Combination 12 is `349`: `PL349` is slot 630.
 
-`SND_StartXaStream (exe/slus_004_22@0x801636A0)` is not an EMI loader. It streams the three XA files with its own state machine ([STR and XA](../str/); their slot ids are in the [executable data](../exe/#other-executable-data)).
+`SND_StartXAStream (exe/slus_004_22@0x801636A0)` is not an EMI loader. It streams the three XA files with its own state machine ([STR and XA](../str/); their slot ids are in the [executable data](../exe/#other-executable-data)).
 
 ## Loader chain
 
-Every archive read runs `EMI_LoaderStreamInitSlot`, `EMI_LoaderSlotLba`, `EMI_LoaderBeginRead` and `EMI_OnCdReady`. Then `EMI_LoaderNextRead` starts each TOC row. Loader states 0, 4, 6, 8, 9 and 10 run inside the CD callback. States 1, 2, 3, 5 and 7 go through a 24-slot ring that `EMI_LoaderService` drains each frame.
+Every archive read runs `EMI_LoadArchive`, `EMI_GetArchiveSector`, `EMI_StartArchive` and `EMI_CdOnReady`. Then `EMI_NextEntry` starts each TOC row. Loader states 0, 4, 6, 8, 9 and 10 run inside the CD callback. States 1, 2, 3, 5 and 7 go through a 23-slot ring that `EMI_Update` drains each frame.
 
-| Type      | Handler chain                                                                                                                                                                                                                            |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| header    | `EMI_LoaderReadToc` checks `MATH_TBL` and builds the cumulative sector offsets in `g_EmiSlotSectors[]`                                                                                                                                   |
-| `0`       | `EMI_LoaderCopyPayload`, then `EMI_LoaderCopySector` (each sector goes straight to the load argument)                                                                                                                                    |
-| `1`       | `EMI_LoaderQueuePayload`, then `EMI_LoaderReadSector` (`@0x80163238`, starts the decoder with `EMI_DecodeBegin`), then `EMI_LoaderStageSector` (`@0x8016327C`, copies two 1,024-byte halves to the scratchpad and runs `EMI_DecodeStep`) |
-| `3`       | `EMI_LoaderLoadGraphics` (descriptor `col:row:count`), then `EMI_LoaderUploadSector` (`@0x80163378`, one `LoadImage` of a 32x32-word rectangle)                                                                                          |
-| `6`       | `EMI_LoaderLoadVabHeader` copies the VH and closes the bank's previous owner                                                                                                                                                             |
-| `7`       | `EMI_LoaderLoadVabBody` (`SsVabOpenHeadSticky`), then `EMI_LoaderTransferVabBody` (`SsVabTransBodyPartly`)                                                                                                                               |
-| `8`       | `EMI_LoaderLoadVabCues` copies the table to `0x801486A0 + 124 * bank`                                                                                                                                                                    |
-| `9`, `10` | `EMI_LoaderLoadSequence` copies the payload to the bank record's alternate destination                                                                                                                                                   |
+| Type      | Handler chain                                                                                                                                                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| header    | `EMI_ReadToc` checks `MATH_TBL` and builds the cumulative sector offsets in `g_EmiSlotSectors[]`                                                                                                                                            |
+| `0`       | `EMI_LoadToRam`, then `EMI_CopySectorData` (each sector goes straight to the load argument)                                                                                                                                                 |
+| `1`       | `EMI_LoadCompressed`, then `EMI_DecompressSector` (`@0x80163238`, starts the decoder with `LZ77_DecodeBegin`), then `EMI_CopySectorToScratchpad` (`@0x8016327C`, copies two 1,024-byte halves to the scratchpad and runs `LZ77_DecodeStep`) |
+| `3`       | `EMI_LoadToVram` (descriptor `col:row:count`), then `EMI_UploadSectorImage` (`@0x80163378`, one `LoadImage` of a 32x32-word rectangle)                                                                                                      |
+| `6`       | `EMI_LoadVabHeader` copies the VH and closes the bank's previous owner                                                                                                                                                                      |
+| `7`       | `EMI_LoadVabBody` (`SsVabOpenHeadSticky`), then `EMI_UploadVabBody` (`SsVabTransBodyPartly`)                                                                                                                                                |
+| `8`       | `EMI_LoadSoundCues` copies the table to `0x801486A0 + 124 * bank`                                                                                                                                                                           |
+| `9`, `10` | `EMI_LoadSequence` copies the payload to the bank record's alternate destination                                                                                                                                                            |
 
 All handlers sit in `exe/slus_004_22`.
 
 ```mermaid
 flowchart LR
-    H["archive slot id,<br/>EMI_LoaderSlotLba,<br/>header: MATH_TBL<br/>+ TOC"]
+    H["archive slot id,<br/>EMI_GetArchiveSector,<br/>header: MATH_TBL<br/>+ TOC"]
     H -->|"TOC type 0"| R["EMI_Loader<br/>CopyPayload:<br/>RAM load argument"]
     H -->|"type 1, 2"| Q["EMI_Loader<br/>QueuePayload:<br/>LZ77 stream + decode"]
     H -->|"type 3"| G["EMI_Loader<br/>LoadGraphics:<br/>LoadImage 32x32"]

@@ -110,7 +110,7 @@ Code deep inside the field does not set `g_GameEntryState` directly. It writes a
 | ----------------------------- | --------------------------------------------------- | --------------------- |
 | `UI_SetMode(0)`               | title, start menu, end of New Game                  | leave-screen effect   |
 | `UI_SetMode(2)`               | entry state 2, code 1                               | menu-open effect      |
-| `UI_SetMode(3)`               | `func_80197620`, after `STATUS` streams             | menu entry            |
+| `UI_SetMode(3)`               | `Game_LoadMenuOverlay`, after `STATUS` streams      | menu entry            |
 | `UI_SetMode(4)`               | `UI_WaitTitleInput (emi/etc/game/01@0x801D0F00)`    | choice-confirm effect |
 | `UI_SetMode(g_GameEntryMode)` | area reload                                         | field entry (read)    |
 | `UI_SetMode(0x13)`            | `func_801EEC40 (emi/battle/batl_ovr/00@0x801EEC40)` | game over             |
@@ -134,7 +134,7 @@ Every phase has the executable and the resident program `emi/etc/game/00` in RAM
 | Cutscene                             | a scenario entry or area script sets a request, or scenario updates run | `Game_RunScenarioEntry`, `Game_RunSceneUpdate`; `scenaNN` at `0x801F6C00`, effect overlays `SCE10EFF`, `SCE15EF0` to `SCE15EF3` at `0x801D0C00`                     | message wait (code 2); area change                                                 |
 | Battle                               | code 3 from `func_801B2B6C`                                             | state 5, `g_GameModeHandlers`; step 5 is `Battle_Update`; `BATTLE` or `BATTLE2` or an encounter slot, `BPLU` and `BPLD`                                             | victory: steps 6 and 7 restore the field; defeat: game over                        |
 | Boss                                 | an encounter with a boss entry in `D_801EB298` of `battle/03`           | the battle chain, with a boss module at `0x800C1800`                                                                                                                | as Battle `[inferred]`                                                             |
-| Menu                                 | code 1                                                                  | state 3: `func_80197620` streams `STATUS`; `func_80199368`, `Menu_RunPanelTasks`                                                                                    | `func_801976EC` re-streams the character bank, re-enters the area, goes to 2       |
+| Menu                                 | code 1                                                                  | state 3: `Game_LoadMenuOverlay` streams `STATUS`; `func_80199368`, `Menu_RunPanelTasks`                                                                             | `Game_ReturnFromMenu` re-streams the character bank, re-enters the area, goes to 2 |
 | Game over                            | defeat: `g_BattleResult & 1` and `g_BattleEncounter == 0`               | `Battle_StreamEndOverlay (emi/battle/battle/03@0x801D6A14)` picks `BATL_OVR`; `Battle_RunGameOver (emi/battle/batl_ovr/00@0x801EF0A8)`                              | `SND_Exit`, `CallbackReplace(SYS_StartFrontend)`: first load, then title           |
 | Ending                               | scenarios 15 to 19                                                      | `scena17` loads `ENDKANJI` (`0x260`) and `SHOP` (`0x266`); `scena15` and `scena17` call `CallbackReplace(SYS_StartFrontend)`                                        | the first load and the title; the sequence that reaches them is `[unknown]`        |
 | Shop, master, fishing, fairy village | not traced as phases                                                    | `SHOP` (`0x266`) and `SISYOU` (`0x267`) exist as overlays; fishing is entry state 8 with code in `emi/world00/area030`; the fairy village loads `COMMU00` (`0x258`) | not traced `[unknown]` for entry; flags are read                                   |
@@ -167,16 +167,16 @@ The table lists the symbols that carry the phase state. All of them are work var
 
 ## Open questions
 
-| Question                                                       | What would settle it                                                                    |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| The menu trigger for code 1 and Start-in-field for code 9      | Read the callers of `func_801B2A00` and `func_801B5910`                                 |
-| Where name entry runs                                          | Read the `g_MenuCampSubFuncs` tables `D_801ECCF8`, `D_801ECD1C` and `D_801ED138`        |
-| Entry paths of the shop, master, fishing and the fairy village | Callers of `EMI_LoaderStreamInitSlot` with `0x266`, `0x267`, `0x258` and the area flags |
-| World map code                                                 | Read the world area overlays that load flag bit 0 selects                               |
-| Boss entry                                                     | Read the callback table `D_801EB298` of `battle/03` and its callers                     |
-| What reaches the credits and the end-of-game restart           | Trace the `scena15` to `scena19` assembly and the users of `ENDKANJI`                   |
-| The exit from `BATL_END` to the field                          | Read the exit calls in `batl_end/00`                                                    |
-| What scenario 16 draws, and when it raises the popup request   | Read the `scena16` overlay                                                              |
+| Question                                                       | What would settle it                                                             |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| The menu trigger for code 1 and Start-in-field for code 9      | Read the callers of `func_801B2A00` and `func_801B5910`                          |
+| Where name entry runs                                          | Read the `g_MenuCampSubFuncs` tables `D_801ECCF8`, `D_801ECD1C` and `D_801ED138` |
+| Entry paths of the shop, master, fishing and the fairy village | Callers of `EMI_LoadArchive` with `0x266`, `0x267`, `0x258` and the area flags   |
+| World map code                                                 | Read the world area overlays that load flag bit 0 selects                        |
+| Boss entry                                                     | Read the callback table `D_801EB298` of `battle/03` and its callers              |
+| What reaches the credits and the end-of-game restart           | Trace the `scena15` to `scena19` assembly and the users of `ENDKANJI`            |
+| The exit from `BATL_END` to the field                          | Read the exit calls in `batl_end/00`                                             |
+| What scenario 16 draws, and when it raises the popup request   | Read the `scena16` overlay                                                       |
 
 ## Sources and confidence
 

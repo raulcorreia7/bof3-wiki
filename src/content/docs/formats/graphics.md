@@ -11,7 +11,7 @@ The game draws with the PsyQ primitive records: `SPRT` (free size), `SPRT_8` and
 
 ## Type-3 load argument
 
-The type-3 handler `EMI_LoaderLoadGraphics (exe/slus_004_22@0x80162698)` reads the load argument as masked fields ([EMI load argument](../emi/#load-argument)).
+The type-3 handler `EMI_LoadToVram (exe/slus_004_22@0x80162698)` reads the load argument as masked fields ([EMI load argument](../emi/#load-argument)).
 
 | Bits                    | Meaning                            | Unit                  |
 | ----------------------- | ---------------------------------- | --------------------- |
@@ -26,7 +26,7 @@ For example, the argument `0x1A080400` has column `0x1A` = 26 (VRAM x = 832), ro
 
 Each 2,048-byte chunk of the payload is one 32x32 rectangle of 16-bit VRAM words: 32 rows of 32 little-endian words. Rectangles fill a row from left to right up to `rectangles per row`. Then the destination moves 32 VRAM rows down. The payload order is the rectangle order.
 
-All 593 payloads are a whole number of rectangles, and the count divides into whole rows (54,840 rectangles in all). A rectangle uploads only if its whole 32x32 extent is inside the 1,024 by 512 word frame buffer. The loader drops the rest instead of clipping: `EMI_LoaderUploadSector (exe/slus_004_22@0x80163378)` calls `LoadImage` while `x < 1001` and `y < 501`, which for these 32-aligned destinations means the rectangle fits. `ETC/FIRST.EMI#6` starts at row 15 and spans 8 rectangle rows, so rows 16 to 22 fall outside. All 14 rectangles dropped on the disc are zero.
+All 593 payloads are a whole number of rectangles, and the count divides into whole rows (54,840 rectangles in all). A rectangle uploads only if its whole 32x32 extent is inside the 1,024 by 512 word frame buffer. The loader drops the rest instead of clipping: `EMI_UploadSectorImage (exe/slus_004_22@0x80163378)` calls `LoadImage` while `x < 1001` and `y < 501`, which for these 32-aligned destinations means the rectangle fits. `ETC/FIRST.EMI#6` starts at row 15 and spans 8 rectangle rows, so rows 16 to 22 fall outside. All 14 rectangles dropped on the disc are zero.
 
 A rectangle is 32 VRAM words wide in every mode, so its size in pixels depends on the color depth of the draw. No payload or descriptor field carries the depth.
 
@@ -122,7 +122,7 @@ The cell map has one byte per cell, and `0xFF` is empty. `GFX_StepPaletteAnimati
 
 ```mermaid
 flowchart TD
-    B["type-0 CLUT bank"] -->|"EMI_LoaderCopyPayload"| A["arena 0x80033800"]
+    B["type-0 CLUT bank"] -->|"EMI_LoadToRam"| A["arena 0x80033800"]
     A -->|"GFX_ResetPalette"| W["working copy 0x80037800"]
     W -->|"LoadImage rect(0,0x1E0,0x100,0x20)"| V["VRAM rows 480-511"]
     V --> P["POLY_FT4 clut/tpage"]
@@ -137,8 +137,8 @@ The arena base holds 256 units of 64 bytes (32 rows of 512). [Rendering](../../s
 
 | Asset                         | Route                                                                                                                                                                                                                          |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| texture page, type 3          | `EMI_LoaderLoadGraphics` uploads it with `LoadImage`, one 32x32 rectangle at a time ([chunk layout](#chunk-layout))                                                                                                            |
-| CLUT bank, type 0             | `EMI_LoaderCopyPayload (exe/slus_004_22@0x801625E4)` copies it into the palette arena at its load address; the engine uploads the arena's working copy to VRAM rows 480 to 511 ([area](../area/#palette-arena))                |
+| texture page, type 3          | `EMI_LoadToVram` uploads it with `LoadImage`, one 32x32 rectangle at a time ([chunk layout](#chunk-layout))                                                                                                                    |
+| CLUT bank, type 0             | `EMI_LoadToRam (exe/slus_004_22@0x801625E4)` copies it into the palette arena at its load address; the engine uploads the arena's working copy to VRAM rows 480 to 511 ([area](../area/#palette-arena))                        |
 | `etc/start/09` save-icon TIMs | never uploaded: `CardBuildFileHeader (emi/etc/start/09@0x801EF27C)` copies icon 0's CLUT colors and each icon's pixels into the memory card save frame at `0x800C1800`; nothing reads the TIM headers ([save](../save/#icons)) |
 
 ## Texture-to-palette join
@@ -184,7 +184,7 @@ These are ranked by the bytes they leave unexplained.
 1. Battle, `SCENARIO` and `ETC` sites. Their pages and CLUTs come from tables, caller arguments or banks in other archives. `BATTLE.EMI` has no row-506 bank, and `BATL_OVR` and `BATL_DRA` disagree there. The join needs the resident banks of the scene, not the archive alone.
 2. Family and table CLUTs (`BATTLE`, `AREA008`, `SISYOU`). The row 480 and row 481 CLUTs come from caller arguments or the 7-byte table at `0x801D0C64`. They need the callers' arguments.
 3. Textures outside their archive. The page that `SCENA00` and the battle quads use is not a sheet of the same archive, so the same-archive rule finds nothing.
-4. Overlapping sheets. Several sheets cover the same VRAM words, for example slots 5 and 7 of `AREA024`. Which upload is resident depends on the stream order (`EMI_LoaderUploadSector`).
+4. Overlapping sheets. Several sheets cover the same VRAM words, for example slots 5 and 7 of `AREA024`. Which upload is resident depends on the stream order (`EMI_UploadSectorImage`).
 5. Texel depth without a site. A depth of 4bpp, 8bpp or 15bpp is known only for the sites in the table and for a joined terrain descriptor.
 
 ## Sources and confidence

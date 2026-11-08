@@ -252,7 +252,7 @@ The main executable has these entry points for sound:
 | `0x8015CEBC` | `SND_Exit`              | all-key-off, close active VAB ids, release seven slots, disable reverb           |
 | `0x8015D044` | `SND_UpdateVoiceStatus` | poll all 24 SPU voices into the game voice-state table                           |
 | `0x8015DF18` | `SND_PlayCue`           | queued cue dispatcher; `SsUtKeyOnV` and detailed voice-volume operations         |
-| `0x80161BBC` | `SND_RequestBgm`        | ensure one logical audio bank is active, starting the EMI stream when it differs |
+| `0x80161BBC` | `SND_RequestBGM`        | ensure one logical audio bank is active, starting the EMI stream when it differs |
 | `0x80161C20` | `SND_PlayBgm`           | start the selected BGM cue and record its id in `g_SndBgmId`                     |
 | `0x80161CD0` | `SND_FadeOutBgm`        | fade out the selected BGM cue                                                    |
 

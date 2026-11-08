@@ -15,7 +15,7 @@ Pages: [boot](../../systems/boot/#open-questions), [frame loop](../../concepts/f
 | Whether PsyQ library code uses the `InitHeap` memory                     | Search the linked PsyQ objects for heap users.                          |
 | Other readers of `D_80143EFC`, the `DrawSync` callback value             | `Area_CanStartEncounter` is the only reader found. Search the overlays. |
 | The unit of `D_80143EFC`                                                 | The PsyQ `VSync` documentation, then compare with the `0xF1` gate.      |
-| Why the soft reset waits for `EMI_LoaderIsReady`                         | Read the loader state machine ([loading](../../concepts/loading/)).     |
+| Why the soft reset waits for `EMI_IsReady`                               | Read the loader state machine ([loading](../../concepts/loading/)).     |
 | Whether a 21st queued VRAM upload overflows the 20-entry queue           | Read the producers of `D_80145A00` for a bound check.                   |
 | Any use of the port 2 controller                                         | Search for readers of the high halves that `SYS_UpdateKeyState` writes. |
 | Real frame time and the CPU and GPU overlap                              | A timed run. Static reading cannot measure it.                          |
@@ -27,21 +27,21 @@ Pages: [boot](../../systems/boot/#open-questions), [frame loop](../../concepts/f
 
 Pages: [memory](../../concepts/memory/#open-questions), [loading](../../concepts/loading/#open-questions), [EMI slot ids](../../formats/emi/#open-questions).
 
-| Question                                                                                          | What would settle it                                                                             |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Meaning of the stamp words `6` to `0xF` in the executable                                         | Find a reader, or compare with the linker map.                                                   |
-| Whether the area table at `0x80032000` is live while the LZ77 context at `0x800327A0` is in use   | The two ranges overlap. Trace their uses during an area load.                                    |
-| The final VRAM split                                                                              | A VRAM dump during play.                                                                         |
-| The field that each per-bank size block feeds, the end of used SPU RAM, the real main stack depth | A trace of `SND_SetBankLayout` users, an SPU dump, a stack watermark.                            |
-| Whether anything between `0x8012C000` and `0x80143B40` is in use                                  | `g_AreaCellPrims`, the cell-row pool, is the one symbol seen. Search the assembly for others.    |
-| Which occupant of a shared window is live at a given moment                                       | The code does not record it. A runtime watch on the loader.                                      |
-| Whether a load into a window can start while its previous overlay still runs                      | No guard was found. A runtime watch on the loader.                                               |
-| Whether anything awaits the completion of a `LoadImage`                                           | Read the draw and loader code for a `DrawSync` after the upload.                                 |
-| Whether a wider game state keeps `SND_StartXaStream` from starting during an EMI stream           | No check exists in its callers. Trace a run that plays XA during a load.                         |
-| What restores the non-audio data after a battle                                                   | `func_801D7108` reloads only area audio, and `BATTLE.EMI` writes the text table at `0x8001A000`. |
-| Callers of the slots `0x1B3` (`BOSS`), `0x263` (`MTEST`) and `0x264` (`RTEST`)                    | No immediate use of the slot id exists in the assembly. Find where a caller builds the id.       |
-| The conditions in `func_8019FAA0` that choose a world or area change                              | The function branches on state values not yet traced.                                            |
-| BMAGIC loading: which code maps a spell id to a row of the table at `0x800B65F8`                  | The code that fills `BattleSelection.id`.                                                        |
+| Question                                                                                          | What would settle it                                                                                      |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Meaning of the stamp words `6` to `0xF` in the executable                                         | Find a reader, or compare with the linker map.                                                            |
+| Whether the area table at `0x80032000` is live while the LZ77 context at `0x800327A0` is in use   | The two ranges overlap. Trace their uses during an area load.                                             |
+| The final VRAM split                                                                              | A VRAM dump during play.                                                                                  |
+| The field that each per-bank size block feeds, the end of used SPU RAM, the real main stack depth | A trace of `SND_SetBankLayout` users, an SPU dump, a stack watermark.                                     |
+| Whether anything between `0x8012C000` and `0x80143B40` is in use                                  | `g_AreaCellPrims`, the cell-row pool, is the one symbol seen. Search the assembly for others.             |
+| Which occupant of a shared window is live at a given moment                                       | The code does not record it. A runtime watch on the loader.                                               |
+| Whether a load into a window can start while its previous overlay still runs                      | No guard was found. A runtime watch on the loader.                                                        |
+| Whether anything awaits the completion of a `LoadImage`                                           | Read the draw and loader code for a `DrawSync` after the upload.                                          |
+| Whether a wider game state keeps `SND_StartXAStream` from starting during an EMI stream           | No check exists in its callers. Trace a run that plays XA during a load.                                  |
+| What restores the non-audio data after a battle                                                   | `Battle_ReloadAreaAudio` reloads only area audio, and `BATTLE.EMI` writes the text table at `0x8001A000`. |
+| Callers of the slots `0x1B3` (`BOSS`), `0x263` (`MTEST`) and `0x264` (`RTEST`)                    | No immediate use of the slot id exists in the assembly. Find where a caller builds the id.                |
+| The conditions in `func_8019FAA0` that choose a world or area change                              | The function branches on state values not yet traced.                                                     |
+| BMAGIC loading: which code maps a spell id to a row of the table at `0x800B65F8`                  | The code that fills `BattleSelection.id`.                                                                 |
 
 ## Game flow, scenario and areas
 
@@ -52,7 +52,7 @@ Pages: [phases](../../systems/phases/#open-questions), [scenario](../../systems/
 | The menu trigger for code 1 and Start-in-field for code 9                    | Read the callers of `func_801B2A00` and `func_801B5910`.                                              |
 | Where name entry runs                                                        | Read the camp substate tables `D_801ECCF8`, `D_801ECD1C` and `D_801ED138`.                            |
 | Whether name entry reaches `Party_InitDefaults` before the first field frame | `Party_InitDefaults` runs in camp substate 2. Trace the chain from there to `Game_StartSelectedGame`. |
-| Entry paths of the shop, master, fishing and the fairy village               | Callers of `EMI_LoaderStreamInitSlot` with `0x266`, `0x267`, `0x258` and the area flags.              |
+| Entry paths of the shop, master, fishing and the fairy village               | Callers of `EMI_LoadArchive` with `0x266`, `0x267`, `0x258` and the area flags.                       |
 | World map code                                                               | Read the world area overlays that load flag bit 0 selects.                                            |
 | Boss entry                                                                   | Read the callback table `D_801EB298` of `battle/03` and its callers.                                  |
 | What reaches the credits and the end-of-game restart                         | Trace the `scena15` to `scena19` assembly and the users of `ENDKANJI` (`0x260`).                      |
@@ -110,7 +110,7 @@ Pages: [screens](../../systems/screens/#open-questions), [UI](../../systems/ui/#
 | `D_8014869C` and `D_8014869D`, set by the menu overlay                    | Find their writers in `emi/etc/start/08`.                                                                                                           |
 | Per-step roles of message states 4, 5 and 7                               | Read the 8, 6 and 2 step functions and the shop and start-menu callers.                                                                             |
 | Source of `D_80144950` (message speed) and the row count of `D_8017F5B4`  | Search writers of `D_80144950` in the options menu.                                                                                                 |
-| Who writes `g_UiWindowEffectBusy`                                         | Read `func_801D74D4`, `func_80198780`, `func_801985C8`.                                                                                             |
+| Who writes `g_UiWindowEffectBusy`                                         | Read `func_801D74D4`, `Game_LoadAbilityMenu`, `func_801985C8`.                                                                                      |
 | Overlay owners of six panel handlers of `g_MenuPanelHandlers`             | Map each address to its overlay window and archive.                                                                                                 |
 | Panel fill drawing and the pass-order meaning of modes 0, 1, 2            | Read `func_80158FE0`, `func_801598F4`, `func_80159A20`.                                                                                             |
 | The separate path of battle messages (`g_BattleMessageState`)             | Read the `emi/battle/battle/03` message functions.                                                                                                  |
@@ -129,27 +129,27 @@ Pages: [rendering](../../systems/rendering/#open-questions), [graphics](../../fo
 | Page 16 mismatch between sheet upload and draw formulas                               | Read the page bytes of shipped sprite records.                                                                             |
 | Behavior of `func_8014BC70`                                                           | A full read of its assembly.                                                                                               |
 | The palette and depth of the 381 textures with no proven join                         | The resident banks of the scene and the callers' arguments for the battle, `SCENARIO` and `ETC` draw sites.                |
-| Which of several overlapping sheets is resident (for example `AREA024` slots 5 and 7) | The stream order of `EMI_LoaderUploadSector`.                                                                              |
+| Which of several overlapping sheets is resident (for example `AREA024` slots 5 and 7) | The stream order of `EMI_UploadSectorImage`.                                                                               |
 
 ## Audio
 
 Pages: [audio runtime](../../systems/audio/#open-questions), [audio formats](../../formats/audio/#open-questions), [STR and XA](../../formats/str/).
 
-| Question                                                                                    | What would settle it                                                                  |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Bank targets of the common and battle effect archives, and which archives fill banks 1 to 6 | Read the load arguments in those archives' type-6 and type-8 entries.                 |
-| Whether the loader checks any window or SPU size                                            | Trace `EMI_LoaderCopySector` and the ring stage for a bound against the window sizes. |
-| Concurrent open SEP count (`SsSetTableSize` meaning)                                        | PsyQ sound library documentation, or a trace of `SsSepOpenJ` returning -1.            |
-| Which of `func_801D7234` and `func_80197F48` resumes the field track                        | Trace the order of both with that option clear and result bit `0x10` set.             |
-| Writers of `D_80144954` (duck gate) and `g_SndMono` (mono)                                  | Search overlays and `emi/etc/start/08` for stores to the two addresses.               |
-| Meaning of the cue volume ladders `D_80182290` to `D_80182308`                              | Find readers of those tables beyond `SND_QueueCueVolume`.                             |
-| XA group sizes, group 2 callers, and the content of each table entry                        | Read the three tables against the XA file sector map.                                 |
-| The seven bank readers' per-bank differences                                                | Read `func_8015E994` to `func_80160E38`.                                              |
-| Opcode `0xBD` (`func_8015D820`) in event scripts                                            | Read `func_8015D820`.                                                                 |
-| Role of type-8 cue byte 0 bits 3 to 7 and byte 2 bits 0 to 3                                | The voice-state consumer of the compared nibble.                                      |
-| Consumer of the BGM cue tables in BGM004, BGM108 and BGM117                                 | The sound-request code that indexes bank cue tables.                                  |
-| Which BGM an area plays                                                                     | The area-to-BGM table.                                                                |
-| The use of the 29,665 non-zero Form 1 sectors of `S_XA00.STR` and `MAGIC00.STR`             | A reader that bypasses the hardware filter, or proof that none exists.                |
+| Question                                                                                    | What would settle it                                                                |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Bank targets of the common and battle effect archives, and which archives fill banks 1 to 6 | Read the load arguments in those archives' type-6 and type-8 entries.               |
+| Whether the loader checks any window or SPU size                                            | Trace `EMI_CopySectorData` and the ring stage for a bound against the window sizes. |
+| Concurrent open SEP count (`SsSetTableSize` meaning)                                        | PsyQ sound library documentation, or a trace of `SsSepOpenJ` returning -1.          |
+| Which of `Battle_ReloadMusicBank` and `func_80197F48` resumes the field track               | Trace the order of both with that option clear and result bit `0x10` set.           |
+| Writers of `D_80144954` (duck gate) and `g_SndMono` (mono)                                  | Search overlays and `emi/etc/start/08` for stores to the two addresses.             |
+| Meaning of the cue volume ladders `D_80182290` to `D_80182308`                              | Find readers of those tables beyond `SND_QueueCueVolume`.                           |
+| XA group sizes, group 2 callers, and the content of each table entry                        | Read the three tables against the XA file sector map.                               |
+| The seven bank readers' per-bank differences                                                | Read `func_8015E994` to `func_80160E38`.                                            |
+| Opcode `0xBD` (`func_8015D820`) in event scripts                                            | Read `func_8015D820`.                                                               |
+| Role of type-8 cue byte 0 bits 3 to 7 and byte 2 bits 0 to 3                                | The voice-state consumer of the compared nibble.                                    |
+| Consumer of the BGM cue tables in BGM004, BGM108 and BGM117                                 | The sound-request code that indexes bank cue tables.                                |
+| Which BGM an area plays                                                                     | The area-to-BGM table.                                                              |
+| The use of the 29,665 non-zero Form 1 sectors of `S_XA00.STR` and `MAGIC00.STR`             | A reader that bypasses the hardware filter, or proof that none exists.              |
 
 ## Saving and persistent state
 

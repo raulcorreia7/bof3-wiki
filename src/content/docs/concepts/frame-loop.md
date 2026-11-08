@@ -35,7 +35,7 @@ Every frame is therefore a short turn for each live thread. Slot 0 usually holds
 |    8 | flip `g_FrameBufferIndex`; `ClearOTagR`; `SYS_PrepareFrame`                     | select the other record and reset its table, layer chains and primitive cursor           |
 |    9 | reset-combo check on `g_InputHeld`                                              | request the soft reset when Select and Start have been held long enough                  |
 |   10 | `CallbackRun`                                                                   | run every active callback thread until it yields                                         |
-|   11 | `EMI_LoaderService`                                                             | tick the CD loader or the XA audio player                                                |
+|   11 | `EMI_Update`                                                                    | tick the CD loader or the XA audio player                                                |
 |   12 | `g_SysLastVSync = VSync(1)`; `DrawSync(0)`; `SYS_SubmitFrame`; `g_FrameCount++` | wait for the GPU, then link the new layer chains into the ordering table; count the pass |
 
 `VSync(2)` caps the loop at one pass per two vertical blanks. On an NTSC display, which `SYS_InitHardware (exe/slus_004_22@0x8014AD28)` selects, that is 30 passes per second. A pass that needs longer runs slower, so the game slows down instead of dropping frames. `[inferred]` The rate follows from the PsyQ `VSync` contract and the NTSC mode that the code sets. The play clock agrees: `func_80198CAC (emi/etc/game/00@0x80198CAC)` adds one tick per main-loop pass and rolls 30 ticks into one second.
@@ -68,11 +68,11 @@ The table lists the fields of one 144-byte render record that the loop addresses
 
 ## Soft reset
 
-Holding Select and Start together returns the game to the first boot callback. The test is `(g_InputHeld & (PADselect | PADstart)) == 0x900`. A counter `g_SysResetHoldFrames (exe/slus_004_22@0x80143F44)` counts the passes in which it holds and clears when it stops holding. On the pass where the counter already equals 60, so the 61st pass in a row, and only if `EMI_LoaderIsReady` is true, the loop runs `SND_Exit` and `CallbackStopAll`, then `CallbackRegister(0, SYS_StartFrontend)`. The game reloads `FIRST.EMI` and `GAME.EMI` and reaches the title again. It plays no logo. If the loader is busy, the reset waits.
+Holding Select and Start together returns the game to the first boot callback. The test is `(g_InputHeld & (PADselect | PADstart)) == 0x900`. A counter `g_SysResetHoldFrames (exe/slus_004_22@0x80143F44)` counts the passes in which it holds and clears when it stops holding. On the pass where the counter already equals 60, so the 61st pass in a row, and only if `EMI_IsReady` is true, the loop runs `SND_Exit` and `CallbackStopAll`, then `CallbackRegister(0, SYS_StartFrontend)`. The game reloads `FIRST.EMI` and `GAME.EMI` and reaches the title again. It plays no logo. If the loader is busy, the reset waits.
 
 ## Loader tick
 
-`EMI_LoaderService (exe/slus_004_22@0x80163010)` looks at `g_EmiServiceMode`. In mode 1 it runs `EMI_LoaderServiceStream`, the disc read for overlays and data. In mode 2 it runs `SND_ServiceXa`, the XA audio player. In any other mode it does nothing. [Loading](../loading/) covers the loader and the [audio system](../../systems/audio/) covers XA.
+`EMI_Update (exe/slus_004_22@0x80163010)` looks at `g_EmiServiceMode`. In mode 1 it runs `EMI_UpdateStream`, the disc read for overlays and data. In mode 2 it runs `SND_ServiceXA`, the XA audio player. In any other mode it does nothing. [Loading](../loading/) covers the loader and the [audio system](../../systems/audio/) covers XA.
 
 ## Late frames
 
@@ -104,7 +104,7 @@ The table gives the fixed sizes of the loop and where each comes from.
 ## Sources and confidence
 
 - **Confidence:** medium. The order of the pass, the records and the limits are read in the code, but the frame rate, the GPU overlap and the unit of the late-frame value are `[inferred]` from the PsyQ contract.
-- **Evidence:** the code of `SYS_Main`, `SYS_PrepareFrame`, `SYS_SubmitFrame`, `GFX_AddPrim`, `GFX_RunTransferQueue`, `SYS_UpdateKeyState`, `CallbackRun` and `EMI_LoaderService`; the play clock of `func_80198CAC`.
+- **Evidence:** the code of `SYS_Main`, `SYS_PrepareFrame`, `SYS_SubmitFrame`, `GFX_AddPrim`, `GFX_RunTransferQueue`, `SYS_UpdateKeyState`, `CallbackRun` and `EMI_Update`; the play clock of `func_80198CAC`.
 
 ## Related
 

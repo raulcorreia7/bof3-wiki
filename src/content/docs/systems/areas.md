@@ -64,8 +64,8 @@ sequenceDiagram
     F->>L: next frame,<br/>g_GameStates[1]
     L->>A: seed, X, Y, kind
     A->>A: Actor_ClearAll,<br/>GFX_ResetPaletteFades
-    A->>E: EMI_LoaderStreamInitSlot(seed<br/>+ 0x2AB)
-    A->>A: CallbackWait(1)<br/>until EMI_LoaderIsReady
+    A->>E: EMI_LoadArchive(seed<br/>+ 0x2AB)
+    A->>A: CallbackWait(1)<br/>until EMI_IsReady
     A->>A: bind AreaLoad, flags,<br/>party, palette matrix
     A->>A: Area_RunSetupStream(entry->handler),<br/>entry->callback()
     A->>R: mode_02 = 1,<br/>Game_RunScenarioEntry
@@ -77,8 +77,8 @@ sequenceDiagram
 | Step | Call                                                                             | Effect                                                                                                                                                 |
 | ---: | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 |    1 | `Actor_ClearAll`, `GFX_ResetPaletteFades`                                        | Free the 20 staged scene objects and clear palette fades.                                                                                              |
-|    2 | `SND_StartBgm(g_GamePrevSelection, 100, 8)`                                      | Start the BGM chosen for the previous cell, or set `g_SndBgmId = 0xFF` when there is none.                                                             |
-|    3 | `EMI_LoaderStreamInitSlot(seed + 0x2AB)` and poll                                | Only when the id differs from `g_GameAreaId` and `g_GameStateIndex` is 5. The poll blocks the callback thread, one `CallbackWait(1)` per frame.        |
+|    2 | `SND_StartBGM(g_GamePrevSelection, 100, 8)`                                      | Start the BGM chosen for the previous cell, or set `g_SndBgmId = 0xFF` when there is none.                                                             |
+|    3 | `EMI_LoadArchive(seed + 0x2AB)` and poll                                         | Only when the id differs from `g_GameAreaId` and `g_GameStateIndex` is 5. The poll blocks the callback thread, one `CallbackWait(1)` per frame.        |
 |    4 | read `g_AreaLoads[g_GameAreaId]`                                                 | Copy `AreaLoad.flag_32` to `g_GameRequestFlags` and mark a palette upload pending.                                                                     |
 |    5 | `GFX_ResetPalette`, `func_801BFF9C`                                              | `func_801BFF9C` places the party rows from the map kind (world map, battlefield, fishing, camp or walked area).                                        |
 |    6 | `func_801A0348`, `func_80153DE8`, `SetColorMatrix`                               | Cache the zone kind of the arrival cell. Run map setup. Load the GTE color matrix from `AreaLoad.matrix`, or the default `D_8018214C` when it is null. |

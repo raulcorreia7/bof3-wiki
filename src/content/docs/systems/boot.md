@@ -37,7 +37,7 @@ Three stubs prepare the CPU and start the game. The start address of the header 
 
 `SYS_InitHardware (exe/slus_004_22@0x8014AD28)` runs twice, once before the logo and once after it. It does this in order:
 
-1. `ResetCallback`, then `EMI_LoaderInit (exe/slus_004_22@0x80161F58)`. The loader init loops on `CdInit` until the drive answers, waits `VSync(3)` and clears the 24 loader slot states.
+1. `ResetCallback`, then `EMI_Init (exe/slus_004_22@0x80161F58)`. The loader init loops on `CdInit` until the drive answers, waits `VSync(3)` and clears the 24 loader slot states.
 2. On the first call: `VSync(0)`, `ResetGraph(0)`, `SetVideoMode(MODE_NTSC)`, set `g_SysHardwareInitialized` and enable the CPU trap event with `SYS_ShowException` as its handler. On the second call: `VSync(0)` and `ResetGraph(3)`, which keeps the display.
 3. `InitGeom`, `SetGeomScreen(0x3E8)`, `SetGeomOffset(0xA0, 0x78)`.
 4. `PadInit(0)`, `SYS_InitCard` (seven card events, `InitCARD(1)`, `StartCARD`, `_bu_init`) and `ChangeClearPAD(0)`.
@@ -54,7 +54,7 @@ Three stubs prepare the CPU and start the game. The start address of the header 
 2. It sets the stack address of the exec block at `0x80143E80` (`D_80143EA0`) to `0x801FF000`, stops the callback, pad and card services, and calls `Exec` inside a critical section.
 3. When `Exec` returns, it runs `SYS_InitHardware` again, clears the display and the VRAM, and turns the display on.
 
-`LOGO.EXE` loads at `0x801CE000` and runs to `0x801ECEC0` with its BSS. The payload of the main executable is zero over that range, apart from two stamp words, so the logo overwrites no resident byte. No overlay is loaded yet. The first `EMI_LoaderStreamInitSlot` call comes later, in `SYS_StartFrontend`.
+`LOGO.EXE` loads at `0x801CE000` and runs to `0x801ECEC0` with its BSS. The payload of the main executable is zero over that range, apart from two stamp words, so the logo overwrites no resident byte. No overlay is loaded yet. The first `EMI_LoadArchive` call comes later, in `SYS_StartFrontend`.
 
 `exe/logo` starts at `__SN_ENTRY_POINT (exe/logo@0x801CE724)`, which zeroes its BSS (`0x801EB430..0x801ECEC0`), sets `gp` and jumps to `Logo_Main (exe/logo@0x801CEDFC)`. The logo carries its own copy of the PsyQ libraries and does not link against the main executable. `Logo_Main` calls `CdInit` and `Logo_Init`, then loops until the stream ends or the Start button is held. At the end it fades the audio out, stops the stream, the callbacks and the pad, and returns. That a return resumes `SYS_RunLogo` follows the BIOS `Exec` contract, which is outside the game files. `[inferred]`
 
@@ -66,13 +66,13 @@ After the logo, the first pass of the loop opens slot 0, which runs `SYS_StartFr
 
 1. Clear VRAM, then `CallbackWait(1)` to yield one frame.
 2. `SND_Init`, `SND_SetBankLayout(0)`.
-3. Stream `FIRST.EMI` (slot `0x261`) and wait with `CallbackWait(1)` until `EMI_LoaderIsReady`. [Loading](../../concepts/loading/) explains the stream.
+3. Stream `FIRST.EMI` (slot `0x261`) and wait with `CallbackWait(1)` until `EMI_IsReady`. [Loading](../../concepts/loading/) explains the stream.
 4. Set reverb depth, call `SND_Start`.
 5. Clear 4,272 bytes of game state from `D_801448D8`. Reset the game flags, the walk flags and `g_EmiLoadedCharacterIndex` (to `0xFF`), and copy nine halfwords from `D_8017F56C` into `g_InputMasks`.
 6. Reset the panel tasks, palette fades, palette slots, draw flags and script bank. Set the area draw mode to 6 and request a palette upload.
 7. `CallbackRegister(1, SYS_EnterFrontend)`, then `CallbackExit`, which ends slot 0's own thread.
 
-`SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)` starts in slot 1 in the pass where slot 0 registers it, because the walk reaches slot 1 after slot 0. It streams `GAME.EMI` (slot `0x262`), waits for `EMI_LoaderIsReady`, and calls `Game_RunTitle (emi/etc/game/01@0x801D0C04)`. The `GAME.EMI` stream carries two programs. Entry 0 is the resident game program at `0x80195800`, which stays in RAM until power-off. Entry 1 is the title overlay at `0x801D0C00`, which `Game_RunTitle` belongs to.
+`SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)` starts in slot 1 in the pass where slot 0 registers it, because the walk reaches slot 1 after slot 0. It streams `GAME.EMI` (slot `0x262`), waits for `EMI_IsReady`, and calls `Game_RunTitle (emi/etc/game/01@0x801D0C04)`. The `GAME.EMI` stream carries two programs. Entry 0 is the resident game program at `0x80195800`, which stays in RAM until power-off. Entry 1 is the title overlay at `0x801D0C00`, which `Game_RunTitle` belongs to.
 
 `Game_RunTitle` clears its state and loops forever on slot 1's thread. Each pass it yields with `CallbackWait(1)`, handles the Start button, runs one of eight title handlers that `g_UiTitleState` selects, and updates the banner and fades. The first handler, `Game_BeginTitle (emi/etc/game/01@0x801D0C90)`, selects sound bank layout 2, streams `DEMO` (slot `0x25F`), resets the palette stage and starts music cue `0x8D`. The title and its exits are in [phases](../phases/).
 
@@ -121,7 +121,7 @@ The first frame with the title drawn and input enabled is the first playable fra
 | How the BIOS loads the executable and returns from `Exec`    | A trace of a run, or the BIOS source; the game files do not show it    |
 | Whether PsyQ library code uses the `InitHeap` memory         | Search the linked PsyQ objects for heap users                          |
 | Other readers of `D_80143EFC`, the `DrawSync` callback value | `Area_CanStartEncounter` is the only reader found; search the overlays |
-| Why the soft reset waits for `EMI_LoaderIsReady`             | Read the loader state machine in [loading](../../concepts/loading/)    |
+| Why the soft reset waits for `EMI_IsReady`                   | Read the loader state machine in [loading](../../concepts/loading/)    |
 
 ## Sources and confidence
 

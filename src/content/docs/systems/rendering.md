@@ -54,7 +54,7 @@ The code names these regions of VRAM.
 | 64 by 256 texture pages     | 16 columns by 2 rows: page `p` is x `(p % 16) * 64`, y `(p / 16) * 256`. | `Area_DrawObjectSprite` tpage |
 | (960, 0) texture page       | Font sheets, 4 bits per pixel.                                           | `func_8014FC00` tpage `0x2F`  |
 | (0x340, 0x100, 0xC0, 0x100) | Draw area for sprites with record flag `0x08`. Purpose `[unknown]`.      | `Area_DrawObjectSprite`       |
-| 32 by 32 blocks             | Graphics payloads, x up to 1,000 and y up to 500.                        | `EMI_LoaderUploadSector`      |
+| 32 by 32 blocks             | Graphics payloads, x up to 1,000 and y up to 500.                        | `EMI_UploadSectorImage`       |
 
 Text uses CLUT word `0x7800 | n`, which is VRAM row `0x7800 >> 6 = 480` and column `n * 16`: the first cells of stage palette row 0. The texture page word `0x2F` is column 15 (x 960), row 0, semi-transparency mode 1, 4 bits per pixel. That decoding follows the PsyQ `tpage` layout, which is outside the game files `[inferred]`.
 
@@ -187,7 +187,7 @@ Each row gives a limit, where the code shows it and what an asset must stay with
 | Texture pages         | 16 columns by 2 rows of 64 by 256                  | `Area_DrawObjectSprite`                    | Record page byte `+0x25` below 32.                                                               |
 | Cell shapes           | 16 sizes                                           | `g_SpriteSizes`                            | Sprite sheet cells use these sizes only.                                                         |
 | Scene packet records  | 56 per frame, loop bound 55                        | `SYS_PrepareFrame`, `func_8014BC70`        | At most 55 or 56 scene layers in an area map `[inferred]`.                                       |
-| Graphics block upload | x up to 1,000, y up to 500                         | `EMI_LoaderUploadSector`                   | Type-3 blocks beyond this are not uploaded.                                                      |
+| Graphics block upload | x up to 1,000, y up to 500                         | `EMI_UploadSectorImage`                    | Type-3 blocks beyond this are not uploaded.                                                      |
 
 ## Open questions
 
