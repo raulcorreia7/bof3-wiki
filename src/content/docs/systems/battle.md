@@ -3,7 +3,7 @@ title: "Battle flow"
 description: "A battle is a request from the field: the field sets request code 3, the main state machine enters its battle state, and that state loads the battle overlay and hands every frame to Battle_Update."
 ---
 
-A battle is a request from the field: the field sets request code 3, the main state machine enters its battle state, and that state loads the battle overlay and hands every frame to `Battle_Update`. This page follows the flow: what triggers a battle, which code and archives run it frame by frame, and how it ends. The record layouts that the flow reads (battler rows, enemy records, status words, the reprisal exchange) are in [battle records](../../data/battle/).
+A battle is a request from the field: the field sets request code 3, the main state machine enters its battle state, and that state loads the battle overlay and hands every frame to `Battle_Update`. This page covers what triggers a battle, the code and archives that run it each frame, and how it ends. The record layouts that the flow reads (battler rows, enemy records, status words, the reprisal exchange) are in [battle records](../../data/battle/).
 
 ## Terms
 
@@ -21,7 +21,7 @@ A battle is a request from the field: the field sets request code 3, the main st
 
 ### Random encounter
 
-The player's field step handler `func_801B146C` counts steps and asks `Area_CanStartEncounter (emi/etc/game/00@0x801B3EB0)` on every move. A yes sets the party actor's step byte to 5 and clears its state. A small two-entry table, `D_801CD118`, then runs `func_801B2AB4` and `func_801B2B6C`; the second writes `g_GameStateIndex = 3`. That `D_801CD118` is the step-5 state table is `[inferred]` from its shape.
+The player's field step handler `func_801B146C` counts steps and asks `Area_CanStartEncounter (emi/etc/game/00@0x801B3EB0)` on every move. A yes sets the party actor's step byte to 5 and clears its state. The two-entry table `D_801CD118` (the step-5 state table `[inferred]`) then runs `func_801B2AB4` and `func_801B2B6C`; the second writes `g_GameStateIndex = 3`.
 
 `Area_CanStartEncounter` returns 0 (no battle) when any of these holds:
 
@@ -39,7 +39,7 @@ The step threshold comes from the area's [zone list](../areas/#zone-list). `func
 
     threshold = base[rate] + min(rand() & 0x1F, cap[rate])
 
-The pair `(base, cap)` comes from `s_EncounterStepThresholds (emi/etc/game/00@0x801CD1B8)`. The total doubles when any party member has trait `(3, 0x15)` (`func_801C38F4`) and halves when any has trait `(3, 0x14)`. Which abilities those traits belong to is `[unknown]`. The table gives the pair for each `rate`.
+The pair `(base, cap)` comes from `s_EncounterStepThresholds (emi/etc/game/00@0x801CD1B8)`. The total doubles when any party member has trait `(3, 0x15)` (`func_801C38F4`) and halves when any has trait `(3, 0x14)`. Which abilities those traits belong to is `[unknown]`. Pair per `rate`:
 
 | `rate` | 0 | 1   | 2  | 3  | 4  | 5  | 6 | 7 |
 | ------ | - | --- | -- | -- | -- | -- | - | - |
@@ -60,9 +60,9 @@ The enemy record layout (`0x800E4048 + id * 0x88`, 8 records) is in the [area fo
 
 ### Scripted battle
 
-`Battle_StartScripted (emi/etc/game/00@0x801C7A54)` takes a record index. It stores it in `g_BattleEncounter`, clears `g_BattleSurprise`, copies byte 0 of `s_BattleModeRecords[index * 4]` to `g_BattleOptions`, and sets bit 12 (`0x1000`) of `g_AreaWalkFlags`. The table has 56 records of 4 bytes at `0x801CD78C`. Byte 3 of the record is the archive column used at stream time (see the next section). The scenario code or the actor step then sets `g_GameStateIndex = 3` `[inferred]`.
+`Battle_StartScripted (emi/etc/game/00@0x801C7A54)` takes a record index. It stores it in `g_BattleEncounter`, clears `g_BattleSurprise`, copies byte 0 of `s_BattleModeRecords[index * 4]` to `g_BattleOptions`, and sets bit 12 (`0x1000`) of `g_AreaWalkFlags`. The table has 56 records of 4 bytes at `0x801CD78C`. Byte 3 of the record is the archive column used at stream time (see the next section). The caller then sets `g_GameStateIndex = 3` `[inferred]`.
 
-The one caller found is `func_801FA7D8` in `emi/scenario/scena00/00`. Calls in scenario overlays that were not read are not searched.
+The known caller is `func_801FA7D8` in `emi/scenario/scena00/00`; other scenario overlays are not searched.
 
 The entry and exit substates test these bits of `g_BattleOptions` (masks `0x01`, `0x02`, `0x10` and `0x40`):
 
@@ -75,7 +75,7 @@ The entry and exit substates test these bits of `g_BattleOptions` (masks `0x01`,
 
 ## Entry state 5
 
-`Game_UpdateField` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_UpdateBattle (emi/etc/game/00@0x80197A24)` then calls `g_GameModeHandlers[g_GameEntrySubstate]` once per frame. The eight substates are the field-side wrapper around the battle:
+`Game_UpdateField` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_UpdateBattle (emi/etc/game/00@0x80197A24)` then calls `g_GameModeHandlers[g_GameEntrySubstate]` once per frame. The eight substates wrap the battle on the field side:
 
 | Substate | Function (`emi/etc/game/00`)                      | Work                                                                                                                               |
 | -------: | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -106,7 +106,7 @@ Unless `g_BattleOptions & 0x40` is set, substate 3 copies 1,376 bytes of the seq
 
 `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)` first calls `g_BossBattleEventHook(3)` when `g_BattleEncounter != 0` and the mode is not 0. Then it calls `g_BattlePhases[g_BattleMode]`. Mode 0 calls `Battle_DispatchStep`. Modes 1 to 5 read a step table by `g_BattleStep`, and some steps read a sub-table by `g_BattleSubStep`.
 
-The six modes make up one battle: set-up and entrance once, then rounds of commands, ordering, actions and round end, then the result.
+A battle runs set-up and entrance once, then rounds of commands, ordering, actions and round end, then the result.
 
 ```mermaid
 stateDiagram-v2
@@ -136,7 +136,7 @@ stateDiagram-v2
 |    4 | `func_801D4AC0`                  |     3 | `D_801EACBC`. Sub-table `D_801EACC8[3]`.                                                       |
 |    5 | `func_801D6774`                  |     5 | `D_801EACD4`. Sub-tables `D_801EACE8`, `D_801EACF4`, `D_801EAD00`, `D_801EAD0C`, `D_801EAD20`. |
 
-The mode names in the diagram come from the shape of the steps and from `func_801D656C`, which either returns to mode 1 or leaves for mode 5. They are `[inferred]`. Mode 3 also clears `g_BattleState` bit `0x0010` (command armed) when a button in `D_80145AC4` is held. Some step functions, for example `Battle_WaitUiMode` and `Battle_ReloadMusicBank`, advance their sub-step through a pointer that is written during the wait.
+The mode names in the diagram are `[inferred]` from the step shapes and from `func_801D656C`, which returns to mode 1 or leaves for mode 5. Mode 3 also clears `g_BattleState` bit `0x0010` (command armed) when a button in `D_80145AC4` is held. Some step functions, for example `Battle_WaitUiMode` and `Battle_ReloadMusicBank`, advance their sub-step through a pointer that is written during the wait.
 
 ### Mode 0: reset and entrance
 

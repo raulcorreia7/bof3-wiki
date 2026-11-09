@@ -3,15 +3,15 @@ title: "Saving and loading"
 description: "A save is one memory card file of one card block: a 512-byte card header followed by a copy of the 4,272-byte persistent block."
 ---
 
-A save is one memory card file of one card block: a 512-byte card header followed by a copy of the 4,272-byte persistent block. A load copies the block back and rebuilds everything the block does not hold, such as the loaded area, the party work rows and the character graphics. This page covers the save and load screens, the card driver, the checks and the rebuild after a load. It does not cover the byte layout of the file or the checksum steps.
+A save is one memory card file of one card block: a 512-byte card header followed by a copy of the 4,272-byte persistent block. A load copies the block back and rebuilds what the block does not hold: the loaded area, the party work rows and the character graphics. This page covers the save and load screens, the card driver, the checks and the rebuild after a load. The byte layout of the file and the checksum steps are in [save format](../../formats/save/).
 
 ## The player's view
 
-At a save point the player opens a menu, picks a memory card port and a slot, and confirms. The game writes one file of one card block. From the title screen, Continue lists the saved slots the same way, reads the chosen file, checks it, and puts the player back in the field. The block is described in [persistent state](../state/#one-persistent-block).
+At a save point the player opens a menu, picks a memory card port and a slot, and confirms; the game writes one file of one card block. Continue on the title screen lists the saved slots the same way, reads the chosen file, checks it and returns to the field. The block is described in [persistent state](../state/#one-persistent-block).
 
 ## Images involved
 
-Five images share the work: the executable, the resident game program and three overlays. The resident game program only hands control to the overlays.
+Five images take part: the executable, the resident game program and three overlays. The resident game program only hands control to the overlays.
 
 | Image                                         | Load address | Holds                                   |
 | --------------------------------------------- | ------------ | --------------------------------------- |
@@ -23,7 +23,7 @@ Five images share the work: the executable, the resident game program and three 
 
 `SHOP.EMI` and `START.EMI` both carry the driver ([icons](../../formats/save/#icons)). The window at `0x801EEC00` is shared with battle effect modules, so the driver works only while a save or load screen owns it ([memory](../../concepts/memory/)).
 
-The save staging buffer `g_SaveBuffer (emi/etc/shop/00@0x800C1A00)` is the payload half of the 8,192-byte frame at `0x800C1800`. That address is the boss-module window. A boss load overwrites it, and both screens refill it before use `[inferred]`.
+The save staging buffer `g_SaveBuffer (emi/etc/shop/00@0x800C1A00)` is the payload half of the 8,192-byte frame at `0x800C1800`. That address is the boss-module window. A boss load overwrites it; both screens refill it before use `[inferred]`.
 
 ## Saving
 
@@ -64,7 +64,7 @@ sequenceDiagram
 - Scene event 10 is `Scene_StartShopSave (emi/etc/game/00@0x801A802C)`, entry 10 of `g_SceneEvents (emi/etc/game/00@0x801C84BC)`. Its cases 6 and 23 set `D_8014865C = -2` and `g_GameEntryState = 7`. The scripts or objects that select event 10 are not traced `[unknown]`.
 - `g_GameStates[7]` is `Game_UpdateShop`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Shop_DispatchStep`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
 - `Shop_DispatchStep` dispatches `D_801E5144` by `D_80148650`. `func_801D0EDC` sets `D_80148650` to `D_80148698 + 2`, which is 3 for the save case. That selects `func_801D39BC`, and entry 3 of its table `D_801E52C4` is `SAVE_DispatchState (emi/etc/shop/00@0x801D46A4)`. It dispatches `D_801E530C` by `D_80148652`.
-- The overwrite path first opens the existing file with mode 1 and size 1, a read of the first 128 bytes. Success proves the file exists (`func_801D51B8`).
+- The overwrite path first opens the existing file with mode 1 and size 1, a read of the first 128 bytes. Success shows the file exists (`func_801D51B8`).
 - The new-file path calls `SAVE_AccessFile` with mode `0x200`. The driver creates the file, closes it, reopens it with mode 1 and issues a zero-length read.
 
 ### Building the image
@@ -76,7 +76,7 @@ sequenceDiagram
 3. It clears the checksum halfword at block `+0x70` in live RAM, stores `g_GameFlags` as a byte in `D_80145025`, copies the 4,272 bytes from `0x801448D8` into `g_SaveBuffer`, and sums them in 16 bits.
 4. It zeroes the rest of the buffer up to payload offset `0x1E00`, stores the sum at frame `+0x270`, and publishes the slot row.
 
-The write size is 4,784 bytes (a 512-byte header plus the 4,272-byte block). `SAVE_TransferFile` rounds it up to 4,864, so the card gets the zeroed bytes from `0x12B0` to `0x12FF`. The staging fill reaches frame offset `0x2000`, but the card never sees those bytes. The file layout is in [save format](../../formats/save/#layout).
+The write size is 4,784 bytes (a 512-byte header plus the 4,272-byte block). `SAVE_TransferFile` rounds it up to 4,864, so the card gets the zeroed bytes from `0x12B0` to `0x12FF`. The staging fill reaches frame offset `0x2000`; the card never receives those bytes. The file layout is in [save format](../../formats/save/#layout).
 
 ### Save machine states
 
@@ -194,7 +194,7 @@ After a good read, state 13 shows its message for up to 60 frames or until a but
 
 The checksum steps are in [save format](../../formats/save/#checksum). There is no other check on load: no version field, no per-record check, and no test of the `SC` magic.
 
-The load copies before it verifies. `SAVE_RunLoadVerify` copies the 4,272 bytes into live RAM and restores `g_GameFlags` while it sums them. A mismatch sets status 7 only after the copy. The load screen runs before a game exists, so the damage stays in the start-menu state, but the live block holds the bad bytes until the next load or a new game overwrites them `[inferred]`.
+The load copies before it verifies: `SAVE_RunLoadVerify` copies the 4,272 bytes into live RAM and restores `g_GameFlags` while it sums them, and a mismatch sets status 7 only after the copy. The live block holds the bad bytes until the next load or a new game overwrites them `[inferred]`.
 
 `g_SaveCardStatus (exe/slus_004_22@0x8018E228)` carries two vocabularies. Values 0 to 4 come from the driver. The screens set the higher values, and their meaning differs by image.
 
@@ -213,7 +213,7 @@ The load copies before it verifies. `SAVE_RunLoadVerify` copies the 4,272 bytes 
 |  `10` | -                                  | -                               | new file saved                             |
 |  `11` | -                                  | -                               | message; the setter is not found           |
 
-The message for a status is a text resource: `Resolve(status + 0x85)` in the save screens and `Resolve(code + 0xA6)` in the load screens. The strings are not decoded `[unknown]`.
+The message for a status is a text resource: `Resolve(status + 0x85)` in the save screens and `Resolve(code + 0xA6)` in the load screens. The strings are `[unknown]`.
 
 What the driver does in `SAVE_AccessFile (emi/etc/start/09@0x801EEC30)`:
 
@@ -235,7 +235,7 @@ How each card state looks to the player:
 
 ## Data and limits
 
-The screens and the driver use these values.
+Values used by the screens and the driver:
 
 | Item                                 | Meaning                                                                                                                                   |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -250,7 +250,7 @@ The screens and the driver use these values.
 
 Opening a file for reading sends `open(path, 1)`, writing sends `open(path, 2)`, and creating sends `(blocks << 16) | 0x200`. The mode values follow the PsyQ convention `[inferred]`.
 
-An edited save keeps the checksum rule and a file name that the directory scan lists, so the slot list shows it ([save format](../../formats/save/#file-summary)).
+An edited save must keep the checksum rule and a file name that the directory scan lists ([save format](../../formats/save/#file-summary)).
 
 ## Open questions
 

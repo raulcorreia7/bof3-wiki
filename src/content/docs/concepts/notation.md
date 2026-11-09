@@ -3,12 +3,11 @@ title: "Notation and conventions"
 description: "Every reference page writes numbers, field types, offsets, citations and evidence tags the same way, and this page defines each rule once."
 ---
 
-Every reference page writes numbers, field types, offsets, citations and evidence tags the same way, and this page defines each rule once. Read it before the [formats](../../formats/emi/), [data tables](../../data/records/) and [systems](../../systems/boot/) pages. The [glossary](../../appendix/glossary/) defines the terms.
+Every reference page writes numbers, field types, offsets, citations and evidence tags by the rules on this page. The [glossary](../../appendix/glossary/) defines the terms.
 
 ## Numbers and sizes
 
-- **Hexadecimal** values carry the prefix `0x` and use upper-case digits: `0x1F`, `0x800E4000`. No other
-  form appears (a `$` prefix, an `h` suffix or an upper-case `X` is wrong). A RAM address has eight digits. An offset or a mask has as
+- **Hexadecimal** values carry the prefix `0x` and use upper-case digits: `0x1F`, `0x800E4000`. No `$` prefix, `h` suffix or upper-case `X`. A RAM address has eight digits. An offset or a mask has as
   many digits as its table column needs, with at least two.
 - **Decimal** values have no prefix. A number of four or more digits has commas: `6,344`.
 - **Quantities are decimal.** A size, count, stride, length or duration is a plain number: a record of 164
@@ -33,7 +32,7 @@ A table that splits a value into fields has a `Bits` column in the same form, fo
 
 ## Byte order
 
-All multi-byte values are little-endian: the low byte comes first. The CPU is a MIPS R3000A that runs in
+All multi-byte values are little-endian: the low byte comes first. The CPU is a MIPS R3000A in
 little-endian mode, so a `u32` stored as the bytes `00 08 00 00` is `0x800`. The same holds on the disc: the
 first four bytes of an EMI archive are the entry count, and `FIRST.EMI` starts `0E 00 00 00`, which is 14.
 
@@ -107,16 +106,12 @@ The name is a label from this research, not a name that the game stores.
 
 ## Evidence tags
 
-Every page states facts that come from reading the retail code or data. A claim with no tag is such a read:
-the code or the data shows it. Only two tags exist, and they mark the exceptions.
+A claim with no tag was read in the retail code or data. Two tags mark the exceptions.
 
 | Tag          | Meaning                                                                                                                 |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | `[inferred]` | deduced from several reads or from a community source; treat it as a lead                                               |
 | `[unknown]`  | not established; the page says what would settle it, and [open questions](../../appendix/open-questions/) collects them |
-
-The site holds no retail bytes. Layouts, offsets and counts come from reading the game and checking every
-instance on the disc.
 
 ## Reading a record layout table
 
@@ -130,7 +125,7 @@ leaves out `Size`, `Name` or `Evidence` when the column adds nothing. `Type` sta
 | `0x02` |    1 | `u8`  | `count`   | how many; 0 means one   |
 | `0x03` |    1 | `u8`  | unused    | always zero             |
 
-This table is synthetic. The columns mean:
+The table is synthetic. Columns:
 
 - **Offset**: where the field starts, counted from the first byte of the record. Gaps between rows are
   bytes the page does not describe. A table of RAM structures may use an **Address** column with absolute
@@ -153,10 +148,10 @@ gives `item_id = 0x000A` and `count = 2`.
 ## Sources and confidence
 
 - **Confidence:** high. The rules describe how the pages are written; they carry no claim about the game.
-- **Evidence:** none needed. The byte-order and type facts come from the MIPS R3000A and the PlayStation file formats, and each page that depends on them cites its own evidence.
+- **Evidence:** none; the rules carry no game claim.
 
 ## Related
 
 - [Glossary](../../appendix/glossary/): the meaning of each term.
-- [Architecture overview](../architecture/): one run of the game, with the notation in use.
+- [Architecture overview](../architecture/): one run of the game, written in this notation.
 - [Open questions](../../appendix/open-questions/): the claims that carry `[unknown]`.

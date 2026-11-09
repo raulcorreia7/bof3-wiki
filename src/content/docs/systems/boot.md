@@ -3,7 +3,7 @@ title: "Boot"
 description: "Boot is the path from the BIOS handoff to the first title frame."
 ---
 
-Boot is the path from the BIOS handoff to the first title frame. A C runtime stub prepares the CPU, `SYS_Main` initializes the console, the `LOGO.EXE` program plays the Capcom movie, and two callbacks load the first two archives and start the title. After that the [frame loop](../../concepts/frame-loop/) runs for the rest of the session. This page does not cover the title's states ([game phases](../phases/)) or the loader's steps ([loading](../../concepts/loading/)).
+Boot is the path from the BIOS handoff to the first title frame. A C runtime stub prepares the CPU, `SYS_Main` initializes the console, `LOGO.EXE` plays the Capcom movie, and two callbacks load the first two archives and start the title. The [frame loop](../../concepts/frame-loop/) then runs until power-off. This page does not cover the title's states ([game phases](../phases/)) or the loader's steps ([loading](../../concepts/loading/)).
 
 :::note
 `exe/logo` and `exe/slus_004_22` are separate programs with separate symbols. They share one RAM, so the same address can mean different things in each ([memory map](../../concepts/memory/)).
@@ -11,11 +11,11 @@ Boot is the path from the BIOS handoff to the first title frame. A C runtime stu
 
 ## Executable header and C runtime
 
-The BIOS reads `SYSTEM.CNF`, loads `SLUS_004.22` and jumps to its entry address. That the BIOS copies `t_size` bytes to `t_addr` and jumps to the start address is BIOS behavior outside the game files. `[inferred]` The header fields are in [executables and boot files](../../formats/exe/#ps-x-exe-header).
+The BIOS reads `SYSTEM.CNF`, loads `SLUS_004.22` and jumps to its entry address. The BIOS copies `t_size` bytes to `t_addr` and jumps to the start address (BIOS behavior). `[inferred]` The header fields are in [executables and boot files](../../formats/exe/#ps-x-exe-header).
 
-The payload is far larger than the resident code. The rest is zero fill, apart from a few stamp words. That zero fill reserves RAM for overlays and for the resident game program, which later loads write over it ([memory map](../../concepts/memory/#the-executable-image)).
+The payload is far larger than the resident code. The rest is zero fill apart from a few stamp words; it reserves RAM that later loads of overlays and the resident game program overwrite ([memory map](../../concepts/memory/#the-executable-image)).
 
-Three stubs prepare the CPU and start the game. The start address of the header points at the first, `stup2`.
+Three stubs prepare the CPU and start the game. The header's start address is `stup2`.
 
 | Stub                                 | What it does                                                                                                         |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
@@ -23,7 +23,7 @@ Three stubs prepare the CPU and start the game. The start address of the header 
 | `stup1 (exe/slus_004_22@0x8014AA30)` | sets `sp` to `0x80200000`, `gp` to `0x8018B2B4`, copies `sp` to `fp`, calls `InitHeap(0x80190C64, 0x673A0)`          |
 | `stup0 (exe/slus_004_22@0x8014AAAC)` | `jal SYS_Main`, followed by a `break` that is never reached                                                          |
 
-`stup1` takes the stack top from a constant (`0x80200000`, the top of the 2 MiB RAM) and ends the heap 32,768 bytes below it, which is `0x801F8004`. The heap range overlaps the resident game program at `0x80195800` and the overlay arena at `0x801CE000`. The executable has no `malloc`, `free`, `calloc` or `realloc`, so the heap is declared and never used. `[inferred]` The assembly shows the missing thunks. That no PsyQ library code allocates from it is not shown. `__main (exe/slus_004_22@0x8014AA04)` is a bare `jr $ra`.
+`stup1` sets the stack top to `0x80200000` (top of RAM) and ends the heap 32,768 bytes below it, at `0x801F8004`. The heap range overlaps the resident game program at `0x80195800` and the overlay arena at `0x801CE000`. The executable has no `malloc`, `free`, `calloc` or `realloc`, so the heap is declared and never used. `[inferred]` The missing thunks are visible in the assembly; that no PsyQ library code allocates from it is not shown. `__main (exe/slus_004_22@0x8014AA04)` is a bare `jr $ra`.
 
 ## `SYS_Main` sequence
 
@@ -56,9 +56,9 @@ Three stubs prepare the CPU and start the game. The start address of the header 
 
 `LOGO.EXE` loads at `0x801CE000` and runs to `0x801ECEC0` with its BSS. The payload of the main executable is zero over that range, apart from two stamp words, so the logo overwrites no resident byte. No overlay is loaded yet. The first `EMI_LoadArchive` call comes later, in `SYS_StartFrontend`.
 
-`exe/logo` starts at `__SN_ENTRY_POINT (exe/logo@0x801CE724)`, which zeroes its BSS (`0x801EB430..0x801ECEC0`), sets `gp` and jumps to `Logo_Main (exe/logo@0x801CEDFC)`. The logo carries its own copy of the PsyQ libraries and does not link against the main executable. `Logo_Main` calls `CdInit` and `Logo_Init`, then loops until the stream ends or the Start button is held. At the end it fades the audio out, stops the stream, the callbacks and the pad, and returns. That a return resumes `SYS_StartLogo` follows the BIOS `Exec` contract, which is outside the game files. `[inferred]`
+`exe/logo` starts at `__SN_ENTRY_POINT (exe/logo@0x801CE724)`, which zeroes its BSS (`0x801EB430..0x801ECEC0`), sets `gp` and jumps to `Logo_Main (exe/logo@0x801CEDFC)`. The logo carries its own copy of the PsyQ libraries and does not link against the main executable. `Logo_Main` calls `CdInit` and `Logo_Init`, then loops until the stream ends or the Start button is held. At the end it fades the audio out, stops the stream, the callbacks and the pad, and returns. The return resumes `SYS_StartLogo` per the BIOS `Exec` contract. `[inferred]`
 
-The movie is read by sector number and not by name. `Logo_Init` receives the literal LBA `0x2D78C`. That LBA is the start of disc file slot `0x373`, and slot `0x374` starts 1,155 sectors later, so the file is 2,365,440 bytes long. This is the size of `LOGO/CAPCOM30.STR`. [Disc and files](../../formats/disc/) lists the slots, and [loading](../../concepts/loading/#movie) describes the movie code.
+The movie is read by sector number, not by name. `Logo_Init` receives the literal LBA `0x2D78C`. That LBA is the start of disc file slot `0x373`, and slot `0x374` starts 1,155 sectors later, so the file is 2,365,440 bytes long. This is the size of `LOGO/CAPCOM30.STR`. [Disc and files](../../formats/disc/) lists the slots, and [loading](../../concepts/loading/#movie) describes the movie code.
 
 ## The first two callbacks
 

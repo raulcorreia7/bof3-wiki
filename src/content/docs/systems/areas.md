@@ -3,11 +3,11 @@ title: "Areas and the field"
 description: "An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp."
 ---
 
-An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp. The game has 200 of them, one `WORLDnn/AREAnnn.EMI` archive each, and one resident engine in `emi/etc/game/00` runs all of them with the data and the small code overlay from the archive. This page covers the area record, the load, the per-frame update, exits and the setup stream. Byte layouts are in the [area format](../../formats/area/), entity rows in [field](../../data/field/) and map-kind flags in [programs](../../data/programs/#map-kinds).
+An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp. The game has 200 areas, one `WORLDnn/AREAnnn.EMI` archive each. The resident engine in `emi/etc/game/00` runs all of them with the data and the small code overlay from the archive. This page covers the area record, the load, the per-frame update, exits and the setup stream. Byte layouts are in the [area format](../../formats/area/), entity rows in [field](../../data/field/) and map-kind flags in [programs](../../data/programs/#map-kinds).
 
 ## Area record
 
-`g_AreaLoads` holds one pointer per area to its `AreaLoad` record inside the area program. The table lists the fields that the load reads, by offset.
+`g_AreaLoads` holds one pointer per area to its `AreaLoad` record inside the area program. Fields that the load reads:
 
 | Offset | Type        | Name        | Meaning                                                                                                                               | Evidence                     |
 | -----: | ----------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
@@ -41,11 +41,11 @@ Source: [`include/area/map.h`](https://github.com/raulcorreia7/bof3-decomp/blob/
 
 ## Load and transition
 
-Under the fade, the game frees the old area's objects, streams the new archive, builds the new area's characters from the setup stream and lets the active [scenario](../scenario/) react to the arrival.
+Under the fade, the game frees the old area's objects, streams the new archive, builds the characters from the setup stream and lets the active [scenario](../scenario/) react to the arrival.
 
-An area change begins when the party steps on an exit cell or when code calls `Game_RequestAreaChange (emi/etc/game/00@0x8019FA28)`. Either one stages a destination and sets the request code `g_GameStateIndex` to 5. The staged destination has four values: `g_GameContextSeed` (the area id), `g_GameEntryPosX` and `g_GameEntryPosY` (16.16 positions) and `g_GameContextKind`.
+An area change starts when the party steps on an exit cell or code calls `Game_RequestAreaChange (emi/etc/game/00@0x8019FA28)`. Either stages a destination and sets the request code `g_GameStateIndex` to 5. The staged destination is four values: `g_GameContextSeed` (the area id), `g_GameEntryPosX` and `g_GameEntryPosY` (16.16 positions) and `g_GameContextKind`.
 
-On the next frame `Game_UpdateField (emi/etc/game/00@0x80197378)` sees request 5, sets the arrival effect with `UI_SetMode(g_GameEntryMode)` and moves to entry state 1. That is `Game_UpdateAreaLoad (emi/etc/game/00@0x801971E8)`, which passes the staged values to `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)`, the only function that loads an area.
+On the next frame `Game_UpdateField (emi/etc/game/00@0x80197378)` sees request 5, sets the arrival effect with `UI_SetMode(g_GameEntryMode)` and moves to entry state 1, `Game_UpdateAreaLoad (emi/etc/game/00@0x801971E8)`, which passes the staged values to `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)`, the only function that loads an area.
 
 ```mermaid
 sequenceDiagram
@@ -72,7 +72,7 @@ sequenceDiagram
     L->>L: g_GameStateIndex = 0,<br/>g_GameEntryState = 2
 ```
 
-`func_8019FAA0` runs these steps in this order.
+`func_8019FAA0` runs these steps in order.
 
 | Step | Call                                                                           | Effect                                                                                                                                                 |
 | ---: | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -90,7 +90,7 @@ Back in `Game_UpdateAreaLoad`, a fishing area (`flag_32 & 8`) goes to entry stat
 
 ### Doors
 
-An exit is a rectangle record of 12 bytes. `func_801A0048 (emi/etc/game/00@0x801A0048)` takes the party's cell (x, y) and walks the area's exit list from the last entry down to entry 0. An entry covers `span` cells starting at `(cx, cy)`, along x when `mode` is 0 and along y otherwise. The [area record](#area-record) points to the entries and to the conditional lists. The table gives an entry by offset.
+An exit is a rectangle record of 12 bytes. `func_801A0048 (emi/etc/game/00@0x801A0048)` takes the party's cell (x, y) and walks the area's exit list from the last entry down to entry 0. An entry covers `span` cells starting at `(cx, cy)`, along x when `mode` is 0 and along y otherwise. The [area record](#area-record) points to the entries and to the conditional lists. Entry layout:
 
 | Offset | Type  | Name   | Meaning                                                                                                                        |
 | -----: | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -159,13 +159,13 @@ Kinds known:
 | `0xF4`         | `func_801A4518`                    | Multi-branch conditional. `0xF5` ends it, `0xF6` and `0xF7` switch branch.                                                                   |
 | `0xF9`, `0xFA` | `func_801A4400`                    | Set `D_8014820C` to a byte or to the scenario id.                                                                                            |
 
-Conditional blocks probably let one area hold different entity sets for different story states, because the tests come from the same table scenario code uses `[inferred]`. The entries of that table are not decoded. `D_8014820C` starts as the scenario id; its readers were not followed `[unknown]`.
+Conditional blocks select entity sets by story state, because the tests come from the table that scenario code uses `[inferred]`. The table entries are not decoded. `D_8014820C` starts as the scenario id; its readers were not followed `[unknown]`.
 
 ### Staged scene objects
 
-Scene objects are the area's non-character things: effects, gates, props. `Actor_Create (emi/etc/game/00@0x8019615C)` claims a free slot of `g_ActorSlots` (20 slots of 116 bytes) and fills it from a kind-E record. A nonzero byte 2 or byte 4 adds half a cell to the x or y position, and the height comes from `Area_SampleHeight`. When no slot is free, `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)` returns `0xFF` and `Actor_Create` drops the record without a message.
+Scene objects are the area's non-character things: effects, gates and props. `Actor_Create (emi/etc/game/00@0x8019615C)` claims a free slot of `g_ActorSlots` (20 slots of 116 bytes) and fills it from a kind-E record. A nonzero byte 2 or byte 4 adds half a cell to the x or y position, and the height comes from `Area_SampleHeight`. When no slot is free, `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)` returns `0xFF` and `Actor_Create` drops the record without a message.
 
-`Actor_DispatchAll` runs each active slot as `g_ActorHandlers[slot->type]()`. The table has 187 entries. Its targets lie in four places: the resident image (`0x8019....`), the shared overlay window at `0x801D0C00`, the area window at `0x801F2C00` and the scenario window at `0x801F6C00`. A given type therefore runs different code depending on which overlay is loaded.
+`Actor_DispatchAll` runs each active slot as `g_ActorHandlers[slot->type]()`. The table has 187 entries. Its targets lie in four places: the resident image (`0x8019....`), the shared overlay window at `0x801D0C00`, the area window at `0x801F2C00` and the scenario window at `0x801F6C00`. A type therefore runs different code depending on the loaded overlay.
 
 ## Zone list
 
@@ -173,7 +173,7 @@ Each area has a zone list in the executable, `D_80181164[area]`. It is a list of
 
 ## Data and limits
 
-The table lists the counts and ranges that the code enforces. Other limits are in the [area format](../../formats/area/) and [memory](../../concepts/memory/).
+Counts and ranges that the code enforces. Other limits are in the [area format](../../formats/area/) and [memory](../../concepts/memory/).
 
 | Item                  | Value                                                        | Source                                                           |
 | --------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
@@ -183,7 +183,7 @@ The table lists the counts and ranges that the code enforces. Other limits are i
 | Exit cell coordinates | 8-bit x and y; at most 256 entries per area                  | `func_801A0048`                                                  |
 | Exit destination      | 0 to 255 whole cells plus an optional half cell              | `(idx << 8) & 0xFF8000`                                          |
 
-The staged destination of an area change sits in work variables of the executable (`exe/slus_004_22`), `0x80143F10..0x80143F1F`. [Phases](../phases/) lists the state variables that the transition also uses.
+The staged destination is stored in `exe/slus_004_22` at `0x80143F10..0x80143F1F`. [Phases](../phases/) lists the state variables that the transition also uses.
 
 | Address      | Type          | Name                  | Meaning                                                                                         |
 | ------------ | ------------- | --------------------- | ----------------------------------------------------------------------------------------------- |
@@ -195,7 +195,7 @@ The staged destination of an area change sits in work variables of the executabl
 | `0x80143F1E` | `u8`          | `g_GameEntryMode`     | Arrival effect: `Game_UpdateAreaLoad` selects it, `Game_UpdateField` passes it to `UI_SetMode`. |
 | `0x80143F1F` | `u8`          | `g_GamePrevSelection` | Previous selection: `func_801A0380` writes it, `Game_UpdateField` compares it.                  |
 
-An edited area must keep these limits.
+Limits an edited area must keep:
 
 - **Code and data placement.** The executable and `emi/etc/game/00` hold absolute pointers into the area window: the 200 `g_AreaLoads` entries, the `g_SceneEvents`, `g_SceneObjects`, `g_ActorHandlers` and `D_801C86F8` tables, and the `func_801A8728` switch. Moving an `AreaLoad` record or a handler inside an area program breaks those pointers unless the tables are rebuilt.
 - **Window size.** The area program must fit 16,384 bytes at `0x801F2C00`. Only `AREA030` loads other programs elsewhere ([area format](../../formats/area/)).

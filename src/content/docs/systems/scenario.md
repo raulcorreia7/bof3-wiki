@@ -3,9 +3,9 @@ title: "Scenario engine"
 description: "The story runs as 20 small overlay programs, SCENA00 to SCENA19, and one of them is active at a time."
 ---
 
-The story runs as 20 small overlay programs, `SCENA00` to `SCENA19`, and one of them is active at a time. The active scenario decides what each area looks like and what each step into a cell does. A story flag that the scenario sets opens a door in [areas and the field](../areas/). The resident field code in `emi/etc/game/00` loads the scenario into a fixed RAM window and calls it at fixed points of the [frame loop](../../concepts/frame-loop/). What each scenario means in the story is not established.
+The story runs as 20 overlay programs, `SCENA00` to `SCENA19`, and one is active at a time. The active scenario sets how each area behaves and what each step into a cell does. A story flag set by the scenario opens a door in [areas and the field](../areas/). The resident field code in `emi/etc/game/00` loads the scenario into a fixed RAM window and calls it at fixed points of the [frame loop](../../concepts/frame-loop/). The story meaning of each scenario is not established.
 
-A smaller layer, the event stage, runs one-off handlers chosen by an event id. This page covers both layers and the story flags. Overlay placement is in [memory](../../concepts/memory/) and [loading](../../concepts/loading/).
+The event stage, a smaller layer, runs one-off handlers selected by an event id. This page covers both layers and the story flags. Overlay placement is in [memory](../../concepts/memory/) and [loading](../../concepts/loading/).
 
 ## Starting a scenario
 
@@ -48,7 +48,7 @@ Three places start a scenario:
 
 ## The controller overlay
 
-`g_SceneScenes (emi/etc/game/00@0x801C8454)` is a table of 20 absolute pointers, one per scenario, into the window `0x801F6C00..0x801FEA80` (32,384 bytes). Every scenario is built for that window, so each pointer is fixed: the `SCENA00` handler block sits at `0x801FC9FC`, the `SCENA16` block at `0x801F8538`.
+`g_SceneScenes (emi/etc/game/00@0x801C8454)` is a table of 20 absolute pointers, one per scenario, into the window `0x801F6C00..0x801FEA80` (32,384 bytes). Every scenario is built for that window, so each pointer is fixed. The `SCENA00` handler block sits at `0x801FC9FC`, the `SCENA16` block at `0x801F8538`.
 
 The first word of each loaded image is its module id, `0x105 + n` (`0x105` for `SCENA00`, `0x118` for `SCENA19`). The type-0 loader checks it against the archive table of contents ([loading](../../concepts/loading/)).
 
@@ -62,9 +62,9 @@ The pointer in `g_SceneScenes` leads to a handler block of five code pointers. T
 | `0x0C` | `void*` | `entry_0C` | `s8 (x, y)`. A nonzero result overrides the cell test. Zero falls back to `func_801A8B84`.                                    | `func_801B146C` through `func_801A79A4`            |
 | `0x10` | `void*` | `entry_10` | `s8 (a, b)`, optional. A negative or null result falls back to `func_801A8CB4`, which reads the area hook table `D_801C86F8`. | `func_801B6258` through `Game_CallScenarioHandler` |
 
-The wrappers are `Area_IsStepBlocked (emi/etc/game/00@0x801A7914)`, `func_801A79A4`, `Game_CallScenarioHandler (emi/etc/game/00@0x801A7A34)` and `Game_DispatchScenarioRecord (emi/etc/game/00@0x801A7878)`. A scenario therefore only has to override what differs from the default; the fallbacks cover the rest.
+The wrappers are `Area_IsStepBlocked (emi/etc/game/00@0x801A7914)`, `func_801A79A4`, `Game_CallScenarioHandler (emi/etc/game/00@0x801A7A34)` and `Game_DispatchScenarioRecord (emi/etc/game/00@0x801A7878)`. A scenario overrides only what differs from the default; the fallbacks cover the rest.
 
-In `SCENA00` the five words are at `0x801FC9FC` and the mode table follows at `0x801FCA10`. `entry_00` (`0x801F913C`) loads `D_80146872` (`mode_02`) and jumps through that table. `SCENA16` stores its handler block as one array: slots 0 to 4, then mode handlers from index 5, then state handlers from index 8, then three `(record, state)` event handlers. The other 18 controllers are not decoded one by one. That `entry_00` starts with a `mode_02` jump in them is `[inferred]`.
+In `SCENA00` the five words are at `0x801FC9FC` and the mode table follows at `0x801FCA10`. `entry_00` (`0x801F913C`) loads `D_80146872` (`mode_02`) and jumps through that table. `SCENA16` stores its handler block as one array: slots 0 to 4, then mode handlers from index 5, then state handlers from index 8, then three `(record, state)` event handlers. The other 18 controllers are not decoded. That their `entry_00` starts with a `mode_02` jump is `[inferred]`.
 
 ### Scenario state
 
@@ -99,7 +99,7 @@ Source: [`include/work/state.h`](https://github.com/raulcorreia7/bof3-decomp/blo
 
 ## Chapter advance
 
-`Scene_RequestChapterAdvance (emi/etc/game/00@0x801A78F8)` sets bit `0x80` of `flags_01`. A controller calls it when its chapter is done. Nothing happens at once. On the next area load, `func_8019FAA0` sees the bit, increments `scenario_id` (a result of 16 becomes 17), and calls `Scene_Start` with it. `Scene_Start` clears `flags_01`, so one request advances one chapter. The test is in the assembly at `0x8019FD18..0x8019FD68`.
+`Scene_RequestChapterAdvance (emi/etc/game/00@0x801A78F8)` sets bit `0x80` of `flags_01`. A controller calls it when its chapter is done. Nothing happens at once. On the next area load, `func_8019FAA0` sees the bit, increments `scenario_id` (a result of 16 becomes 17), and calls `Scene_Start` with it. `Scene_Start` clears `flags_01`, so one request advances one chapter. The test is at `0x8019FD18..0x8019FD68`.
 
 `func_8019FAA0` also sets `mode_02 = 1` just before it calls `Game_UpdateScenario`, so a controller sees mode 1 on every arrival in a new area.
 
@@ -107,7 +107,7 @@ Source: [`include/work/state.h`](https://github.com/raulcorreia7/bof3-decomp/blo
 
 ## Scenarios on the disc
 
-All 20 images are present as `scenario/scenaNN` entries; the largest, `SCENA08`, fills the whole 32,384-byte window. Only some have been decoded.
+All 20 images are `scenario/scenaNN` entries. The largest, `SCENA08`, fills the 32,384-byte window. The table lists the decoded ones.
 
 | Scenario             | What is established                                                                                                                                                                                                                                 |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -158,7 +158,7 @@ A scenario word has 64 bits. The test does not check the bit against the word, s
 
 ## Limits on an edit
 
-A rebuilt or relocated scenario has to respect these limits.
+A rebuilt or relocated scenario keeps these limits.
 
 - **Handler block address.** `g_SceneScenes[n]` holds an absolute address. The block must sit at that address, or the table must change. The first word of the image must stay `0x105 + n`.
 - **Window size.** The image must fit 32,384 bytes ([memory](../../concepts/memory/)).

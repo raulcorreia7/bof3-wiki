@@ -3,17 +3,17 @@ title: "Persistent state"
 description: "The party, the inventory, the zenny, the story flags, the play clock and the player's place in the world live in one 4,272-byte block of RAM at 0x801448D8 that no overlay covers."
 ---
 
-The party, the inventory, the zenny, the story flags, the play clock and the player's place in the world live in one 4,272-byte block of RAM at `0x801448D8` that no overlay covers. They survive area changes, battles, menus and a trip to the save screen. A save copies the block to the memory card, and a load copies it back and rebuilds everything else from it. This page maps the block, what the game keeps outside it and which code writes it. It does not cover the field layouts of the records or the save and load flow.
+The party, inventory, zenny, story flags, play clock and the player's place in the world live in one 4,272-byte block of RAM at `0x801448D8` that no overlay covers. The block persists across area changes, battles, menus and the save screen. A save copies it to the memory card; a load copies it back and rebuilds all other state from it. This page maps the block, the state kept outside it and the code that writes it. The record field layouts and the save and load flow are on other pages.
 
 ## One persistent block
 
-Every long-lived value sits in the block from `0x801448D8` to `0x80145988`. The save writes the block and the load copies it back, byte for byte. `SAVE_BuildSlotImage` copies 4,272 bytes from `g_SceneEventFlags - 0x650`, which is `0x801448D8`. `SAVE_RunLoadVerify` copies the same length back.
+Every long-lived value sits in the block `0x801448D8..0x80145988`. Save and load copy it byte for byte. `SAVE_BuildSlotImage` copies 4,272 bytes from `g_SceneEventFlags - 0x650`, which is `0x801448D8`. `SAVE_RunLoadVerify` copies the same length back.
 
 The block lies in the executable's work-variable range, which no overlay window covers ([memory](../../concepts/memory/)). An overlay swap never moves or clears it.
 
 Offsets in the table are block-relative. The save-file frame adds `0x200`, so frame offset = block offset + `0x200`. [Game records](../../data/records/#save-layout) uses the frame.
 
-The table lists the block in memory order. A name is given where the block holds a named global itself.
+The table lists the block in memory order, with the global's name where the block holds one.
 
 | Offset   | Address      |  Size | Type                 | Name                        | Meaning                                                      |
 | -------- | ------------ | ----: | -------------------- | --------------------------- | ------------------------------------------------------------ |
@@ -43,7 +43,7 @@ The table lists the block in memory order. A name is given where the block holds
 
 The block also holds records this table does not split: the dragon genes at `0x80145548`, the masters at `0x8014554C`, the fairy village rooms at `0x801457A8` and the two countdown timers at `0x80145554` and `0x80145558` ([clock](../../data/field/#inventory-money-and-time)), per [game records](../../data/records/#save-layout). The code that fills the genes, masters and rooms is not traced `[inferred]`.
 
-Notes on the less obvious rows:
+Notes on the table:
 
 - The slot summary is written by `SAVE_BuildSlotImage (emi/etc/shop/00@0x801D69E0)` just before each save and read back by the slot lists. [Saving](../saving/#building-the-image) lists its fields.
 - `SAVE_RunLoadRestore` restores the button masks from `0x80145594` into `g_InputMasks`.
@@ -52,7 +52,7 @@ Notes on the less obvious rows:
 
 ### Not persistent
 
-These values live outside the block. The game rebuilds or resets each one. The third column gives the reason.
+These values live outside the block. The game rebuilds or resets each one.
 
 | Address                    | Type               | Name                                      | Meaning                                                           |
 | -------------------------- | ------------------ | ----------------------------------------- | ----------------------------------------------------------------- |
@@ -64,7 +64,7 @@ These values live outside the block. The game rebuilds or resets each one. The t
 | `0x80146254`               | `u8`               | `g_PartySize`                             | party size, recomputed from the order array by `Party_CountOrder` |
 | overlay windows            | -                  | area, scene and actor tables              | reloaded with the area and scenario overlays `[inferred]`         |
 
-`g_GameState` is not a record of game progress despite its name. `func_801E3EC4 (emi/etc/start/08@0x801E3EC4)` points it at a `g_BattlePartyBattlers` row for the camp menu, and `Party_BuildBattlers (emi/etc/game/00@0x801C1400)` points it at one row per party member for the field.
+`g_GameState` is not game progress. `func_801E3EC4 (emi/etc/start/08@0x801E3EC4)` points it at a `g_BattlePartyBattlers` row for the camp menu, and `Party_BuildBattlers (emi/etc/game/00@0x801C1400)` points it at one row per party member for the field.
 
 ## How the block changes
 
@@ -87,7 +87,7 @@ flowchart TD
     CARD --> LD --> BLK
 ```
 
-`Game_StartSelectedGame` stops the sound effects, sets sound layout 0, clears the play clock, calls `Scene_Start(16)` and registers `Game_UpdateMain`. The default party records come from `Party_InitDefaults`. It runs as state 0 of camp substate 2, the substate that the New Game choice selects ([saving](../saving/#the-continue-menu)). For records 0 to 6 it copies `D_801EB514[i]` and sets base, current and record willpower to `(level << 4) / D_801EBA34[i][0] + D_801EBA34[i][1]`. It copies `D_801EB990` into the record that `D_80181B1A` names.
+`Game_StartSelectedGame` stops the sound effects, sets sound layout 0, clears the play clock, calls `Scene_Start(16)` and registers `Game_UpdateMain`. `Party_InitDefaults` supplies the default party records. It runs as state 0 of camp substate 2, which the New Game choice selects ([saving](../saving/#the-continue-menu)). For records 0 to 6 it copies `D_801EB514[i]` and sets base, current and record willpower to `(level << 4) / D_801EBA34[i][0] + D_801EBA34[i][1]`. It copies `D_801EB990` into the record that `D_80181B1A` names.
 
 ## Overlays and the block
 
@@ -114,7 +114,7 @@ flowchart LR
     A ~~~ H
 ```
 
-Game progress lives in the block or in the executable's work variables. An overlay's own variables, such as the load screen's `D_801ED860`, vanish with the overlay. Scenario overlays write flags through `g_SceneFlags` `[inferred]` from the symbol evidence (`g_SceneFlagWords`). The writers for the block shown here (`SAVE_RunLoadRestore`, `SAVE_BuildSlotImage`, `Scene_Start`) are read.
+Game progress lives in the block or in the executable's work variables. An overlay's own variables, such as the load screen's `D_801ED860`, are lost when the overlay is replaced. Scenario overlays write flags through `g_SceneFlags` `[inferred]`. The writers of the block are `SAVE_RunLoadRestore`, `SAVE_BuildSlotImage` and `Scene_Start`.
 
 ## What the game rebuilds
 
@@ -145,7 +145,7 @@ Game progress lives in the block or in the executable's work variables. An overl
 
 ### Inventory
 
-There are four categories (item, weapon, armor, accessory), each with 128 id bytes and 128 quantity bytes. `Party_CountItem (exe/slus_004_22@0x8016628C)` reads the ids and counts through two pointer tables, `D_801C893C` and `D_801C8950`, which live in `emi/etc/game/00`. The executable therefore depends on the resident game image whenever it counts items. With mode 0 it returns the inventory quantity. With another mode it counts the item among the equipment of live records that have flag bit `0x01` set, and for accessories adds the fishing rod and lures.
+There are four categories (item, weapon, armor, accessory), each with 128 id bytes and 128 quantity bytes. `Party_CountItem (exe/slus_004_22@0x8016628C)` reads the ids and counts through two pointer tables, `D_801C893C` and `D_801C8950`, which live in `emi/etc/game/00`. The executable thus depends on the resident game image to count items. With mode 0 it returns the inventory quantity. With another mode it counts the item among the equipment of live records that have flag bit `0x01` set, and for accessories adds the fishing rod and lures.
 
 ### Zenny
 
@@ -163,7 +163,7 @@ There are four categories (item, weapon, armor, accessory), each with 128 id byt
 | Scenario flags     | 20 words of 8 bytes; `Scene_Start` clears the low 32 flags |
 | Event flag bits    | 40 bytes, 320 bits                                         |
 
-An edit to the block keeps its size and the checksum rule ([save format](../../formats/save/#checksum)). The block has no version field, so a change to a field's meaning cannot be detected on load.
+An edit keeps the block size and the checksum rule ([save format](../../formats/save/#checksum)). The block has no version field; a load cannot detect a changed field meaning.
 
 ## Open questions
 

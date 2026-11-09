@@ -3,7 +3,7 @@ title: "Game phases"
 description: "The game is a stack of modes: boot, title, start menu, field, menu, battle, scenes and game over."
 ---
 
-The game is a stack of modes: boot, title, start menu, field, menu, battle, scenes and game over. Three mechanisms carry the transitions between them. The callback slots ([scheduler](../../concepts/scheduler/)) hold the running mode, a state table `g_GameStates` selects what the game does each frame, and a request code `g_GameStateIndex` tells that table which transition to make next. After the game starts, almost everything happens inside one entry state, the field, as area and scenario code. Menus, battles and shops are brief excursions from it. This page does not cover what each mode does inside ([scenario engine](../scenario/), [areas and the field](../areas/), [battle flow](../battle/)).
+The game runs as a set of modes: boot, title, start menu, field, menu, battle, scenes and game over. Three mechanisms carry the transitions. The callback slots ([scheduler](../../concepts/scheduler/)) hold the running mode, the state table `g_GameStates` selects what the game does each frame, and the request code `g_GameStateIndex` names the next transition. Almost all play happens in one entry state, the field, as area and scenario code. Menus, battles and shops are excursions from it. The internals of each mode are in [scenario engine](../scenario/), [areas and the field](../areas/) and [battle flow](../battle/).
 
 ## From power-on to the field
 
@@ -38,7 +38,7 @@ flowchart TD
     Field -->|"index 5,<br/>area change"| Field
 ```
 
-Battle and the ending leave the field differently. Defeat and the ending go back to the first load:
+Battle and the ending leave the field differently. Defeat and the ending return to the first load:
 
 ```mermaid
 flowchart TD
@@ -55,12 +55,12 @@ Holding Select and Start for 61 frames jumps back to the "First load" node from 
 The title thread on slot 1 steps through eight states (`g_UiTitleState`). States 0 to 3 load `DEMO`, start music cue `0x8D` and fade the title in. State 2 waits 360 ticks and state 3 waits 900 more. Pressing Start below state 3 jumps to state 2 with the timer at 1.
 
 :::note
-State 4 is `Game_StartSelectedGame (emi/etc/game/01@0x801D0E54)`. Despite its name it starts no selection. It clears the actors, zeroes `g_PlayClock`, calls `Scene_Start(16)` and registers `Game_UpdateMain` in slot 0, so the title scene runs in the game's own loop underneath the title.
+State 4 is `Game_StartSelectedGame (emi/etc/game/01@0x801D0E54)`. It starts no selection. It clears the actors, zeroes `g_PlayClock`, calls `Scene_Start(16)` and registers `Game_UpdateMain` in slot 0, so the title scene runs in the game's own loop underneath the title.
 :::
 
 States 5 and 6 draw the choice prompt. The scenario 16 code raises the popup request, and Start with that popup open sets state 7, `Game_LeaveTitle (emi/etc/game/01@0x801D1000)`. That function registers the start-menu loop in slot 0 and ends the title thread. The start menu loads the `START` overlay and offers New Game or Load Game. Both choices end in `CallbackReplace(Game_UpdateMain)`, which puts the game proper in slot 0. The main loop starts in entry state 0, which asks for the saved area and walks through entry state 1 (load the area) into entry state 2 (the field).
 
-New Game takes a longer path inside the `START` overlay. `Menu_StartNewGame (emi/etc/start/08@0x801E2584)` finishes a countdown, calls `Scene_Start(0)` to load the first scenario, and installs `Game_UpdateMain`. The first scenario then selects the first area. Name entry belongs to this path, but where it runs is `[unknown]`. Load Game scans both card ports for a save, restores eight characters with `Char_RebuildStats`, and installs `Game_UpdateMain`. `Game_NewGame` then re-enters the saved area from the saved seed and position. [Saving](../saving/) covers the card.
+New Game takes a longer path inside the `START` overlay. `Menu_StartNewGame (emi/etc/start/08@0x801E2584)` finishes a countdown, calls `Scene_Start(0)` to load the first scenario, and installs `Game_UpdateMain`. The first scenario then selects the first area. Where name entry runs is `[unknown]`. Load Game scans both card ports for a save, restores eight characters with `Char_RebuildStats`, and installs `Game_UpdateMain`. `Game_NewGame` then re-enters the saved area from the saved seed and position. [Saving](../saving/) covers the card.
 
 ## The entry-state machine
 
@@ -81,11 +81,11 @@ New Game takes a longer path inside the `START` overlay. `Menu_StartNewGame (emi
 |          10 | `Game_UpdateStatusMenu (emi/etc/game/00@0x80198904)`  | 3-handler table `g_MenuStatusOpen`: streams `SHISU`, an item minigame that scores the items used and ranks the score 0 to 5  |
 |          11 | `Game_UpdateSceneCamera (emi/etc/game/00@0x80198AC4)` | 3-handler table `g_GameFlowHandlers`: scene dispatch with camera control, camera reset, back to 2                            |
 
-State 2 is where the game spends most of its time. World map, cutscenes, bosses, the fairy village and fishing do not have states of their own, with fishing the exception that sets state 8. They run as area and scenario code inside the field.
+State 2 is the field. World map, cutscenes, bosses and the fairy village have no entry state of their own; they run as area and scenario code inside it. Fishing sets state 8.
 
 ### The request code
 
-Code deep inside the field does not set `g_GameEntryState` directly. It writes a request code to `g_GameStateIndex (exe/slus_004_22@0x80143BB0)`, a byte. State 2 reads the code after the per-frame update and makes the transition.
+Field code writes a request code to `g_GameStateIndex (exe/slus_004_22@0x80143BB0)`, a byte, and never sets `g_GameEntryState` directly. State 2 reads the code after the per-frame update and makes the transition.
 
 | Code | Set by                                                                                                             | State 2 then                                                                                                          |
 | ---: | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
@@ -104,7 +104,7 @@ Code deep inside the field does not set `g_GameEntryState` directly. It writes a
 
 ### Screen effects
 
-`UI_SetMode(m)` starts a transition effect in slot 2 and does nothing while one is running ([scheduler](../../concepts/scheduler/#local-ui-modes)). Phase code calls it at a boundary and waits for `g_UiWindowEffectBusy` to clear. The effect table has 21 entries: full-screen tints, fades, zooms and camera-angle wipes. What each number looks like is `[inferred]` from the call sites:
+`UI_SetMode(m)` starts a transition effect in slot 2 and does nothing while one is running ([scheduler](../../concepts/scheduler/#local-ui-modes)). Phase code calls it at a boundary and waits for `g_UiWindowEffectBusy` to clear. The effect table has 21 entries: full-screen tints, fades, zooms and camera-angle wipes. The look of each number is `[inferred]` from the call sites:
 
 | Call                          | Where                                               | Meaning               |
 | ----------------------------- | --------------------------------------------------- | --------------------- |
@@ -117,7 +117,7 @@ Code deep inside the field does not set `g_GameEntryState` directly. It writes a
 
 ## Phase reference
 
-Every phase has the executable and the resident program `emi/etc/game/00` in RAM. The table lists what each phase adds. The scene window at `0x801D0C00` holds one overlay at a time. The area program is at `0x801F2C00`, the scenario controller at `0x801F6C00`, and `BMAGIC`, `BATL_END` and `BATL_OVR` code at `0x801EEC00`.
+The executable and the resident program `emi/etc/game/00` are in RAM in every phase. The table lists what each phase adds. The scene window at `0x801D0C00` holds one overlay at a time. The area program is at `0x801F2C00`, the scenario controller at `0x801F6C00`, and `BMAGIC`, `BATL_END` and `BATL_OVR` code at `0x801EEC00`.
 
 | Phase                                | Entered when                                                            | Code and overlay                                                                                                                                                    | Leaves by                                                                          |
 | ------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -151,7 +151,7 @@ There are 20 scenario overlays, `SCENA00` to `SCENA19`. Scenario 16 is the title
 
 ## Data and limits
 
-The table lists the symbols that carry the phase state. All of them are work variables of the executable, in the range below its code that [memory](../../concepts/memory/#the-map) maps. The resident game program reads and writes them but does not own them.
+These executable work variables carry the phase state, in the range that [memory](../../concepts/memory/#the-map) maps. The resident game program reads and writes them.
 
 | Symbol                 | Address                      | Type       | Meaning                                                                                                               |
 | ---------------------- | ---------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |

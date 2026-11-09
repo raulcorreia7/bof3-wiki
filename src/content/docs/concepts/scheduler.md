@@ -3,19 +3,19 @@ title: "Scheduler and tasks"
 description: "The game runs as four callback slots, and each slot holds a cooperative kernel thread that CallbackRun (exe/slus_004_22@0x8014B73C) switches into once per frame."
 ---
 
-The game runs as four callback slots, and each slot holds a cooperative kernel thread that `CallbackRun (exe/slus_004_22@0x8014B73C)` switches into once per frame. Most game modes are a thread that loops forever, reads a state byte, runs the handler that the byte selects, and yields. Below the threads, small fixed-size record tables hold the actors, panels and battlers that those handlers step. This page does not cover which mode owns which slot at which moment ([game phases](../../systems/phases/)) or how the first two callbacks start the game ([boot](../../systems/boot/)).
+The game runs as four callback slots, and each slot holds a cooperative kernel thread that `CallbackRun (exe/slus_004_22@0x8014B73C)` switches into once per frame. Most game modes are a thread that loops forever, reads a state byte, runs the handler that the byte selects, and yields. Fixed-size record tables hold the actors, panels and battlers that the handlers step. This page does not cover which mode owns which slot at which moment ([game phases](../../systems/phases/)) or how the first two callbacks start the game ([boot](../../systems/boot/)).
 
 ## Callback slots
 
-The [frame loop](../frame-loop/) gives game code one turn per frame through `CallbackRun`. A slot is a 128-byte record in the table at `D_80143B40 (exe/slus_004_22@0x80143B40)`. It holds a state, a yield counter, the callback function, a thread id and the two values that start the thread. A callback is an ordinary function that runs as a PsyQ kernel thread (`OpenTh`, `ChangeTh`, `CloseTh`). The kernel does not pre-empt it. The thread runs until it calls one of three functions and hands control back to `CallbackRun`:
+The [frame loop](../frame-loop/) gives game code one turn per frame through `CallbackRun`. A slot is a 128-byte record in the table at `D_80143B40 (exe/slus_004_22@0x80143B40)`. It holds a state, a yield counter, the callback function, a thread id and the two values that start the thread. A callback is a function that runs as a PsyQ kernel thread (`OpenTh`, `ChangeTh`, `CloseTh`). The kernel does not pre-empt it. The thread runs until it calls one of three functions, which return control to `CallbackRun`:
 
-| Function                                       | Effect on the slot                                                                          |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `CallbackWait (exe/slus_004_22@0x8014B87C)`    | resume after n more passes of `CallbackRun`; `CallbackWait(1)` means "run again next frame" |
-| `CallbackExit (exe/slus_004_22@0x8014B8B0)`    | empty the slot and close the thread                                                         |
-| `CallbackReplace (exe/slus_004_22@0x8014B954)` | close the thread and reopen the slot with another callback on the next pass                 |
+| Function                                       | Effect on the slot                                                                              |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `CallbackWait (exe/slus_004_22@0x8014B87C)`    | resume after n more passes of `CallbackRun`; `CallbackWait(1)` runs the thread again next frame |
+| `CallbackExit (exe/slus_004_22@0x8014B8B0)`    | empty the slot and close the thread                                                             |
+| `CallbackReplace (exe/slus_004_22@0x8014B954)` | close the thread and reopen the slot with another callback on the next pass                     |
 
-`CallbackRegister (exe/slus_004_22@0x8014B854)` puts a callback in a slot and marks the slot open. `CallbackStopAll (exe/slus_004_22@0x8014B33C)` empties every occupied slot and closes its thread. A callback that waits for a disc read polls with `CallbackWait(1)` until `EMI_IsReady` returns nonzero. This is how every overlay swap blocks its own thread and no other.
+`CallbackRegister (exe/slus_004_22@0x8014B854)` puts a callback in a slot and marks the slot open. `CallbackStopAll (exe/slus_004_22@0x8014B33C)` empties every occupied slot and closes its thread. A callback that waits for a disc read polls with `CallbackWait(1)` until `EMI_IsReady` returns nonzero. Every overlay swap blocks its own thread this way and no other.
 
 ```mermaid
 stateDiagram-v2
@@ -35,12 +35,12 @@ stateDiagram-v2
 The state values are `EMPTY` 0, `YIELD` 1, `OPEN` 2, `SWITCH` 4 and `IDLE` 0x7F.
 
 :::note
-`RUNNING` in the diagram is the `IDLE` value: `CallbackRun` writes it just before it switches into the thread. No function read writes `SWITCH`.
+`RUNNING` in the diagram is the `IDLE` value: `CallbackRun` writes it just before it switches into the thread. No function writes `SWITCH`.
 :::
 
 ### One pass of `CallbackRun`
 
-`CallbackRun` points the cursor `g_CallbackSlot` at slot 0 and walks slots 0 to 3 once. The cursor is the "current slot" that `CallbackWait`, `CallbackExit` and `CallbackReplace` act on. The table gives the action for each slot state.
+`CallbackRun` points the cursor `g_CallbackSlot` at slot 0 and walks slots 0 to 3 once. The cursor is the current slot that `CallbackWait`, `CallbackExit` and `CallbackReplace` act on.
 
 | Slot state | Action                                                                                            |
 | ---------- | ------------------------------------------------------------------------------------------------- |
@@ -49,15 +49,13 @@ The state values are `EMPTY` 0, `YIELD` 1, `OPEN` 2, `SWITCH` 4 and `IDLE` 0x7F.
 | `SWITCH`   | switch in                                                                                         |
 | other      | skip                                                                                              |
 
-"Switch in" sets the state to `IDLE` and calls `ChangeTh` with the thread id. The yielding functions return control the other way with `ChangeTh(0xFF000000)`. That this value returns to the thread that called `CallbackRun` is PsyQ kernel behavior that the code relies on. `[inferred]`
+"Switch in" sets the state to `IDLE` and calls `ChangeTh` with the thread id. The yielding functions return with `ChangeTh(0xFF000000)`, which returns to the thread that called `CallbackRun` (PsyQ kernel behavior). `[inferred]`
 
-Because the walk goes from slot 0 to slot 3, a callback in slot 0 that registers slot 1 gets slot 1 started in the same pass. The boot does exactly this ([boot](../../systems/boot/)).
+Because the walk goes from slot 0 to slot 3, a callback in slot 0 that registers slot 1 starts slot 1 in the same pass ([boot](../../systems/boot/)).
 
-`CallbackInitThreads (exe/slus_004_22@0x8014B6B4)` prepares the slots at boot. For slot i it clears the state, links the kernel work block i + 1 (block size 192, based on the word at `0x80000110`) and sets the thread stack top to `0x801FF400 + (i + 1) * 0x200`. The four stack tops are `0x801FF600`, `0x801FF800`, `0x801FFA00` and `0x801FFC00`. Each stack is 512 bytes and the four sit side by side, so a call chain deeper than that overruns the next slot's stack. Whether any real chain does is `[unknown]`.
+`CallbackInitThreads (exe/slus_004_22@0x8014B6B4)` prepares the slots at boot. For slot i it clears the state, links the kernel work block i + 1 (block size 192, based on the word at `0x80000110`) and sets the thread stack top to `0x801FF400 + (i + 1) * 0x200`. The four stack tops are `0x801FF600`, `0x801FF800`, `0x801FFA00` and `0x801FFC00`. Each stack is 512 bytes and the four are adjacent, so a call chain deeper than 512 bytes overruns the next slot's stack. Whether any chain does is `[unknown]`.
 
 ## Slot assignments
-
-The table lists the callback that each slot runs and the code that registers it.
 
 | Slot | Callback                                                             | Registered by                                                                                                         |
 | ---: | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -80,7 +78,7 @@ These sites run on the slot that is current, which is slot 0 for the main loop. 
 
 ## State-byte dispatch
 
-Almost every mode loop has the same shape: a callback loops, reads a state byte, calls the handler `table[state]()` and yields. A handler moves to another state by writing the byte. A handler that wants another turn leaves the byte alone, and the table runs it again next frame. The table, the byte and the entry count differ per loop.
+Almost every mode loop has one shape: loop, read a state byte, call `table[state]()`, yield. A handler changes state by writing the byte. If it leaves the byte alone, the same handler runs next frame. The byte, table and entry count differ per loop.
 
 | Loop                                                    | State byte                                      | Handler table                                      | Entries |
 | ------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------- | ------: |
@@ -92,11 +90,11 @@ Almost every mode loop has the same shape: a callback loops, reads a state byte,
 
 The two game loops differ in order. `Game_UpdateMain` calls the handler, then `func_80198CAC` (the play clock and timers), then `CallbackWait(1)`. `Game_UpdateCampMenu` waits first, then calls the handler, then `Menu_UpdatePanelTasks`. Both zero `g_GameEntryState` and `g_GameEntrySubstate` when they start, and call `Menu_ResetPanelTasks`. The meaning of each entry state is in [game phases](../../systems/phases/).
 
-The overlays use a second form of the same idiom. The handler table is indexed by a byte of a work record instead of by a global byte. The pointer cell `g_SpadWork (exe/slus_004_22@0x1F800044)` in the scratchpad points at the record that the running handler steps. Its type depends on the overlay: a party battler in battle, an actor in the field, a band effect in a scenario. Handlers read its step bytes at offsets `+0x01`, `+0x02` and `+0x04`.
+Overlays also index the handler table by a byte of a work record instead of a global byte. The pointer cell `g_SpadWork (exe/slus_004_22@0x1F800044)` in the scratchpad points at the record that the running handler steps. Its type depends on the overlay: a party battler in battle, an actor in the field, a band effect in a scenario. Handlers read its step bytes at offsets `+0x01`, `+0x02` and `+0x04`.
 
 ## Work-record tables
 
-Handlers step fixed-size records that live in RAM tables. Each table has a free-slot search, so its size is the hard limit on how many of that thing exist at once. The table gives the stride in bytes and the number of rows.
+Handlers step fixed-size records in RAM tables. Each table has a free-slot search, so its row count is the hard limit on live records.
 
 | Table              | Address                         | Type                | Stride x count | Allocator and walker                                                                                                                     |
 | ------------------ | ------------------------------- | ------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -111,11 +109,9 @@ A menu panel is a task, so at most 22 panels are live. `Menu_UpdatePanelTasks (e
 
 `UI_SetMode(m)` starts a screen effect such as a fade, wipe or zoom. It does nothing while `g_UiWindowEffectBusy (exe/slus_004_22@0x80143C40)` is nonzero. Otherwise it stores `m & 0xFF` in `g_UiLocalMode (exe/slus_004_22@0x80143C90)` and registers `UI_DispatchLocalMode` in slot 2. That callback copies the 21-entry table to the stack and calls the entry `g_UiLocalMode` selects, once. Several entries are one-line wrappers around the fade routine `GFX_RunBlackFade`, which loops with `CallbackWait(1)` and ends the thread with `CallbackExit`. The other entries end through their own `CallbackWait` and `CallbackExit` calls. `UI_SetModeWait` is the same call, followed by a `CallbackWait(1)` loop until the effect ends.
 
-The effect table is a table of transitions and not of game phases. Phase code calls `UI_SetMode` at a boundary. The field handler for an area change calls `UI_SetMode(g_GameEntryMode)` ([game phases](../../systems/phases/)). The effect catalog is in [UI and text drawing](../../systems/ui/).
+The effect table holds screen transitions, not game phases. Phase code calls `UI_SetMode` at a boundary: the field handler for an area change calls `UI_SetMode(g_GameEntryMode)` ([game phases](../../systems/phases/)). The effect catalog is in [UI and text drawing](../../systems/ui/).
 
 ## Data and limits
-
-The table gives the fixed counts and where each comes from.
 
 | Limit          | Value                                             | Source                                          |
 | -------------- | ------------------------------------------------- | ----------------------------------------------- |

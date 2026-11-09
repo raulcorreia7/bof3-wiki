@@ -3,7 +3,7 @@ title: "Rendering"
 description: "The game draws each frame by writing GPU primitives into a fixed RAM arena, threading them into eight depth layers of an ordering table and handing the table to the GPU."
 ---
 
-The game draws each frame by writing GPU primitives into a fixed RAM arena, threading them into eight depth layers of an ordering table and handing the table to the GPU. It has no scene graph and no draw library beyond a few helpers. Textures and palettes sit in VRAM, and each primitive names the texture page and palette row it samples. This page covers the primitive arena, the VRAM layout, how textures and palettes reach VRAM and how a sprite picks its colors. It does not cover the order of a whole frame, text drawing or the loader that fills VRAM.
+The game draws each frame by writing GPU primitives into a fixed RAM arena, threading them into eight depth layers of an ordering table and handing the table to the GPU. Textures and palettes sit in VRAM, and each primitive names the texture page and palette row it samples. This page covers the primitive arena, the VRAM layout, how textures and palettes reach VRAM and how a sprite picks its colors. The order of a whole frame, text drawing and the loader that fills VRAM are on other pages.
 
 ## Terms
 
@@ -39,7 +39,7 @@ flowchart TD
 
 ### Layers in use
 
-The game code calls `GFX_AddPrim` with a literal layer about 200 times for layer 1, about 30 times for layer 2, and a handful of times for layers 3, 6 and 7. Text and menu sprites go to layer 1. Scene sprites take their layer from the sprite record byte `+0x29`, and the map engine takes it from `g_AreaDrawMode`. What each layer number means for ordering, for example which layer is the HUD, is `[unknown]` beyond "1 is in front of 2".
+Calls to `GFX_AddPrim` with a literal layer: about 200 for layer 1, about 30 for layer 2, a handful for layers 3, 6 and 7. Text and menu sprites use layer 1. Scene sprites take their layer from sprite record byte `+0x29`, and the map engine takes it from `g_AreaDrawMode`. The ordering meaning of each layer, such as which layer is the HUD, is `[unknown]` beyond "1 is in front of 2".
 
 ## Display and VRAM
 
@@ -62,7 +62,7 @@ No table lists the allocation of the page area between area sheets, character sh
 
 ## Textures, TIMs and palettes
 
-The game loads no TIM files. Payloads carry no TIM header and go to VRAM as raw 16-bit words; the only TIM data is the memory-card save icon, which is never uploaded ([graphics formats](../../formats/graphics/)).
+Payloads carry no TIM header and go to VRAM as raw 16-bit words. The only TIM data is the memory-card save icon, which is never uploaded ([graphics formats](../../formats/graphics/)).
 
 ```mermaid
 flowchart TD
@@ -115,16 +115,16 @@ with `x = (page % 16) << 6` and `y = (page / 16) << 8`. `v` is the cell `v` plus
 
 ### Causes of wrong texture colors
 
-When a texture shows the wrong colors, one of these four items disagrees with the others `[inferred]`:
+Wrong texture colors come from one of these `[inferred]`:
 
-- The palette bank sits at another arena offset.
-- The CLUT word names another row or column.
+- The palette bank is at a different arena offset.
+- The CLUT word names a different row or column.
 - The bit depth (4 or 8) differs from the pixel data.
 - A fade or animation overwrote the working copy after the upload.
 
 ## Palette runtime
 
-The last four stage palette rows are handed out dynamically to sprites that need their own colors, such as fading or recolored characters. Three tables track them.
+The last four stage palette rows are allocated at run time to sprites that need their own colors, such as fading or recolored characters. Three tables track them.
 
 | Object          | Address      | Size                              | Role                                                                              |
 | --------------- | ------------ | --------------------------------- | --------------------------------------------------------------------------------- |
@@ -134,7 +134,7 @@ The last four stage palette rows are handed out dynamically to sprites that need
 
 `GFX_AllocPaletteCell (emi/etc/game/00@0x801968BC)` takes a mode and scans the map row by row, returning the first run of free cells that fits. Mode 0 is one cell, 1 a whole row, 2 two cells (even column), 3 four cells (column multiple of 4) and 4 eight cells. The result is a selector for `Area_BuildClut` of the same kind. Mode 0 returns `cell - 0x40` as a byte. With record flag `0x04` set, `Area_BuildClut` turns that into rows `0x1FC` to `0x1FF`. Those are the same rows (28 to 31) that `GFX_ResetPalette` zeroes, so the dynamic cells live in the last four rows of the stage palette `[inferred]`.
 
-A fade, `GFX_AllocPaletteFade (emi/etc/game/00@0x8019651C)`, takes a free cell run for the sprite record, remembers the record's old selector in the fade record, and `GFX_FreePaletteFade` restores it and frees the cells. `GFX_UploadPaletteRows` sets bit `0x8000` (the STP bit) on every color of the record's cells. The code that interpolates colors during a fade is in overlays (`emi/world00/area036/13`, `emi/world02/area085/13`, `emi/world02/area108/14`, `emi/bmagic/magic064/03`), not in the resident core, and was not read `[unknown]`.
+A fade, `GFX_AllocPaletteFade (emi/etc/game/00@0x8019651C)`, takes a free cell run for the sprite record, remembers the record's old selector in the fade record, and `GFX_FreePaletteFade` restores it and frees the cells. `GFX_UploadPaletteRows` sets bit `0x8000` (the STP bit) on every color of the record's cells. The code that interpolates colors during a fade is in overlays (`emi/world00/area036/13`, `emi/world02/area085/13`, `emi/world02/area108/14`, `emi/bmagic/magic064/03`), not in the resident core, and is `[unknown]`.
 
 Palette animations read 4-byte steps (`dst`, `src`, `count`, `wait`) and copy `count` colors from `src` to `dst` inside one row of the working copy. A step whose first byte is `0xFF` loops back by its second byte (`GFX_StepPaletteAnimation`, `GFX_CopyPaletteAnimationColors`). The copy sets the pending flag and uploads nothing.
 
@@ -150,13 +150,13 @@ Palette animations read 4-byte steps (`dst`, `src`, `count`, `wait`) and copy `c
 
 1. `Area_RunBundleRecords (exe/slus_004_22@0x801584A4)`: when `g_AreaDrawFlags` bit 2 (cell layers) is set, walks the map-bundle record list at `0x80104000 + D_80104022 * 4`, dispatching each record's opcode through `D_8017F8FC`.
 2. `Area_DrawActors (exe/slus_004_22@0x8014BB20)`: when flag bit 0 is set, bubble-sorts the active records (`D_80148214`) by depth and calls `Area_DrawObjectSprite` for each.
-3. `func_8014BC70 (exe/slus_004_22@0x8014BC70)`: sorts the object list by layer key and depth, and for each of 55 scenes merges objects with the packet list `D_80143740` into the ordering table `[inferred]`. This comes from a partial reading.
+3. `func_8014BC70 (exe/slus_004_22@0x8014BC70)`: sorts the object list by layer key and depth, and for each of 55 scenes merges objects with the packet list `D_80143740` into the ordering table `[inferred]`.
 
 `Area_DrawObjectSprite (exe/slus_004_22@0x8014C4D4)` hides records that fall outside a 448 by 368 window, skips flagged records, and emits one primitive per cell. Plain cells go through `Area_DrawSpriteCell`, and flipped or scaled cells become `POLY_FT4`. Cell size comes from `g_SpriteSizes (exe/slus_004_22@0x8017F53C)`, so a cell is one of 16 fixed sizes.
 
 ## Key data
 
-These objects hold the state of the frame pipeline.
+State of the frame pipeline:
 
 | Object                | Address         | Type        | Role                                                                         |
 | --------------------- | --------------- | ----------- | ---------------------------------------------------------------------------- |
@@ -169,7 +169,7 @@ These objects hold the state of the frame pipeline.
 
 ## Data and limits
 
-Each row gives a limit, where the code shows it and what an asset must stay within.
+Each row gives a limit, its source in the code and what an asset must stay within.
 
 | Limit                 | Value                                              | Source                                     | Asset must stay within                                                                           |
 | --------------------- | -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
