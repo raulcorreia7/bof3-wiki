@@ -6,14 +6,14 @@ the confidence levels, the callouts and the rule that each fact lives on one pag
 
 ## Where things are
 
-| Need                                  | Read                                                         |
-| ------------------------------------- | ------------------------------------------------------------ |
-| Which file holds what                 | [Repository layout](CONTRIBUTING.md#repository-layout)       |
-| Which page owns a fact                | [Where a fact lives](CONTRIBUTING.md#where-a-fact-lives)     |
-| The sections every page has           | [Page template](CONTRIBUTING.md#page-template)               |
-| How to add or change a fact           | [Add or change a fact](CONTRIBUTING.md#add-or-change-a-fact) |
-| Links, confidence, callouts, diagrams | [Links](CONTRIBUTING.md#links) and the sections after it     |
-| The checks to run                     | [Build and check](CONTRIBUTING.md#build-and-check)           |
+| Need                                  | Read                                                                                    |
+| ------------------------------------- | --------------------------------------------------------------------------------------- |
+| Which file holds what                 | [Repository layout](CONTRIBUTING.md#repository-layout)                                  |
+| Which page owns a fact                | [Where a fact lives](CONTRIBUTING.md#where-a-fact-lives)                                |
+| The sections every page has           | [Page template](CONTRIBUTING.md#page-template)                                          |
+| How to add or change a fact           | [Add or change a fact](CONTRIBUTING.md#add-or-change-a-fact)                            |
+| Links, confidence, callouts, diagrams | [Links](CONTRIBUTING.md#links) and the sections after it                                |
+| Install, build, preview, check        | [README](README.md#requirements) and [Build and check](CONTRIBUTING.md#build-and-check) |
 
 ## Rules
 
