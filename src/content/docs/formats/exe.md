@@ -15,7 +15,7 @@ Two PS-X executables, `SLUS_004.22` and `LOGO/LOGO.EXE`, and the boot file `SYST
 | `LOGO/CAPCOM30.STR` |           2,365,440 | 186,252 | MDEC video and XA, see [STR](../str/)  | `LOGO.EXE`, by a fixed sector number    |
 | license sectors     | 28,032 (12 x 2,336) |    0-11 | license text and logo, outside ISO9660 | the BIOS only                           |
 
-The disc also has one CDDA track (track 2, 37,044,044 bytes). Every sample in it is zero. No function that was read issues `CdlPlay`, so nothing in the code read so far plays it. Code that was not read is outside that search, so "nothing plays it" is `[inferred]`.
+The disc also has one CDDA track (track 2, 37,044,044 bytes). Every sample in it is zero. No function that was read issues `CdlPlay`; that no code plays the track is `[inferred]`.
 
 ## PS-X EXE header
 

@@ -3,7 +3,7 @@ title: "Character bank"
 description: "A character sprite bank is one container that the game loads to 0x8003B800."
 ---
 
-A character sprite bank is one container that the game loads to `0x8003B800`. It holds three sections, and each section is a table of nodes that carry the pixel data and palettes. Battle archives (`BPLCHAR`), field archives (`PLCHAR`) and `ETC/START.EMI` carry banks, raw (entry type 0) or [LZ77](../lz77/)-compressed (type 1). The loader path and the palette layer are understood. No shipped code reads the node contents that were found, so what a node's bytes mean is open beyond what the data and the loader prove.
+A character sprite bank is one container that the game loads to `0x8003B800`. It holds three sections, and each section is a table of nodes that carry the pixel data and palettes. Battle archives (`BPLCHAR`), field archives (`PLCHAR`) and `ETC/START.EMI` carry banks, raw (entry type 0) or [LZ77](../lz77/)-compressed (type 1). The loader path and the palette layer are specified. The meaning of the node contents is not established, because no code that was read consumes them.
 
 ## Load arguments
 
@@ -37,7 +37,7 @@ A container is a three-word header followed by three sections.
 | `0x00` |   12 | `u32[3]` | `section_offset` | offsets of sections 0 to 2; `section_offset[0]` is always `0x0C` |
 | `0x0C` |    - | -        | `sections`       | section 0, then section 1, then section 2                        |
 
-Section *n* runs to the start of section *n+1*, and section 2 runs to the end of the body. This holds for all 65 decoded type-1 payloads and `BPLU349`, a raw container: `header[0] == 0x0C` in 66 of 66, and the three offsets tile the body exactly. `BPLU349` shows the header without the decoder. Its 331,788-byte payload is the offsets `0x0C`, `0x1B00C` and `0x3600C`, then 3 x 110,592 bytes.
+Section *n* runs to the start of section *n+1*, and section 2 runs to the end of the body. This holds for all 65 decoded type-1 payloads and `BPLU349`, a raw container: `header[0] == 0x0C` in 66 of 66, and the three offsets tile the body exactly. `BPLU349`, a raw container, has a 331,788-byte payload: the offsets `0x0C`, `0x1B00C` and `0x3600C`, then 3 x 110,592 bytes.
 
 Section sizes depend on the family. The packed-only banks (`PLCHAR` 19, `ETC/START` 1) use per-character sizes (75,724, 73,708, 120,724, 59,252, 82,728 and so on). `BPLCHAR` banks use slot sizes of 110,592 (`0x1B000`) or 147,456 (`0x24000`) bytes in 136 of their 138 sections, and two `DRG*` sections are smaller (11,796 and 17,400). The fixed slot size lets a `BPLCHAR` archive ship one section at a fixed address.
 
@@ -85,7 +85,7 @@ The loader copies a type-0 entry to the load argument and queues a type-1 entry 
 
 ## Readers
 
-A field-side reader exists. `func_801C1254` reads the container's section offsets (the word at `0x8003B800 + idx * 4`, plus `0x8003B800`) and stores the section in work `+0x4C`. The section number is the character's position in its party combination: `func_801C1254` searches the three character ids of the loaded row of `D_80181B34` for the actor's character and uses the position as the section index ([party combinations](../../concepts/loading/#characters-and-the-party)). `GFX_LoadPalette` reads `section+4` (the palette table), then `table[field]`, and copies 32 colors.
+The field-side reader `func_801C1254` reads the container's section offsets (the word at `0x8003B800 + idx * 4`, plus `0x8003B800`) and stores the section in work `+0x4C`. The section number is the character's position in its party combination: `func_801C1254` searches the three character ids of the loaded row of `D_80181B34` for the actor's character and uses the position as the section index ([party combinations](../../concepts/loading/#characters-and-the-party)). `GFX_LoadPalette` reads `section+4` (the palette table), then `table[field]`, and copies 32 colors.
 
 ## Open questions
 

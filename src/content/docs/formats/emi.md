@@ -87,7 +87,7 @@ The type is a loader command. Types 4 and 5 never appear in a TOC (0 of 6,344 ro
 |  `9` | sequence copy                                                    |       0 |             - |                                                      |
 | `10` | sequence copy (SEP package)                                      |     119 |     1,836,303 | every package starts `pQES`                          |
 
-The `Note` classes for type 0 are byte estimates, not proof. A type-0 entry is code only when its archive, slot, bytes, load address and reviewed disassembly agree. The 527 code-bearing entries resolve to 405 distinct images.
+The `Note` classes for type 0 are estimates. A type-0 entry counts as code only when its archive, slot, bytes, load address and disassembly agree. The 527 code-bearing entries resolve to 405 distinct images.
 
 ### Load argument
 
@@ -116,7 +116,7 @@ A BOSS archive loads banks 0, 1, 2 and 6 together. [Audio](../audio/) explains w
 
 The game names an archive by its slot id, the archive's index in the disc file list. `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` takes the slot id and reads the start sector from `g_EmiSlotLbas[slot_id]`. For example, `0x261` is `FIRST.EMI` and `0x262` is `GAME.EMI`. The list is in ascending sector order, so each directory is one contiguous run of slots. [Disc and files](../disc/#directories) gives the slot range of each directory, and the [executable page](../exe/#the-disc-file-table) describes the table.
 
-Do not confuse the slot id with the entry slot, which is the TOC index inside one archive. The table names the caller that picks the slot for each directory.
+The slot id is not the entry slot, which is the TOC index inside one archive. The table names the caller that picks the slot for each directory.
 
 | Directory    | Caller that picks the slot                                                                                                                                                                                                                                                                                           |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -180,7 +180,7 @@ flowchart LR
 
 ## Archive shapes
 
-Archives of one family share a shape: the same entry types in the same slots. The shape tells you what a slot holds without reading it. Slot numbers in this section are TOC indexes. The table counts the entries of each type over the 880 archives of the family.
+Archives of one family share a shape: the same entry types in the same slots. The shape fixes what each slot holds. Slot numbers in this section are TOC indexes. The table counts the entries of each type over the 880 archives of the family.
 
 | Family                              | Archives | Shape                                                                                     | Entries by type                 |
 | ----------------------------------- | -------: | ----------------------------------------------------------------------------------------- | ------------------------------- |
@@ -269,7 +269,7 @@ Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT
 | BOSS slot ids `0x1B3`-`0x1DA`: no caller found; the one boss-overlay site read requests slot 4 (`BATL_RET`)                                                                    | a runtime trace of a boss battle load               |
 | BMAGIC loading is table-driven (`BattleSelection` at `0x800B65F8`); no caller maps a spell id to a table row                                                                   | the code that fills `BattleSelection.id`            |
 | BPLCHAR section readers for `0x8005680C`, `0x8007180C` and `0x8007A80C`: not found                                                                                             | a reader of those addresses in a battle overlay     |
-| BPLCHAR filler (16 KiB zero entry at `0x8003B800`, 44 archives): purpose                                                                                                       | a reader, or proof that nothing reads it            |
+| BPLCHAR filler (16 KiB zero entry at `0x8003B800`, 44 archives): purpose                                                                                                       | a reader of the entry            |
 | BGM cue tables in BGM004, BGM108 and BGM117 (4-20 B): consumer                                                                                                                 | the sound-request code that indexes bank cue tables |
 | Type-8 cue byte 2, low nibble                                                                                                                                                  | a consumer of the cue byte                          |
 | Type-0 slots with no named reader: BATTLE script bank at `0x800F0800` beyond `Actor_BeginScript`; BMAGIC data blocks at `0x80036C00` and `0x800C3800`; modules at `0x80117000` | readers of those addresses                          |
