@@ -20,7 +20,7 @@ A range is placed once, at the level of its weakest part:
 | Code              | 16,263,138  |
 | Total             | 385,249,350 |
 
-The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/#directories)). The Form 1 and audio sector counts come from the subheader of every sector of the `.STR` files (byte 2 is the submode). The texture split counts the textures that have a proven palette row.
+The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/#directories)). The Form 1 and audio sector counts come from the subheader of every sector of the `.STR` files (byte 2 is the submode). The texture split counts the textures that have a known palette.
 
 ## Fully documented
 
@@ -29,7 +29,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | EMI container overhead (headers, TOCs, padding; 880 archives) | 9,242,257   | [emi](../../formats/emi/)           |
 | audio-bank: VAB header and body (1,020 banks)                 | 84,062,336  | [audio](../../formats/audio/)       |
 | audio-sequence: SEP packages (119)                            | 1,836,303   | [audio](../../formats/audio/)       |
-| texture, depth and palette proven (202 textures)              | 52,510,720  | [graphics](../../formats/graphics/) |
+| texture, depth and palette known (202 textures)              | 52,510,720  | [graphics](../../formats/graphics/) |
 | palette: CLUT words (620)                                     | 1,121,696   | [graphics](../../formats/graphics/) |
 | area-message (200)                                            | 852,489     | [area](../../formats/area/)         |
 | area-encounters (200)                                         | 232,000     | [area](../../formats/area/)         |
@@ -46,7 +46,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | Range                                              | Bytes       | Page                                  |
 | -------------------------------------------------- | ----------- | ------------------------------------- |
 | audio-cues (904)                                   | 34,432      | [audio](../../formats/audio/)         |
-| texture, no proven depth or palette (391 textures) | 59,801,600  | [graphics](../../formats/graphics/)   |
+| texture, depth or palette unknown (391 textures) | 59,801,600  | [graphics](../../formats/graphics/)   |
 | character-bank (144)                               | 18,686,544  | [character](../../formats/character/) |
 | area-map (200)                                     | 10,247,719  | [area](../../formats/area/)           |
 | area-cells (191)                                   | 955,000     | [area](../../formats/area/)           |
@@ -80,7 +80,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | Range                 | Missing                                                                                                         | Details                                                                                       |
 | --------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | audio-cues            | byte 2 low nibble of the cue record: copied to voice state, role unknown (27 records differ from `0x10`/`0x11`) | ([audio](../../formats/audio/#emi-type-8-cue-records))                                        |
-| texture, 391 unproven | bit depth and palette: no draw rule joins them in a replayed scene                                              | 202 of 593 textures have a join ([graphics](../../formats/graphics/#texture-to-palette-join)) |
+| texture, 391 unknown | bit depth and palette: no replayed draw call pairs them with a palette                                              | 202 of 593 textures have a palette pairing ([graphics](../../formats/graphics/#texture-to-palette-join)) |
 | character-bank        | node pixel and script formats                                                                                   | ([character](../../formats/character/#open-questions))                                        |
 | area-map              | the `+0x1E` header field, record-list operands, byte-code names, collision meaning of cell values               | ([area](../../formats/area/#0x80104000-map-bundle))                                           |
 | area-cells            | cell value meaning (4-bit classes)                                                                              | `[unknown]`                                                                                   |
@@ -98,7 +98,7 @@ These items are not part of the totals above.
 
 | Item                                                                                                                                                                             | Size                  | State                                                                                      |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
-| Sectors before the first file (LBA 0-24): the 12 license sectors (`license_data.dat`, 28,032 bytes, read by the BIOS only), then volume descriptors, path tables and directories | 25 sectors            | the count was checked on the disc; the content split after LBA 11 is `[inferred]`          |
+| Sectors before the first file (LBA 0-24): the 12 license sectors (`license_data.dat`, 28,032 bytes, read by the BIOS only), then volume descriptors, path tables and directories | 25 sectors            | the count is read from the disc; the content split after LBA 11 is `[inferred]`          |
 | Gaps between files                                                                                                                                                               | 38 sectors in 16 gaps | -                                                                                          |
 | Sectors after the last file (LBA 188174-188323)                                                                                                                                  | 150 sectors           | LBA 188323 keeps stray parity ([sector sealing](../../formats/conversion/#sector-sealing)) |
 | CDDA track 2                                                                                                                                                                     | 37,044,044 bytes      | every sample is zero; no matched function issues `CdlPlay`                                 |

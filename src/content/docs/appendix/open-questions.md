@@ -128,7 +128,7 @@ Pages: [rendering](../../systems/rendering/#open-questions), [graphics](../../fo
 | Purpose of the (0x340, 0x100, 0xC0, 0x100) draw area                              | Trace which records set record flag `0x08`.                                                                                |
 | Page 16 mismatch between sheet upload and draw formulas                           | Read the page bytes of shipped sprite records.                                                                             |
 | Behavior of `func_8014BC70`                                                       | A full read of its assembly.                                                                                               |
-| The palette and depth of the 391 textures with no proven join                     | The callers' arguments for the battle, `SCENARIO` and `ETC` draw sites, and a scene for `ENDKANJI` and `SCENA17`.          |
+| The palette and depth of the 391 textures with no known palette pairing                     | The callers' arguments for the battle, `SCENARIO` and `ETC` draw sites, and a scene for `ENDKANJI` and `SCENA17`.          |
 
 ## Audio
 
@@ -196,6 +196,6 @@ Pages: [text guide](../../guides/text/), [game text](../../data/text/#open-quest
 
 | Question                                                                                                                  | What would settle it                           |
 | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| The 165 text banks hold 10,510 messages, and 10,494 are proven strings. The other 16 are short or start with a zero byte. | Read the 16 messages.                          |
+| The 165 text banks hold 10,510 messages, and 10,494 are strings. The other 16 are short or start with a zero byte. | Read the 16 messages.                          |
 | Which payload sits at `0x8001A000` when a `text-id` resolves ([text](../../data/text/#open-questions))                    | A trace of the resolver call.                  |
 | The effect of `{SKIP12}` and `{SKIP13}` beyond advancing one byte                                                         | Read the text drawer's handling of both codes. |
