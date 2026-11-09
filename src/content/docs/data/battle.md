@@ -45,7 +45,7 @@ For example, slot 3 is the first enemy: `0x801EB2E8 + 3 * 280 = 0x801EB630`. A p
 
 ## Player work row
 
-The mode machines step the player work row. There are three rows of 320 bytes at `0x80145E90`. The table lists the fields that a reader proves. A field has a role only when the evidence cell names the function that shows it.
+The mode machines step the player work row. There are three rows of 320 bytes at `0x80145E90`. The table lists the fields that code reads. A field has a role only when the evidence cell names the function that shows it.
 
 |  Offset | Type          | Meaning                                                                                                                                                                           | Evidence                                                                                                             |
 | ------: | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -103,7 +103,7 @@ typedef struct PartyBattler {
 
 Source: [`include/battle/records.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/battle/records.h)
 
-Other cells are read but have no proven role. `0x29`-`0x2B` are signed bytes and `0x2C` a halfword,
+Other cells are read but have no known role. `0x29`-`0x2B` are signed bytes and `0x2C` a halfword,
 read by both overlays. `0x2E` and `0x30` are halfwords that `emi/battle/battle/03` reads unsigned
 and `emi/battle/battle/15` signed, because the panels slide to negative screen positions. `0x40`,
 `0x44` and `0x4C` are words, `0x1C` a word and `0x48` a byte, read only by `emi/battle/battle/03`.
@@ -116,7 +116,7 @@ cell would settle them.
 
 There are eight rows of 280 bytes at `0x801EB630`. `func_800ABCE0 (emi/battle/battle/15@0x800ABCE0)`
 and `Battle_AddEnemy (emi/battle/battle/15@0x800AC01C)` arm a slot and clear the cells from `+0x06` to
-`+0x5F` first. The table lists the proven fields. Widths follow the accesses.
+`+0x5F` first. The table lists the confirmed fields. Widths follow the accesses.
 
 |  Offset | Type               | Meaning                                                                                                                             | Evidence                                                                |
 | ------: | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
@@ -189,7 +189,7 @@ typedef struct EnemyBattler {
 
 Source: [`include/battle/records.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/battle/records.h)
 
-Cells with no proven role (`[unknown]`): `0x06`, `0x07`, `0x0C`-`0x24`, `0x2B`, `0x2E`, `0x30`,
+Cells with no known role (`[unknown]`): `0x06`, `0x07`, `0x0C`-`0x24`, `0x2B`, `0x2E`, `0x30`,
 `0x32`, `0x48`, `0x5C`-`0x5F`, `0x7D`, `0x7E`, `0x7F`, `0xA6`, `0xAA`, `0xE1`-`0xE3`, `0xF0`, `0xF5`,
 `0xFA`, `0xFD`, `0x112`, `0x114` and `0x115`. `emi/battle/battle/03` reads `0x7E` as a byte, and
 `emi/battle/battle/15` reads `0xA6` and `0xAA` as halfwords.
@@ -705,7 +705,7 @@ the byte tables, each indexed directly by the record id. These are the ability c
 
 ## Sources and confidence
 
-- **Confidence:** medium. The row addresses, sizes and the dispatch tables are established, but many cells have no proven role and several fields have no reader.
+- **Confidence:** medium. The row addresses, sizes and the dispatch tables are established, but many cells have no known role and several fields have no reader.
 - **Evidence:** the functions of the two battle overlays and of `emi/etc/game/00` named in the evidence cells. Community cheat lists confirm addresses only ([sources](../../appendix/sources/)).
 
 ## Related
