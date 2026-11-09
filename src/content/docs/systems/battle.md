@@ -66,27 +66,27 @@ The known caller is `func_801FA7D8` in `emi/scenario/scena00/00`; other scenario
 
 The entry and exit substates test these bits of `g_BattleOptions` (masks `0x01`, `0x02`, `0x10` and `0x40`):
 
-| Bits | Meaning                                          |
-| ---: | ------------------------------------------------ |
-|    0 | Skip the camera pitch change.                    |
-|    1 | Skip the scroll restore at exit.                 |
-|    4 | Skip the `BPLU` or `BPLD` character bank stream. |
-|    6 | Keep the field BGM.                              |
+| Bits | Meaning                                             |
+| ---: | --------------------------------------------------- |
+|    0 | Skip the camera pitch change.                       |
+|    1 | Skip the scroll restore at exit.                    |
+|    4 | Skip the `BPLU` or `BPLD` character sprites stream. |
+|    6 | Keep the field BGM.                                 |
 
 ## Entry state 5
 
 `Game_UpdateField` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_UpdateBattle (emi/etc/game/00@0x80197A24)` then calls `g_GameModeHandlers[g_GameEntrySubstate]` once per frame. The eight substates wrap the battle on the field side:
 
-| Substate | Function (`emi/etc/game/00`)                      | Work                                                                                                                               |
-| -------: | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-|        0 | `func_80197A60`                                   | `func_801BEDD0`, field redraw, advance.                                                                                            |
-|        1 | `Battle_LoadPartySprites`                         | Wait for the field to be ready, change the camera pitch, stream `BPLU` (scroll direction bit 1) or `BPLD` character bank, advance. |
-|        2 | `func_80197C1C`                                   | Wait for the loader and the camera.                                                                                                |
-|        3 | `Battle_LoadBattleArchive`                        | Pause BGM, save the sequence table, stream the battle archive, reset the battle bytes.                                             |
-|        4 | `func_80197E54`                                   | Wait for the archive and set `g_BattlePartyCount = Party_CountOrder(1)`.                                                           |
-|        5 | `Battle_Update (emi/battle/battle/03@0x801D1014)` | The battle itself, every frame.                                                                                                    |
-|        6 | `func_80197EFC`                                   | Field-side redraw, advance.                                                                                                        |
-|        7 | `func_80197F48`                                   | Restore BGM and scroll, clear `g_BattleOptions` and `g_BattleEncounter`, return to state 2.                                        |
+| Substate | Function (`emi/etc/game/00`)                      | Work                                                                                                                                  |
+| -------: | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+|        0 | `func_80197A60`                                   | `func_801BEDD0`, field redraw, advance.                                                                                               |
+|        1 | `Battle_LoadPartySprites`                         | Wait for the field to be ready, change the camera pitch, stream `BPLU` (scroll direction bit 1) or `BPLD` character sprites, advance. |
+|        2 | `func_80197C1C`                                   | Wait for the loader and the camera.                                                                                                   |
+|        3 | `Battle_LoadBattleArchive`                        | Pause BGM, save the sequence table, stream the battle archive, reset the battle bytes.                                                |
+|        4 | `func_80197E54`                                   | Wait for the archive and set `g_BattlePartyCount = Party_CountOrder(1)`.                                                              |
+|        5 | `Battle_Update (emi/battle/battle/03@0x801D1014)` | The battle itself, every frame.                                                                                                       |
+|        6 | `func_80197EFC`                                   | Field-side redraw, advance.                                                                                                           |
+|        7 | `func_80197F48`                                   | Restore BGM and scroll, clear `g_BattleOptions` and `g_BattleEncounter`, return to state 2.                                           |
 
 `Battle_LoadBattleArchive` picks the archive to stream. For a scripted battle it is `g_BossArchiveSlots[s_BattleModeRecords[g_BattleEncounter * 4 + 3]]`. For a random battle it is slot 6 (`BATTLE`) when `g_SceneState.scenario_id < 8` and slot 7 (`BATTLE2`) otherwise. `g_BossArchiveSlots` has 42 `u16` entries: slot 6, then the `BOSS` slots `0x1B3` to `0x1DA` in a game-specific order, then `0xFFFF`.
 
@@ -140,7 +140,7 @@ The mode names in the diagram are `[inferred]` from the step shapes and from `fu
 
 ### Mode 0: reset and entrance
 
-Step 0, `func_801D1228`, clears the battle state block, counts living party slots, copies the party stat blocks, and uploads palettes `0x1A` and `0x1B`. For a random battle it streams slot `0x9 + g_GameAreaId` (the area's enemy bank). For a scripted battle it calls `g_BossBattleEventHook(6)` instead. It then increments `g_BattleStep`.
+Step 0, `func_801D1228`, clears the battle state block, counts living party slots, copies the party stat blocks, and uploads palettes `0x1A` and `0x1B`. For a random battle it streams slot `0x9 + g_GameAreaId` (the area's enemy archive). For a scripted battle it calls `g_BossBattleEventHook(6)` instead. It then increments `g_BattleStep`.
 
 Step 1, `Battle_DispatchEntrance (emi/battle/battle/03@0x801D17C4)`, runs four sub-steps from `g_BattleEntrances` (`0x801D0C1C`):
 
@@ -209,12 +209,12 @@ Installer addresses in the boss window, by module. A module that has more than o
 
 | Archive (slot)                           | Loaded by                                            | Window                                      |
 | ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------- |
-| `BPLU` `0x1EE` or `BPLD` `0x1DB` family  | entry substate 1 (`EMI_GetArchiveId`)                | character bank                              |
+| `BPLU` `0x1EE` or `BPLD` `0x1DB` family  | entry substate 1 (`EMI_GetArchiveId`)                | character sprites                           |
 | `BATTLE` 6, `BATTLE2` 7, `BOSS` `0x1B3+` | entry substate 3 (`Battle_LoadBattleArchive`)        | battle overlay; boss module at `0x800C1800` |
-| `ENEMY` `0x9 + area`                     | `func_801D1228` (random battle)                      | enemy bank                                  |
+| `ENEMY` `0x9 + area`                     | `func_801D1228` (random battle)                      | enemy archive                               |
 | `BATL_SE` 5                              | `func_801D277C`, `func_801D25A0`, `func_8009B488`    | sound bank                                  |
-| `BATL_RET` 4, `BATL_RE2` 3               | `func_801D3E80`; several sites in `battle/battle/15` | effect banks                                |
-| `BATL_DRA` 0                             | `func_800A4700` (`battle/battle/15`)                 | effect bank                                 |
+| `BATL_RET` 4, `BATL_RE2` 3               | `func_801D3E80`; several sites in `battle/battle/15` | effect archives                             |
+| `BATL_DRA` 0                             | `func_800A4700` (`battle/battle/15`)                 | effect archive                              |
 | `COMN_SE` 8                              | `func_801D656C`                                      | sound bank                                  |
 | `BATL_END` 1 or `BATL_OVR` 2             | `Battle_LoadEndOverlay`                              | `0x801EEC00`                                |
 | `AREA` `0x2AB + area`, `AFLDKWA` `0x256` | mode 5 steps 3 and 4                                 | area image, field sound                     |

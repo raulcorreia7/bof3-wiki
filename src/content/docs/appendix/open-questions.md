@@ -172,14 +172,14 @@ Pages: [saving](../../systems/saving/#open-questions), [state](../../systems/sta
 
 ## Data formats
 
-Pages: [EMI](../../formats/emi/#open-questions), [LZ77](../../formats/lz77/#open-questions), [character banks](../../formats/character/#open-questions), [area data](../../formats/area/#open-questions).
+Pages: [EMI](../../formats/emi/#open-questions), [LZ77](../../formats/lz77/#open-questions), [character sprites](../../formats/character/#open-questions), [area data](../../formats/area/#open-questions).
 
 | Question                                                                                                                                                   | What would settle it                                                                           |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Readers of the `BPLCHAR` section addresses `0x8005680C`, `0x8007180C` and `0x8007A80C`                                                                     | A battle overlay that reads them. A search must fold `ori` pairs as well as `addiu`.           |
 | Whether the BPLCHAR section addresses are section positions or party-slot buffers                                                                          | The code that selects a slot for a character.                                                  |
 | Purpose of the 44 `BPLCHAR` fillers (16 KiB of zeros at `0x8003B800`)                                                                                      | A reader, or proof that nothing reads it.                                                      |
-| The node pixel and script formats of a character bank, and who uploads the pixels                                                                          | A reader of node fields in battle or field code, and a trace of the node bytes to a primitive. |
+| The node pixel and script formats of a character-sprites container, and who uploads the pixels                                                             | A reader of node fields in battle or field code, and a trace of the node bytes to a primitive. |
 | Type-0 slots with no named reader: BATTLE script table beyond `Actor_BeginScript`, BMAGIC blocks at `0x80036C00` and `0x800C3800`, modules at `0x80117000` | Readers of those addresses.                                                                    |
 | The reader of the 16-entry offset table in the LZ77 payload                                                                                                | A reader of the table in the loader or an overlay.                                             |
 | Whether any code reads byte 0 of an area script record, the frame count                                                                                    | A reader of that byte.                                                                         |

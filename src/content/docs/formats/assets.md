@@ -13,7 +13,7 @@ Every EMI entry on the disc belongs to one kind: a name this wiki gives to a cla
 | `code`                                       | types 0, 1, 2, program windows     | [EMI](../emi/#archive-shapes), [area](../area/#0x801f2c00-area-program-code-arena) |
 | `texture`                                    | type 3                             | [graphics](../graphics/#chunk-layout)                                              |
 | `palette`                                    | type 0, palette arena              | [graphics](../graphics/#palettes)                                                  |
-| `character-bank`                             | type 0, `0x8003B800` and siblings  | [character](../character/)                                                         |
+| `character-sprites`                          | type 0, `0x8003B800` and siblings  | [character](../character/)                                                         |
 | `audio-bank`, `audio-sequence`, `audio-cues` | types 6 and 7, 10, 8               | [audio](../audio/)                                                                 |
 | XA and STR streams                           | `.STR` files                       | [STR and XA](../str/)                                                              |
 | `area-map`                                   | type 0, `0x80104000`               | [area](../area/#0x80104000-map-bundle)                                             |
@@ -31,7 +31,7 @@ Every EMI entry on the disc belongs to one kind: a name this wiki gives to a cla
 | executables                                  | `SLUS_004.22`, `LOGO.EXE`          | [executable](../exe/)                                                              |
 | conversion to PNG, glTF, SoundFont, MIDI     |                                    | [conversion](../conversion/)                                                       |
 
-The `reserve` kind is zero fill with no consumer: 44 character-bank fillers of 16,384 zero bytes and 9 all-zero cell slots ([coverage](../../appendix/coverage/#what-keeps-a-range-from-the-next-level)).
+The `reserve` kind is zero fill with no consumer: 44 character-sprites fillers of 16,384 zero bytes and 9 all-zero cell slots ([coverage](../../appendix/coverage/#what-keeps-a-range-from-the-next-level)).
 
 ## Message tables
 

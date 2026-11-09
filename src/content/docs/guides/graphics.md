@@ -1,9 +1,9 @@
 ---
 title: "Edit graphics and textures"
-description: "The game keeps pictures in three forms: textures that the loader uploads to VRAM, palettes that sit in a palette arena, and character banks that hold sprites with their own palettes."
+description: "The game keeps pictures in three forms: textures that the loader uploads to VRAM, palettes that sit in a palette arena, and character sprites that hold sprites with their own palettes."
 ---
 
-The game keeps pictures in three forms: textures that the loader uploads to VRAM, palettes that sit in a palette arena, and character banks that hold sprites with their own palettes. This guide shows how to change each one. The formats are in [graphics formats](../../formats/graphics/) and [character bank](../../formats/character/).
+The game keeps pictures in three forms: textures that the loader uploads to VRAM, palettes that sit in a palette arena, and character sprites that hold sprites with their own palettes. This guide shows how to change each one. The formats are in [graphics formats](../../formats/graphics/) and [character sprites](../../formats/character/).
 
 ## Textures
 
@@ -36,15 +36,15 @@ The game keeps pictures in three forms: textures that the loader uploads to VRAM
 
 ## Character sprites
 
-**Where.** Character banks sit in `PLCHAR` (19 LZ77 containers), `BPLCHAR` (45 LZ77 containers, 1 raw container and 75 standalone sections) and `BMAGIC` (3 blocks), 144 blobs in all. Each bank loads at `0x8003B800` ([load arguments](../../formats/character/#load-arguments)).
+**Where.** Character sprites sit in `PLCHAR` (19 LZ77 containers), `BPLCHAR` (45 LZ77 containers, 1 raw container and 75 standalone sections) and `BMAGIC` (3 blocks), 144 entries in all. Each container loads at `0x8003B800` ([load arguments](../../formats/character/#load-arguments)).
 
-**What to change.** Edit the palette tables only. A bank has one palette layer per section, and each palette is 32 color words ([palette layer](../../formats/character/#palette-layer)). Decode the bank, change the palette, and write the table back over the decoded bank. Every other byte stays the same.
+**What to change.** Edit the palette tables only. A container has one palette layer per section, and each palette is 32 color words ([palette layer](../../formats/character/#palette-layer)). Decode the container, change the palette, and write the table back over the decoded container. Every other byte stays the same.
 
 **Limits.**
 
-- The 3 `BMAGIC` blocks have no palette layer, so 141 of the 144 blobs have palettes.
+- The 3 `BMAGIC` blocks have no palette layer, so 141 of the 144 entries have palettes.
 - The pixel format and the animation script inside a node are `[unknown]`. Treat them as read-only.
-- A changed bank must compress again to fit its window and the sectors of its archive.
+- A changed container must compress again to fit its window and the sectors of its archive.
 - Monster sprites are not located: the `BENEMY` archives hold audio only, so an enemy keeps its look.
 
 ## Check in the game
@@ -54,7 +54,7 @@ Go to the screen or area that draws the picture: the field for a character palet
 ## Related
 
 - [Graphics formats](../../formats/graphics/): the type-3 upload, palettes and the texture-to-palette join.
-- [Character bank](../../formats/character/): the container, sections and palette layer.
+- [Character sprites](../../formats/character/): the container, sections and palette layer.
 - [Game text](../../data/text/): the glyph atlas that the font sheet holds.
 - [Area formats](../../formats/area/): the palette arena and the map bundle that uses it.
 - [Edit text and dialogue](../text/): the text that new glyphs serve.

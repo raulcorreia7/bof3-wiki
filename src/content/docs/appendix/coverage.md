@@ -47,7 +47,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | ------------------------------------------------- | ----------- | ------------------------------------- |
 | audio-cues (904)                                  | 34,432      | [audio](../../formats/audio/)         |
 | texture, depth or palette unknown (391 textures)  | 59,801,600  | [graphics](../../formats/graphics/)   |
-| character-bank (144)                              | 18,686,544  | [character](../../formats/character/) |
+| character-sprites (144)                           | 18,686,544  | [character](../../formats/character/) |
 | area-map (200)                                    | 10,247,719  | [area](../../formats/area/)           |
 | area-cells (191)                                  | 955,000     | [area](../../formats/area/)           |
 | area-script (200)                                 | 3,820,164   | [area](../../formats/area/)           |
@@ -81,7 +81,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | -------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | audio-cues           | byte 2 low nibble of the cue record: copied to voice state, role unknown (27 records differ from `0x10`/`0x11`) | ([audio](../../formats/audio/#emi-type-8-cue-records))                                                   |
 | texture, 391 unknown | bit depth and palette: no replayed draw call pairs them with a palette                                          | 202 of 593 textures have a palette pairing ([graphics](../../formats/graphics/#texture-to-palette-join)) |
-| character-bank       | node pixel and script formats                                                                                   | ([character](../../formats/character/#open-questions))                                                   |
+| character-sprites    | node pixel and script formats                                                                                   | ([character](../../formats/character/#open-questions))                                                   |
 | area-map             | the `+0x1E` header field, record-list operands, byte-code names, collision meaning of cell values               | ([area](../../formats/area/#0x80104000-map-bundle))                                                      |
 | area-cells           | cell value meaning (4-bit classes)                                                                              | `[unknown]`                                                                                              |
 | area-script          | record byte 0, bits 4 to 6 of the part `size` byte                                                              | `[unknown]` ([area](../../formats/area/#0x800d3800-area-script-table))                                   |
