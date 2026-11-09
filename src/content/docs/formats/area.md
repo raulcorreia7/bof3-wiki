@@ -12,10 +12,10 @@ An area is a town, dungeon, world map or battlefield. The table lists the blocks
 | `0x80010000` |   145-21,547 | area message table (text)            |
 | `0x80032000` |        5,000 | packed 4-bit cell grid               |
 | `0x80033800` |          512 | palette arena offset 0               |
-| `0x80033A00` |          512 | CLUT bank, arena `+0x200`            |
-| `0x80033C00` |          512 | CLUT bank, arena `+0x400`            |
-| `0x80033E00` |    512-6,144 | CLUT bank, arena `+0x600`            |
-| `0x80035800` |  1,024-3,584 | CLUT bank, arena `+0x2000`           |
+| `0x80033A00` |          512 | CLUT block, arena `+0x200`           |
+| `0x80033C00` |          512 | CLUT block, arena `+0x400`           |
+| `0x80033E00` |    512-6,144 | CLUT block, arena `+0x600`           |
+| `0x80035800` |  1,024-3,584 | CLUT block, arena `+0x2000`          |
 | `0x800D3800` | 1,236-65,236 | area script table                    |
 | `0x800E3800` |       36-412 | scene/step table                     |
 | `0x800E4000` |        1,160 | encounters plus enemy records        |
@@ -342,12 +342,12 @@ The area's CLUT entries do not own their addresses. They fill slices of one 16 K
 
 `GFX_CopyPalette (exe/slus_004_22@0x8014E3A0)` copies one arena row into the same working row. `battle/battle/03`, `battle/battle/15`, `battle/batl_ovr/00`, `bmagic/magic057/03`, `etc/game/00` and `scenario/scena17/00` call it. Battle code moves single rows this way:
 
-- `battle/battle/03` `@0x801D1228` copies rows 26 and 27, so the `+0x3600` battle bank (`BATTLE/BATL_RE2.EMI#1`) reaches VRAM row 507.
+- `battle/battle/03` `@0x801D1228` copies rows 26 and 27, so the `+0x3600` battle CLUT block (`BATTLE/BATL_RE2.EMI#1`) reaches VRAM row 507.
 - `battle/battle/15` `@0x800AFC54` copies arena row 2 (`0x80033C00`) into working row 2, and `@0x800AFB48` copies CLUT runs inside the working copy into row 2.
 
 Readers take the arena base and index it in 64-byte units. `0x80035800` has no literal reader.
 
-The `+0x200` bank (`ETC/BATE.EMI#3` and its copies) is also read on the CPU. `battle/battle/03` (`@0x801D8AE4`, `@0x801D8DF8`, `@0x801D9AB4` and `@0x801D9C80`) and `etc/game/00` (`@0x801AEBA0`) take word 4 of the 16-color CLUT `D_80144952 * 2 + shade`, at `0x80033A08 + ((D_80144952 * 2 + shade) << 5)`, as the RGB of a flat panel primitive.
+The `+0x200` CLUT block (`ETC/BATE.EMI#3` and its copies) is also read on the CPU. `battle/battle/03` (`@0x801D8AE4`, `@0x801D8DF8`, `@0x801D9AB4` and `@0x801D9C80`) and `etc/game/00` (`@0x801AEBA0`) take word 4 of the 16-color CLUT `D_80144952 * 2 + shade`, at `0x80033A08 + ((D_80144952 * 2 + shade) << 5)`, as the RGB of a flat panel primitive.
 
 ## `0x80104000`: map bundle
 

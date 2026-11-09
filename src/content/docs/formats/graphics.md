@@ -47,14 +47,14 @@ STP     blue   green red
 
 STP is the semi-transparency bit. A texel of `0x0000` is never drawn. With any other value, STP set marks the texel as semi-transparent when the primitive's blend mode is on. A desktop viewer expands each 5-bit channel to 8 bits.
 
-A 4bpp texture uses a row of 16 colors and an 8bpp texture a row of 256. A CLUT bank is a whole number of 4bpp rows, so its payload is a multiple of 32 bytes. A bank whose word count is also a multiple of 256 is a whole number of 8bpp rows.
+A 4bpp texture uses a row of 16 colors and an 8bpp texture a row of 256. A CLUT block is a whole number of 4bpp rows, so its payload is a multiple of 32 bytes. A block whose word count is also a multiple of 256 is a whole number of 8bpp rows.
 
 | Mode | Colors | Row size |
 | ---- | -----: | -------: |
 | 4bpp |     16 |       32 |
 | 8bpp |    256 |      512 |
 
-Nothing in a bank names its depth, geometry or owner. Palette banks are type-0 entries that load into `0x80033800` to `0x80036E00` and the engine uploads them to VRAM rows 480 to 511 ([palette arena](../area/#palette-arena)). The disc holds 620 such entries: 32 to 6,144 bytes each, 1,121,696 bytes in all, and every size is a multiple of 32. 577 carry 64 bytes or more, and 43 are a single 16-color row. The arena of one area is a single type-0 entry, and its load argument is `0x80033E00` in most areas.
+Nothing in a CLUT block names its depth, geometry or owner. CLUT blocks are type-0 entries that load into `0x80033800` to `0x80036E00` and the engine uploads them to VRAM rows 480 to 511 ([palette arena](../area/#palette-arena)). The disc holds 620 such entries: 32 to 6,144 bytes each, 1,121,696 bytes in all, and every size is a multiple of 32. 577 carry 64 bytes or more, and 43 are a single 16-color row. The arena of one area is a single type-0 entry, and its load argument is `0x80033E00` in most areas.
 
 ## VRAM coordinates
 
@@ -122,7 +122,7 @@ The cell map has one byte per cell, and `0xFF` is empty. `GFX_StepPaletteAnimati
 
 ```mermaid
 flowchart TD
-    B["type-0 CLUT bank"] -->|"EMI_LoadToRam"| A["arena 0x80033800"]
+    B["type-0 CLUT block"] -->|"EMI_LoadToRam"| A["arena 0x80033800"]
     A -->|"GFX_ResetPalette"| W["working copy 0x80037800"]
     W -->|"LoadImage rect(0,0x1E0,0x100,0x20)"| V["VRAM rows 480-511"]
     V --> P["POLY_FT4 clut/tpage"]
@@ -138,7 +138,7 @@ The arena base holds 256 units of 64 bytes (32 rows of 512). [Rendering](../../s
 | Asset                         | Route                                                                                                                                                                                                                           |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | texture page, type 3          | `EMI_LoadToVram` uploads it with `LoadImage`, one 32x32 rectangle at a time ([chunk layout](#chunk-layout))                                                                                                                     |
-| CLUT bank, type 0             | `EMI_LoadToRam (exe/slus_004_22@0x801625E4)` copies it into the palette arena at its load address; the engine uploads the arena's working copy to VRAM rows 480 to 511 ([area](../area/#palette-arena))                         |
+| CLUT block, type 0            | `EMI_LoadToRam (exe/slus_004_22@0x801625E4)` copies it into the palette arena at its load address; the engine uploads the arena's working copy to VRAM rows 480 to 511 ([area](../area/#palette-arena))                         |
 | `etc/start/09` save-icon TIMs | never uploaded: `SAVE_BuildFileHeader (emi/etc/start/09@0x801EF27C)` copies icon 0's CLUT colors and each icon's pixels into the memory card save frame at `0x800C1800`; nothing reads the TIM headers ([save](../save/#icons)) |
 
 ## Texture-to-palette join
@@ -152,7 +152,7 @@ A scene is the ordered loads that build its screen. Each starts from the frame b
 - `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` for each archive the scene streams. A type-3 entry is uploaded one 32x32 rectangle at a time by `EMI_UploadSectorImage (exe/slus_004_22@0x80163378)`, skipped when the rectangle's left edge is at column 1001 or beyond or its top edge at row 501 or beyond. A type-0 entry that lands in the palette arena changes arena RAM, not VRAM.
 - `GFX_ResetPalette (exe/slus_004_22@0x8014E284)` and `GFX_CopyPalette (exe/slus_004_22@0x8014E3A0)`, which copy arena rows to the working copy, then `GFX_UploadPalette (exe/slus_004_22@0x8014E22C)`, which writes the working copy to VRAM rows 480 to 511.
 
-Every VRAM word keeps the archive entry that wrote it, and a palette word keeps the entry that wrote its arena word. Later writes replace earlier ones, so a bank from another archive serves a row only when it is the one the scene left there. The scenes are the frontend, the title, each walked area and each world-map area, the menu overlays, the Fairy Village events, the battle archives and the spell and summon effects in battle. Palettes that actors load at run time with `GFX_LoadPalette (exe/slus_004_22@0x80166C48)` and palette fades are not replayed.
+Every VRAM word keeps the archive entry that wrote it, and a palette word keeps the entry that wrote its arena word. Later writes replace earlier ones, so a CLUT block from another archive serves a row only when it is the one the scene left there. The scenes are the frontend, the title, each walked area and each world-map area, the menu overlays, the Fairy Village events, the battle archives and the spell and summon effects in battle. Palettes that actors load at run time with `GFX_LoadPalette (exe/slus_004_22@0x80166C48)` and palette fades are not replayed.
 
 ### Join
 
@@ -231,7 +231,7 @@ These are ranked by the textures they leave unexplained.
 ## Sources and confidence
 
 - **Confidence:** medium. The upload, the color words and the replayed joins are read and checked on every payload, but 391 of 593 textures have no established depth or palette.
-- **Evidence:** all 593 type-3 payloads and 620 palette banks, the loader and drawing functions named above (including `GFX_CopyPaletteAnimationColors`, which copies colors inside the working copy), the archive load order of each scene, and every CLUT and TPage write in the game code. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) (texture and palette notes) only confirms. The runtime primitives are PsyQ 3.7 ([sources](../../appendix/sources/)).
+- **Evidence:** all 593 type-3 payloads and 620 CLUT blocks, the loader and drawing functions named above (including `GFX_CopyPaletteAnimationColors`, which copies colors inside the working copy), the archive load order of each scene, and every CLUT and TPage write in the game code. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) (texture and palette notes) only confirms. The runtime primitives are PsyQ 3.7 ([sources](../../appendix/sources/)).
 
 ## Related
 

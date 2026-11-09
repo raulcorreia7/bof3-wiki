@@ -232,7 +232,7 @@ Where the code entry sits depends on the family:
 | WORLD    | `0x801F2C00`                                   | varies by shape ([below](#world-shapes))                                                                                                                                                                                    |
 | PLCHAR   | `0x801CE400`                                   | 0 (`PLPxxx`)                                                                                                                                                                                                                |
 | SCENARIO | `0x801F6C00` (SCENA), `0x801D0C00` (SCE*)      | 0 only (the controller)                                                                                                                                                                                                     |
-| BMAGIC   | `0x801EEC00`                                   | 3 (128 archives with a VAB triple), 0 (13 archives without); the other slots are type-3 uploads, CLUT banks (`0x80033800..0x80036E00`) and data blocks (`0x800C3800`, `0x80036C00`)                                         |
+| BMAGIC   | `0x801EEC00`                                   | 3 (128 archives with a VAB triple), 0 (13 archives without); the other slots are type-3 uploads, CLUT blocks (`0x80033800..0x80036E00`) and data blocks (`0x800C3800`, `0x80036C00`)                                        |
 | BOSS     | `0x800C1800`                                   | 17-entry shape (BOSS001, 004, 022, 025, 031): slots 0, 12, 13; 20-entry shape (35 archives): slots 3, 15, 16. The three programs are the boss module and the two copied battle programs                                     |
 | BATTLE   | none (per archive)                             | `BATTLE` and `BATTLE2`: programs at slots 3 and 15 (16 entries, byte-identical across the two); `BATL_END` and `BATL_OVR`: module at slot 0; `BATL_RE2`: CLUT bundle; `BATL_DRA`, `BATL_RET`, `BATL_SE`, `COMN_SE`: no code |
 | ETC      | `0x801D0C00` (menus), `0x80195800` (`game/00`) | slot 0 for `bate`, `game/00`, `shisu`, `shop`, `sisyou`; 6 for `commu03` and `commu04`; 7 for `commu01`, `commu05` and `commu02b`; 8 for `commu02` and `start/08`; 9 for `start/09`                                         |
@@ -255,7 +255,7 @@ The area program is code in 181 archives. The other 19 payloads at `0x801F2C00` 
 
 ### Data-only code-window payloads
 
-Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT banks with one segment ending at `0x200`, one CLUT and neither a `jr $ra` nor an `addiu sp,sp` prologue.
+Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT blocks with one segment ending at `0x200`, one CLUT and neither a `jr $ra` nor an `addiu sp,sp` prologue.
 
 | Target                   |         Load | Payload                                                                               |
 | ------------------------ | -----------: | ------------------------------------------------------------------------------------- |
@@ -283,6 +283,6 @@ Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT
 
 - [Disc and files](../disc/): which archive is in which directory and slot.
 - [Type-1 LZ77 payload](../lz77/): the compressed form of type 1.
-- [Graphics formats](../graphics/): the type-3 VRAM upload and the type-0 palette banks.
+- [Graphics formats](../graphics/): the type-3 VRAM upload and the type-0 CLUT blocks.
 - [Audio formats](../audio/): the VAB, cue and SEP payloads of types 6 to 10.
 - [Area formats](../area/): the blocks of a WORLD archive.

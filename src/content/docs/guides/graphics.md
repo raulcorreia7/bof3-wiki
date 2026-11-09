@@ -24,7 +24,7 @@ The game keeps pictures in three forms: textures that the loader uploads to VRAM
 
 **What to change.** A palette is a run of 16-bit color words, `STP | blue | green | red` with 5 bits per channel ([palettes](../../formats/graphics/#palettes)). Edit a word to change a color. A word of `0x0000` is never drawn, so keep it for transparent texels.
 
-**Limits.** A bank is a multiple of 32 bytes (one 16-color row), and a 256-color row is 512 bytes. Each bank has a fixed slot in the arena, so keep its size and its position.
+**Limits.** A CLUT block is a multiple of 32 bytes (one 16-color row), and a 256-color row is 512 bytes. Each block has a fixed slot in the arena, so keep its size and its position.
 
 ## The font sheet
 
