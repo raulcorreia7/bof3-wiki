@@ -29,7 +29,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | EMI container overhead (headers, TOCs, padding; 880 archives) | 9,242,257   | [emi](../../formats/emi/)           |
 | audio-bank: VAB header and body (1,020 banks)                 | 84,062,336  | [audio](../../formats/audio/)       |
 | audio-sequence: SEP packages (119)                            | 1,836,303   | [audio](../../formats/audio/)       |
-| texture, depth and palette known (202 textures)              | 52,510,720  | [graphics](../../formats/graphics/) |
+| texture, depth and palette known (202 textures)               | 52,510,720  | [graphics](../../formats/graphics/) |
 | palette: CLUT words (620)                                     | 1,121,696   | [graphics](../../formats/graphics/) |
 | area-message (200)                                            | 852,489     | [area](../../formats/area/)         |
 | area-encounters (200)                                         | 232,000     | [area](../../formats/area/)         |
@@ -43,18 +43,18 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 
 ## Partly documented
 
-| Range                                              | Bytes       | Page                                  |
-| -------------------------------------------------- | ----------- | ------------------------------------- |
-| audio-cues (904)                                   | 34,432      | [audio](../../formats/audio/)         |
-| texture, depth or palette unknown (391 textures) | 59,801,600  | [graphics](../../formats/graphics/)   |
-| character-bank (144)                               | 18,686,544  | [character](../../formats/character/) |
-| area-map (200)                                     | 10,247,719  | [area](../../formats/area/)           |
-| area-cells (191)                                   | 955,000     | [area](../../formats/area/)           |
-| area-script (200)                                  | 3,820,164   | [area](../../formats/area/)           |
-| battle-script (42)                                 | 155,064     | [area](../../formats/area/)           |
-| area-module (9)                                    | 34,368      | [area](../../formats/area/)           |
-| S_XA00.STR audio and end-of-file sectors (11,303)  | 23,148,544  | [str](../../formats/str/)             |
-| subtotal                                           | 116,883,435 |                                       |
+| Range                                             | Bytes       | Page                                  |
+| ------------------------------------------------- | ----------- | ------------------------------------- |
+| audio-cues (904)                                  | 34,432      | [audio](../../formats/audio/)         |
+| texture, depth or palette unknown (391 textures)  | 59,801,600  | [graphics](../../formats/graphics/)   |
+| character-bank (144)                              | 18,686,544  | [character](../../formats/character/) |
+| area-map (200)                                    | 10,247,719  | [area](../../formats/area/)           |
+| area-cells (191)                                  | 955,000     | [area](../../formats/area/)           |
+| area-script (200)                                 | 3,820,164   | [area](../../formats/area/)           |
+| battle-script (42)                                | 155,064     | [area](../../formats/area/)           |
+| area-module (9)                                   | 34,368      | [area](../../formats/area/)           |
+| S_XA00.STR audio and end-of-file sectors (11,303) | 23,148,544  | [str](../../formats/str/)             |
+| subtotal                                          | 116,883,435 |                                       |
 
 ## Unknown
 
@@ -77,20 +77,20 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 
 ## What keeps a range from the next level
 
-| Range                 | Missing                                                                                                         | Details                                                                                       |
-| --------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| audio-cues            | byte 2 low nibble of the cue record: copied to voice state, role unknown (27 records differ from `0x10`/`0x11`) | ([audio](../../formats/audio/#emi-type-8-cue-records))                                        |
-| texture, 391 unknown | bit depth and palette: no replayed draw call pairs them with a palette                                              | 202 of 593 textures have a palette pairing ([graphics](../../formats/graphics/#texture-to-palette-join)) |
-| character-bank        | node pixel and script formats                                                                                   | ([character](../../formats/character/#open-questions))                                        |
-| area-map              | the `+0x1E` header field, record-list operands, byte-code names, collision meaning of cell values               | ([area](../../formats/area/#0x80104000-map-bundle))                                           |
-| area-cells            | cell value meaning (4-bit classes)                                                                              | `[unknown]`                                                                                   |
-| area-script           | record byte 0, bits 4 to 6 of the part `size` byte                                                              | `[unknown]` ([area](../../formats/area/#0x800d3800-area-script-bank))                         |
-| battle-script         | opcodes beyond `Actor_BeginScript`                                                                              | `[unknown]` ([EMI](../../formats/emi/#open-questions))                                        |
-| area-module           | the consumer of eight of nine modules                                                                           | `[unknown]` ([area](../../formats/area/#0x80117000-auxiliary-module-window))                  |
-| S_XA00.STR audio      | the cue array has no bounding symbol; 340 audio sectors in channels 4-7 are not reached by the 11 scanned cues  | `[inferred]` for the cue count ([STR](../../formats/str/#xa-cue-tables))                      |
-| bmagic-table          | everything but the load address                                                                                 | `[unknown]`                                                                                   |
-| reserve               | no consumer: 44 BPLCHAR fillers of 16,384 zero bytes and 9 all-zero cell slots                                  | -                                                                                             |
-| XA Form 1 sectors     | content of 29,665 non-zero sectors (S_XA00 and MAGIC00); the hardware filter never delivers them                | ([STR](../../formats/str/#sector-classes))                                                    |
+| Range                | Missing                                                                                                         | Details                                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| audio-cues           | byte 2 low nibble of the cue record: copied to voice state, role unknown (27 records differ from `0x10`/`0x11`) | ([audio](../../formats/audio/#emi-type-8-cue-records))                                                   |
+| texture, 391 unknown | bit depth and palette: no replayed draw call pairs them with a palette                                          | 202 of 593 textures have a palette pairing ([graphics](../../formats/graphics/#texture-to-palette-join)) |
+| character-bank       | node pixel and script formats                                                                                   | ([character](../../formats/character/#open-questions))                                                   |
+| area-map             | the `+0x1E` header field, record-list operands, byte-code names, collision meaning of cell values               | ([area](../../formats/area/#0x80104000-map-bundle))                                                      |
+| area-cells           | cell value meaning (4-bit classes)                                                                              | `[unknown]`                                                                                              |
+| area-script          | record byte 0, bits 4 to 6 of the part `size` byte                                                              | `[unknown]` ([area](../../formats/area/#0x800d3800-area-script-bank))                                    |
+| battle-script        | opcodes beyond `Actor_BeginScript`                                                                              | `[unknown]` ([EMI](../../formats/emi/#open-questions))                                                   |
+| area-module          | the consumer of eight of nine modules                                                                           | `[unknown]` ([area](../../formats/area/#0x80117000-auxiliary-module-window))                             |
+| S_XA00.STR audio     | the cue array has no bounding symbol; 340 audio sectors in channels 4-7 are not reached by the 11 scanned cues  | `[inferred]` for the cue count ([STR](../../formats/str/#xa-cue-tables))                                 |
+| bmagic-table         | everything but the load address                                                                                 | `[unknown]`                                                                                              |
+| reserve              | no consumer: 44 BPLCHAR fillers of 16,384 zero bytes and 9 all-zero cell slots                                  | -                                                                                                        |
+| XA Form 1 sectors    | content of 29,665 non-zero sectors (S_XA00 and MAGIC00); the hardware filter never delivers them                | ([STR](../../formats/str/#sector-classes))                                                               |
 
 ## Outside the 887 files
 
@@ -98,7 +98,7 @@ These items are not part of the totals above.
 
 | Item                                                                                                                                                                             | Size                  | State                                                                                      |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
-| Sectors before the first file (LBA 0-24): the 12 license sectors (`license_data.dat`, 28,032 bytes, read by the BIOS only), then volume descriptors, path tables and directories | 25 sectors            | the count is read from the disc; the content split after LBA 11 is `[inferred]`          |
+| Sectors before the first file (LBA 0-24): the 12 license sectors (`license_data.dat`, 28,032 bytes, read by the BIOS only), then volume descriptors, path tables and directories | 25 sectors            | the count is read from the disc; the content split after LBA 11 is `[inferred]`            |
 | Gaps between files                                                                                                                                                               | 38 sectors in 16 gaps | -                                                                                          |
 | Sectors after the last file (LBA 188174-188323)                                                                                                                                  | 150 sectors           | LBA 188323 keeps stray parity ([sector sealing](../../formats/conversion/#sector-sealing)) |
 | CDDA track 2                                                                                                                                                                     | 37,044,044 bytes      | every sample is zero; no matched function issues `CdlPlay`                                 |
