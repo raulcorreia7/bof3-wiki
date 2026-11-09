@@ -15,7 +15,7 @@ The game keeps pictures in three forms: textures that the loader uploads to VRAM
 
 - The payload size stays a multiple of 2,048 and matches the rectangle count in the load argument. A rectangle uploads only if its whole extent lies inside the 1,024 by 512 word VRAM.
 - Several sheets can cover the same VRAM words, for example slots 5 and 7 of `AREA024`. Which one is resident depends on the stream order.
-- Depth and palette are known for 202 of the 593 textures ([texture-to-palette join](../../formats/graphics/#texture-to-palette-join)). The other 391 are `[unknown]`: a draw rule that names the texture's page and palette, replayed in the scene that loads it, is the only evidence, and no rule pairs them. Edit those as raw 16-bit words only.
+- Depth and palette are known for 202 of the 593 textures ([texture-to-palette pairing](../../formats/graphics/#texture-to-palette-pairing)). The other 391 are `[unknown]`: a draw rule that names the texture's page and palette, replayed in the scene that loads it, is the only evidence, and no rule pairs them. Edit those as raw 16-bit words only.
 - An indexed edit keeps the palette that the texture uses.
 
 ## Palettes
@@ -53,7 +53,7 @@ Go to the screen or area that draws the picture: the field for a character palet
 
 ## Related
 
-- [Graphics formats](../../formats/graphics/): the type-3 upload, palettes and the texture-to-palette join.
+- [Graphics formats](../../formats/graphics/): the type-3 upload, palettes and the texture-to-palette pairing.
 - [Character sprites](../../formats/character/): the container, sections and palette layer.
 - [Game text](../../data/text/): the glyph atlas that the font sheet holds.
 - [Area formats](../../formats/area/): the palette arena and the map bundle that uses it.

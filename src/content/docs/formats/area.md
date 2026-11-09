@@ -431,7 +431,7 @@ A tile descriptor is a 4-byte word. `func_80155560 (exe/slus_004_22@0x80155560)`
 
 Bit 15 is also read, and its meaning is `[unknown]`. Mode 0 names a 16x16 block from the low byte: the block's near corner is `u = (b & 0x0F) * 16`, `v = b & 0xF0`, and its far texels are 15 from the near corner. Otherwise bit 11 picks rectangle table A (index `& 0xFF`, entry `{dv, du, v, u}`) or quad table B (index `& 0x7FF`, four UV pairs). A table B quad stores its pairs as `(v, u)` at bytes 2-3, 0-1, 6-7 and 4-5, which read as corners 0 to 3. The function builds four UV pairs in corner order, then applies the corner flags in this order: bit 18 turns the corners (order 2, 0, 3, 1), bit 16 flips them across x (1, 0, 3, 2) and bit 17 flips them across z (2, 3, 0, 1).
 
-Worked example. The synthetic descriptor `0x20000112` has bit 31 clear, so the tile is 8bpp. The page selector is 2, the CLUT index is 0, no corner flag is set, and the mode is 1 with bit 11 clear, so it picks rectangle table A, entry `0x12`. By the terrain rule in [graphics](../graphics/#texture-to-palette-join) it uses page `(320 + 128 * 2, 256) = (576, 256)` and CLUT row `(0, 483)`.
+Worked example. The synthetic descriptor `0x20000112` has bit 31 clear, so the tile is 8bpp. The page selector is 2, the CLUT index is 0, no corner flag is set, and the mode is 1 with bit 11 clear, so it picks rectangle table A, entry `0x12`. By the terrain rule in [graphics](../graphics/#texture-to-palette-pairing) it uses page `(320 + 128 * 2, 256) = (576, 256)` and CLUT row `(0, 483)`.
 
 ### Terrain mesh
 
@@ -440,7 +440,7 @@ The bundle decodes to a terrain mesh (Wavefront OBJ, glTF 2.0 or similar) with t
 - Corners: the mesh builder `exe/slus_004_22@0x801530D0` places corner `k` at the step `(0,0)`, `(1,0)`, `(0,1)` and `(1,1)` from the cell's near corner, and corner `k` takes record byte `k` (loads at `0x801535A8` to `0x80153640`). The GTE vertex holds `-(byte << 4)`. A mesh uses `y = byte * 16`, so a larger byte is higher. A face walks the perimeter (corners 0, 2, 3, 1), because the stored order would cross, and that walk gives an upward normal.
 - Height table: 13 of the 200 payloads ship the height-byte table, one signed byte per cell. The mesh builder never reads it. The height query `@0x8015477C` does. A mesh built from the corners does not use it.
 - Not applied: the CLUT index and the color need runtime palette and color words. The object list is not part of a mesh.
-- Textures: the materials carry no texture. A tile's page and palette come from the texture association in [graphics](../graphics/#texture-to-palette-join). All 200 bundles pair their terrain sheet with a palette at 8bpp, the 11 world-map areas included.
+- Textures: the materials carry no texture. A tile's page and palette come from the texture association in [graphics](../graphics/#texture-to-palette-pairing). All 200 bundles pair their terrain sheet with a palette at 8bpp, the 11 world-map areas included.
 - Editing: each corner's height is its `y` divided by 16, and each corner must stay at its cell. A mesh does not carry the tiles, objects or height table, so the stored bundle must supply them. On the retail disc all 200 bundles return their stored bytes from a glTF mesh, from an OBJ mesh and from their byte-code, object and height lists.
 
 Over the 200 retail bundles there are 1,263,531 cells, and 688,714 (54.5 percent) have a non-empty tile. Corner heights run from -2048 to 2032 in 244 distinct values. The cells use `page0` in 22,890 runs, `page1` in 17,204, `page2` in 9,032 and `page3` in 33.
@@ -493,7 +493,7 @@ Nineteen payloads hold no `addiu $sp` and no `jr $ra` at any word offset, so the
 
 - [Areas and the field](../../systems/areas/): how the engine loads and runs these blocks.
 - [EMI container](../emi/): the entry types and the archive shapes that hold the blocks.
-- [Graphics formats](../graphics/): the color word, the CLUT and the texture-to-palette join.
+- [Graphics formats](../graphics/): the color word, the CLUT and the texture-to-palette pairing.
 - [Game records](../../data/records/): the encounter and enemy record fields by group.
 - [Game text](../../data/text/): the message table and its control codes.
 - [Edit maps and scripts](../../guides/maps/): what can change in a map or script.

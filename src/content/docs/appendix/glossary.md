@@ -63,22 +63,22 @@ offsets, citations and evidence tags.
 
 ## PlayStation hardware and formats
 
-| Term            | Meaning                                                                                                                      |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| VRAM            | the GPU's 1 MiB video memory, 1,024 by 512 16-bit words                                                                      |
-| CLUT            | color lookup table: a row of palette words in VRAM that an indexed (4 or 8 bit) texture uses                                 |
-| TPage           | texture page: the VRAM region and color depth a primitive samples                                                            |
-| palette pairing | the CLUT and color depth that a draw call uses with a texture ([graphics](../../formats/graphics/#texture-to-palette-join))  |
-| STP             | the semi-transparency bit of a 16-bit color word                                                                             |
-| GPU             | the graphics processor; it draws primitives into VRAM                                                                        |
-| ordering table  | the GPU's linked list of primitives drawn in depth order                                                                     |
-| primitive       | one GPU draw command (sprite, textured quad, line)                                                                           |
-| GTE             | the geometry transformation engine: the coprocessor that rotates and projects vertices                                       |
-| SPU             | the sound processing unit; it plays ADPCM samples with an envelope                                                           |
-| ADPCM           | the 4-bit sample compression the SPU and XA audio use                                                                        |
-| VAB             | a sound bank: a header of programs and tones plus a body of samples (`.vh` header, `.vb` body)                               |
-| VAG             | one sample inside a VAB body                                                                                                 |
-| SEP             | a music sequence package; each sequence plays through a VAB                                                                  |
-| MDEC            | the motion decoder that turns STR frames into pictures                                                                       |
-| PS-X header     | the 2 KiB header of a PlayStation executable; it holds the load address (`t_addr`), size and start address                   |
-| PsyQ            | Sony's PlayStation SDK, which the game links; its library names (`ResetGraph`, `LoadImage`, `CdControl`) appear in the pages |
+| Term            | Meaning                                                                                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| VRAM            | the GPU's 1 MiB video memory, 1,024 by 512 16-bit words                                                                                                           |
+| CLUT            | color lookup table: a row of palette words in VRAM that an indexed (4 or 8 bit) texture uses                                                                      |
+| TPage           | texture page: the VRAM region and color depth a primitive samples                                                                                                 |
+| palette pairing | a texture page plus a CLUT row: the palette and color depth that a draw call uses with a texture ([graphics](../../formats/graphics/#texture-to-palette-pairing)) |
+| STP             | the semi-transparency bit of a 16-bit color word                                                                                                                  |
+| GPU             | the graphics processor; it draws primitives into VRAM                                                                                                             |
+| ordering table  | the GPU's linked list of primitives drawn in depth order                                                                                                          |
+| primitive       | one GPU draw command (sprite, textured quad, line)                                                                                                                |
+| GTE             | the geometry transformation engine: the coprocessor that rotates and projects vertices                                                                            |
+| SPU             | the sound processing unit; it plays ADPCM samples with an envelope                                                                                                |
+| ADPCM           | the 4-bit sample compression the SPU and XA audio use                                                                                                             |
+| VAB             | a sound bank: a header of programs and tones plus a body of samples (`.vh` header, `.vb` body)                                                                    |
+| VAG             | one sample inside a VAB body                                                                                                                                      |
+| SEP             | a music sequence package; each sequence plays through a VAB                                                                                                       |
+| MDEC            | the motion decoder that turns STR frames into pictures                                                                                                            |
+| PS-X header     | the 2 KiB header of a PlayStation executable; it holds the load address (`t_addr`), size and start address                                                        |
+| PsyQ            | Sony's PlayStation SDK, which the game links; its library names (`ResetGraph`, `LoadImage`, `CdControl`) appear in the pages                                      |
