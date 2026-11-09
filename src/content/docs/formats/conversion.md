@@ -1,32 +1,32 @@
 ---
 title: "Converting game data"
-description: "Stored game bytes map to common interchange formats, and the stored bytes stay the authority: a converted file is a view of them and never replaces an EMI entry, a media sector stream or an executable."
+description: "Stored game bytes map to common interchange formats; a converted file is a view of the stored bytes and never replaces an EMI entry, a media sector stream or an executable."
 ---
 
-Stored game bytes map to common interchange formats, and the stored bytes stay the authority: a converted file is a view of them and never replaces an EMI entry, a media sector stream or an executable. This page gives the mapping rows, the sector rules for writing a disc file back and the sound-bank conversion, for someone who writes a converter or a mod tool. The layouts themselves are in the format pages.
+Stored game bytes map to common interchange formats. The stored bytes stay authoritative: a converted file is a view of them and never replaces an EMI entry, a media sector stream or an executable. This page gives the conversion map, the sector rules for writing a disc file back and the sound-bank conversion. The layouts are in the format pages.
 
 ## Conversion map
 
-Keep the original bytes, convert with the row that matches the stored bytes, and check the round trip.
+Keep the original bytes, convert with the matching row, and check the round trip.
 
-| Stored bytes                    | What the game does with it                    | Standard form                                                        | What to check                                                    |
-| ------------------------------- | --------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| EMI archive                     | sector-aligned container and TOC              | the original `.EMI`, plus entry bytes and a TOC listing              | entry hashes; the container rebuilds byte for byte               |
-| type 0                          | direct RAM payload                            | raw `.bin`                                                           | entry hash and load argument                                     |
-| types 1, 2                      | queued RAM transfer                           | raw `.bin`                                                           | [LZ77](../lz77/) decode for type 1                               |
-| type 3                          | packed VRAM upload descriptor plus raw chunks | raw words plus the descriptor; PNG once depth and palette are proven | `0x800` chunk geometry ([graphics](../graphics/))                |
-| type-0 palette bytes            | PSX color words selected by draw state        | little-endian `u16` words plus the RAM destination; PNG strip        | 16 colors are 32 bytes, 256 colors `0x200`; the words round-trip |
-| indexed texture with TPage/CLUT | GPU texture sampling                          | texture words, palette words, TPage, CLUT and UV rectangle; PNG      | the draw site that names the row                                 |
-| STR and XA sectors              | 2,336-byte sectors                            | the original stream, wrapped in 2,352-byte raw sectors               | sector round trip; [timing](../str/#capcom30-timing)             |
-| types 6, 7                      | VAB header and body                           | original `.vh` and `.vb`; SoundFont for desktop players              | header and body identity, selector                               |
-| type 10                         | SEP package                                   | original `.seq`; Standard MIDI File for playback                     | package size, selector                                           |
-| PSX TIM, if one is found        | self-describing image                         | `.tim`; PNG                                                          | TIM magic, dimensions and block sizes                            |
+| Stored bytes                    | What the game does with it                    | Standard form                                                             | What to check                                                    |
+| ------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| EMI archive                     | sector-aligned container and TOC              | the original `.EMI`, plus entry bytes and a TOC listing                   | entry hashes; the container rebuilds byte for byte               |
+| type 0                          | direct RAM payload                            | raw `.bin`                                                                | entry hash and load argument                                     |
+| types 1, 2                      | queued RAM transfer                           | raw `.bin`                                                                | [LZ77](../lz77/) decode for type 1                               |
+| type 3                          | packed VRAM upload descriptor plus raw chunks | raw words plus the descriptor; PNG once depth and palette are established | `0x800` chunk geometry ([graphics](../graphics/))                |
+| type-0 palette bytes            | PSX color words selected by draw state        | little-endian `u16` words plus the RAM destination; PNG strip             | 16 colors are 32 bytes, 256 colors `0x200`; the words round-trip |
+| indexed texture with TPage/CLUT | GPU texture sampling                          | texture words, palette words, TPage, CLUT and UV rectangle; PNG           | the draw site that names the row                                 |
+| STR and XA sectors              | 2,336-byte sectors                            | the original stream, wrapped in 2,352-byte raw sectors                    | sector round trip; [timing](../str/#capcom30-timing)             |
+| types 6, 7                      | VAB header and body                           | original `.vh` and `.vb`; SoundFont for desktop players                   | header and body identity, selector                               |
+| type 10                         | SEP package                                   | original `.seq`; Standard MIDI File for playback                          | package size, selector                                           |
+| PSX TIM, if one is found        | self-describing image                         | `.tim`; PNG                                                               | TIM magic, dimensions and block sizes                            |
 
 Converting a SEP sequence to MIDI is not lossless. Type 9 has no shipped entry on this disc.
 
 ### TIM records
 
-The disc holds six TIM records and no other. Three are the memory card icons in `ETC/START.EMI` entry 9 and three the same icons in `ETC/SHOP.EMI` entry 8, which are one byte-identical overlay ([save format](../save/#icons)). The scan covered every stored byte of the 880 `.EMI` files and both executables. A record counted as TIM when it had the magic, a flag word of 0 to 3 or 8 to 11, and block lengths equal to `12 + 2 * width * height`. 38,044 magic matches gave 6 valid records. The 65 LZ77 entries were scanned only in compressed form. No texture payload is a TIM, so a `.tim` made from a texture is a conversion, not stored bytes.
+The disc holds six TIM records: three memory card icons in `ETC/START.EMI` entry 9 and the same three in `ETC/SHOP.EMI` entry 8, which are one byte-identical overlay ([save format](../save/#icons)). A record is a TIM when it has the TIM magic, a flag word of 0 to 3 or 8 to 11, and block lengths equal to `12 + 2 * width * height`. Searching the 880 `.EMI` files and both executables found 38,044 magic matches, of which 6 are valid records. The 65 LZ77 entries were searched in compressed form only. No texture payload is a TIM, so a `.tim` made from a texture is a conversion, not stored bytes.
 
 ## Record layouts
 

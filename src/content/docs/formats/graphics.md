@@ -3,7 +3,7 @@ title: "Graphics formats"
 description: "A texture on the disc is a headerless block of raw VRAM words (EMI type 3), and its palette is a separate block of color words (a type-0 entry)."
 ---
 
-A texture on the disc is a headerless block of raw VRAM words (EMI type 3), and its palette is a separate block of color words (a type-0 entry). Nothing in either block says which palette goes with which texture: the drawing code holds that link, because it names a texture page and a palette row for each primitive. This page covers how both blocks are stored and loaded, how the VRAM words are encoded and which texture-to-palette joins are proven. The map-tile descriptor is in [area formats](../area/#tile-descriptor).
+A texture on the disc is a headerless block of raw VRAM words (EMI type 3), and its palette is a separate block of color words (a type-0 entry). Nothing in either block says which palette goes with which texture: the drawing code holds that link, because it names a texture page and a palette row for each primitive. This page covers how both blocks are stored and loaded, how the VRAM words are encoded and which texture-to-palette pairings (joins) are established. The map-tile descriptor is in [area formats](../area/#tile-descriptor).
 
 ## Primitives
 
@@ -143,7 +143,7 @@ The arena base holds 256 units of 64 bytes (32 rows of 512). [Rendering](../../s
 
 ## Texture-to-palette join
 
-A texture's palette follows from the scene that draws it, never from the texture payload. A draw site names a texture page and a CLUT row. The VRAM those names address holds whatever the scene's loads left there, so the join is read from a replay of the loads, not from the archive alone.
+A join pairs a texture with the palette it is drawn with. The pairing comes from the scene that draws the texture, never from the texture payload. A draw site names a texture page and a CLUT row, and the VRAM those names address holds whatever the scene's loads left there. A join is therefore read from a replay of the scene's loads, not from the archive alone.
 
 ### Replay
 
@@ -165,7 +165,7 @@ A site whose page or CLUT depends on runtime state (a caller argument, a branch 
 
 ### Sites
 
-Each row is a decomp fact: the function writes this page and CLUT. "Family" means that the CLUT column is a function of a caller argument. A row names a join only when the scene that runs it holds a texture at the page and a palette at the row.
+Each row states that the function writes this page and CLUT. "Family" means that the CLUT column is a function of a caller argument. A row yields a join only when the scene that runs it holds a texture at the page and a palette at the row.
 
 | Overlay and function                                                                                                                                    | tpage (decoded)                                            | clut (decoded)                                          | Note                                                                               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -209,12 +209,12 @@ The two rules together join 202 of the 593 type-3 textures to 882 distinct (text
 
 ### Unjoined textures
 
-The other 391 textures have no proven depth or palette. For these, a scorer ranks a depth and CLUT rows from the texture's words and the scene's palette rows. Its ranking is a suggestion: it is never written as a join.
+The other 391 textures have no established depth or palette. A scoring heuristic can rank a depth and CLUT rows from the texture's words and the scene's palette rows. Its ranking is a suggestion, not a join.
 
 - Depth. Each of 4bpp, 8bpp and 16bpp reads the words as an image. A drawn image repeats a texel next to itself far more often than chance, and the wrong depth loses that. The score is the agreement of each texel with its right and lower neighbours, corrected for the agreement the texel histogram gives by chance (Cohen's kappa).
 - CLUT. A candidate is a row of the palette band that one entry wrote: column 0 of each row at 8bpp, each 16-word column at 4bpp. Neighbouring texels with different indices should get close colours, so the score is one minus their mean colour distance, less the share of texels that land on the transparent word `0x0000`, plus a bonus of 0.25 when the texture's own archive wrote the row.
 
-Run on the 202 joined textures with the join hidden, the top depth is right for 196 (97 percent), but a fixed guess of 8bpp is right for 201, because the joined set is nearly all terrain. The best depth and row together match the join for 146 (72 percent), the best five rows include it for 195, and the first row the texture's own archive wrote matches for 2. The scorer is checked only on terrain-heavy data, so it says little about the sprite and effect sheets it is meant for.
+Measured on the 202 joined textures with the join hidden: the top-ranked depth is right for 196 (97 percent), while a fixed guess of 8bpp is right for 201, because the joined set is nearly all terrain. The best depth and row together match the join for 146 (72 percent), the best five rows include it for 195, and the first row that the texture's own archive wrote matches for 2. The heuristic is validated only on terrain-heavy data, so it says little about sprite and effect sheets.
 
 A reading of a texture without a join is limited. Read as 16bpp, each VRAM word is one pixel, and 4bpp and 8bpp textures look like noise. A texture and one CLUT row are what a Sony TIM file holds (Sony's *File Formats* manual, chapter 3), but the game stores no TIM of its own for textures. The six TIM records on the disc are the memory card icons ([save](../save/#icons)).
 
@@ -230,7 +230,7 @@ These are ranked by the textures they leave unexplained.
 
 ## Sources and confidence
 
-- **Confidence:** medium. The upload, the color words and the replayed joins are read and checked on every payload, but 391 of 593 textures have no proven depth or palette.
+- **Confidence:** medium. The upload, the color words and the replayed joins are read and checked on every payload, but 391 of 593 textures have no established depth or palette.
 - **Evidence:** all 593 type-3 payloads and 620 palette banks, the loader and drawing functions named above (including `GFX_CopyPaletteAnimationColors`, which copies colors inside the working copy), the archive load order of each scene, and every CLUT and TPage write in the game code. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) (texture and palette notes) only confirms. The runtime primitives are PsyQ 3.7 ([sources](../../appendix/sources/)).
 
 ## Related

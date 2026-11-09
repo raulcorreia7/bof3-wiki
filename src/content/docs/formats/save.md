@@ -16,10 +16,10 @@ The table lists the fixed properties of a save file.
 | Blocks per save        | 1 (8 KiB); the file is created with block count 1                         |
 | Bytes written and read | 4,784 from file offset 0, rounded up to 4,864                             |
 | RAM image              | `0x800C1800`; file offset `n` is at `0x800C1800 + n`                      |
-| Rows in the save menu  | 3 (the listing keeps names whose last digit is 0 to 2)                    |
+| Slots in the save menu | 3 (the listing keeps names whose last digit is 0 to 2)                    |
 | Card capacity check    | 15 blocks: `total + (blocks << 13) > 0x1E000` fails with a capacity event |
 
-`SAVE_TransferFile` rounds the size up to a multiple of 128, which gives the 4,864-byte figure. The game writes only the first 4,864 bytes of the 8 KiB block. Whatever the card holds beyond that is what file creation left, and no reader looks at it (`[inferred]`).
+`SAVE_TransferFile` rounds the size up to a multiple of 128, which gives the 4,864-byte figure. The game writes only the first 4,864 bytes of the 8 KiB block. The remainder of the block holds whatever file creation left; no reader looks at it (`[inferred]`).
 
 ## Layout
 
@@ -65,7 +65,7 @@ The BIOS card menu shows one to three 16x16 icon frames. The game does not store
 
 The game always saves with `0x13`. Only the CLUT of icon 0 is used, so the three icons share one palette. Nothing reads the TIM headers or uploads them to VRAM; the code copies the palette and pixel bytes only.
 
-The records sit at payload offsets `0x1254`, `0x1314` and `0x13D4` (RAM `0x801EFE54`, `0x801EFF14` and `0x801EFFD4`) of `ETC/START.EMI` entry 9 and of `ETC/SHOP.EMI` entry 8. These two entries are the same 5,268-byte overlay (byte-identical). A scan of every archive for the TIM and CLUT header finds exactly these six records and no other. A change to an icon must be made in both archives, because the title flow and the save flow load different ones.
+The records sit at payload offsets `0x1254`, `0x1314` and `0x13D4` (RAM `0x801EFE54`, `0x801EFF14` and `0x801EFFD4`) of `ETC/START.EMI` entry 9 and of `ETC/SHOP.EMI` entry 8. These two entries are the same 5,268-byte overlay (byte-identical). These are the only TIM records on the disc ([conversion](../conversion/#tim-records)). A change to an icon must be made in both archives, because the title flow and the save flow load different ones.
 
 ### Title
 
@@ -114,7 +114,7 @@ The save menu fills its rows with a read of 28 bytes at file offset `0xEA0`. The
 ## Sources and confidence
 
 - **Confidence:** medium. The header, checksum and card calls are read in the code, but the unnamed payload bytes, the seventh title digit and the load-time header check are open, and two minor claims are `[inferred]`.
-- **Evidence:** the `etc/start/08`, `etc/start/09` and `etc/shop/00` overlays unless a row says otherwise: `SAVE_BuildFileHeader`, `SAVE_BuildSlotImage`, `SAVE_RunLoadVerify` and the card routines of `etc/start/09`, plus a scan of every archive for the TIM and CLUT headers of the icons. The frame layout and the directory block follow [psx-spx](https://psx-spx.consoledev.net/controllersandmemorycards/#memory-card-data-format) ([sources](../../appendix/sources/)). The community save editor listed in [sources](../../appendix/sources/) agrees on the checksum region.
+- **Evidence:** the `etc/start/08`, `etc/start/09` and `etc/shop/00` overlays unless a row says otherwise: `SAVE_BuildFileHeader`, `SAVE_BuildSlotImage`, `SAVE_RunLoadVerify` and the card routines of `etc/start/09`, and a search of every archive for the icons' TIM and CLUT headers. The frame layout and the directory block follow [psx-spx](https://psx-spx.consoledev.net/controllersandmemorycards/#memory-card-data-format) ([sources](../../appendix/sources/)). The community save editor listed in [sources](../../appendix/sources/) agrees on the checksum region.
 
 ## Related
 
