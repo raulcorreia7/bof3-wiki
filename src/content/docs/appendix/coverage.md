@@ -60,7 +60,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 
 | Range                                             | Bytes      | Page                      |
 | ------------------------------------------------- | ---------- | ------------------------- |
-| bmagic-table (37)                                 | 30,762     | [emi](../../formats/emi/) |
+| bmagic-script (37)                                | 30,762     | [emi](../../formats/emi/) |
 | reserve: zero fill, no consumer (53)              | 765,896    | [emi](../../formats/emi/) |
 | S_XA00.STR Form 1 sectors, non-zero data (29,113) | 59,623,424 | [str](../../formats/str/) |
 | MAGIC00.STR Form 1 sectors, non-zero data (552)   | 1,130,496  | [str](../../formats/str/) |
@@ -84,11 +84,11 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | character-bank       | node pixel and script formats                                                                                   | ([character](../../formats/character/#open-questions))                                                   |
 | area-map             | the `+0x1E` header field, record-list operands, byte-code names, collision meaning of cell values               | ([area](../../formats/area/#0x80104000-map-bundle))                                                      |
 | area-cells           | cell value meaning (4-bit classes)                                                                              | `[unknown]`                                                                                              |
-| area-script          | record byte 0, bits 4 to 6 of the part `size` byte                                                              | `[unknown]` ([area](../../formats/area/#0x800d3800-area-script-bank))                                    |
+| area-script          | record byte 0, bits 4 to 6 of the part `size` byte                                                              | `[unknown]` ([area](../../formats/area/#0x800d3800-area-script-table))                                   |
 | battle-script        | opcodes beyond `Actor_BeginScript`                                                                              | `[unknown]` ([EMI](../../formats/emi/#open-questions))                                                   |
 | area-module          | the consumer of eight of nine modules                                                                           | `[unknown]` ([area](../../formats/area/#0x80117000-auxiliary-module-window))                             |
 | S_XA00.STR audio     | the cue array has no bounding symbol; 340 audio sectors in channels 4-7 are not reached by the 11 scanned cues  | `[inferred]` for the cue count ([STR](../../formats/str/#xa-cue-tables))                                 |
-| bmagic-table         | everything but the load address                                                                                 | `[unknown]`                                                                                              |
+| bmagic-script        | everything but the load address                                                                                 | `[unknown]`                                                                                              |
 | reserve              | no consumer: 44 BPLCHAR fillers of 16,384 zero bytes and 9 all-zero cell slots                                  | -                                                                                                        |
 | XA Form 1 sectors    | content of 29,665 non-zero sectors (S_XA00 and MAGIC00); the hardware filter never delivers them                | ([STR](../../formats/str/#sector-classes))                                                               |
 

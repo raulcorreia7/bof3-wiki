@@ -16,14 +16,14 @@ An area is a town, dungeon, world map or battlefield. The table lists the blocks
 | `0x80033C00` |          512 | CLUT bank, arena `+0x400`            |
 | `0x80033E00` |    512-6,144 | CLUT bank, arena `+0x600`            |
 | `0x80035800` |  1,024-3,584 | CLUT bank, arena `+0x2000`           |
-| `0x800D3800` | 1,236-65,236 | area script bank                     |
+| `0x800D3800` | 1,236-65,236 | area script table                    |
 | `0x800E3800` |       36-412 | scene/step table                     |
 | `0x800E4000` |        1,160 | encounters plus enemy records        |
 | `0x80104000` | 6,872-84,584 | map bundle                           |
 | `0x80117000` |  1,444-5,964 | auxiliary module window (9 archives) |
 | `0x801F2C00` |    92-16,324 | area program code arena              |
 
-`0x800F0800` is the battle script bank, which holds 3,692 bytes in 42 BATTLE and BOSS archives and has the same format as the area script bank. `0x801F2C00` is code, not a data format. Two areas load their program elsewhere: `world00/area030/04` at `0x801D0C00` (75,285 bytes) and `world00/area030/05` at `0x800F5000` (8,784 bytes).
+`0x800F0800` is the battle script table, which holds 3,692 bytes in 42 BATTLE and BOSS archives and has the same format as the area script table. `0x801F2C00` is code, not a data format. Two areas load their program elsewhere: `world00/area030/04` at `0x801D0C00` (75,285 bytes) and `world00/area030/05` at `0x800F5000` (8,784 bytes).
 
 ## `0x80010000`: area message table
 
@@ -53,33 +53,33 @@ nibble = (index & 1) ? low 4 bits : high 4 bits
 
 The nibble order follows the parity of the linear index, not the parity of `x`. A read outside the header's width and height returns 0. No store to the grid exists in any extracted payload, so it is archive data. For example, with `width = 7`, the cell `(x = 2, y = 1)` has index 9 and is the low nibble of byte 4.
 
-## `0x800D3800`: area script bank
+## `0x800D3800`: area script table
 
-The script bank holds the sprite animation scripts of the area's actors. It is a two-level index. A directory of section offsets starts the block. Each section opens with a table of record offsets, and each record is one animation script with its frames inside it ([script record](#script-record)). All 200 payloads fit the two-level index.
+The script table holds the sprite animation scripts of the area's actors. It is a two-level index. A directory of section offsets starts the block. Each section opens with a table of record offsets, and each record is one animation script with its frames inside it ([script record](#script-record)). All 200 payloads fit the two-level index.
 
 ```text
-bank
+table
   +0x00 u32 dir_bytes          ; == 4*L, the directory's own size
   +0x04 u32 section_off[L-1]   ; block-relative, strictly increasing
-section (bank + section_off[i])
+section (table + section_off[i])
   +0x00 u16 table_bytes        ; == 2*M; also record_off[0]
   +0x02 u16 record_off[M-1]    ; remaining offsets, relative to the section base
 record
   one animation script (byte-addressed, no fixed stride)
 ```
 
-`dir_bytes` is the size of the directory, not an entry count: `L = dir_bytes / 4`. Reading it as a count overruns the payload (`WORLD00/AREA016` slot 4 has `u32[0] = 28` and `u32[29] = 0x240018` in 2,708 bytes). `dir_bytes == 4*L` and the entries are strictly increasing and inside the payload in 200 of 200 banks. `L` ranges from 4 to 36, so the 200 banks hold 2,380 sections. The last section runs to the end of the block.
+`dir_bytes` is the size of the directory, not an entry count: `L = dir_bytes / 4`. Reading it as a count overruns the payload (`WORLD00/AREA016` slot 4 has `u32[0] = 28` and `u32[29] = 0x240018` in 2,708 bytes). `dir_bytes == 4*L` and the entries are strictly increasing and inside the payload in 200 of 200 tables. `L` ranges from 4 to 36, so the 200 tables hold 2,380 sections. The last section runs to the end of the block.
 
-Worked example. Take a bank with `dir_bytes = 0x10`, so `L = 4` and the directory is the four words `0x10`, `0x80`, `0x120` and `0x1A0`. Section 2 starts at bank offset `0x120`. If its first halfword is `0x08`, its table is 8 bytes long (`M = 4` offsets), and record 0 starts at section offset `0x08`. If its table entry 3 is `0x40`, record 3 starts at section offset `0x40`, that is bank offset `0x160`.
+Worked example. Take a table with `dir_bytes = 0x10`, so `L = 4` and the directory is the four words `0x10`, `0x80`, `0x120` and `0x1A0`. Section 2 starts at table offset `0x120`. If its first halfword is `0x08`, its table is 8 bytes long (`M = 4` offsets), and record 0 starts at section offset `0x08`. If its table entry 3 is `0x40`, record 3 starts at section offset `0x40`, that is table offset `0x160`.
 
 `Actor_BeginScript (exe/slus_004_22@0x8014D6DC)` resolves a record through the pointer `g_ScriptBank`:
 
 ```text
-section = u32[bank + 4 * lhu(work + 0x2C)]
-record  = bank + section + u16[bank + section + 2 * lbu(work + 0x4B)]
+section = u32[table + 4 * lhu(work + 0x2C)]
+record  = table + section + u16[table + section + 2 * lbu(work + 0x4B)]
 ```
 
-`SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` sets the pointer to `0x800D3800`. The battle handlers swap in `0x800F0800` around each handler call and restore `0x800D3800` afterwards (`func_801E6724 (emi/battle/battle/03@0x801E6724)`, `func_801E6C84 (emi/battle/battle/03@0x801E6C84)`). When bit 0 of work `+0x24` is set, `Actor_BeginScript` takes the record from the actor's character bank (work `+0x4C`) through `Actor_SelectScriptBank (exe/slus_004_22@0x8014DC08)` instead, and the same step code reads it. No record stores its length, so the table offsets are the only stored record boundaries. `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)` does not read this bank. It selects a record through `Actor_SelectScriptBank` and copies a byte count that its caller passes: `0xA00` from `func_801BEE5C (emi/etc/game/00@0x801BEE5C)` and `0x1800` from `Battle_ReloadPartyBank (emi/battle/battle/03@0x801D6F28)` and `func_801DEFE4 (emi/battle/battle/03@0x801DEFE4)`.
+`SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` sets the pointer to `0x800D3800`. The battle handlers swap in `0x800F0800` around each handler call and restore `0x800D3800` afterwards (`func_801E6724 (emi/battle/battle/03@0x801E6724)`, `func_801E6C84 (emi/battle/battle/03@0x801E6C84)`). When bit 0 of work `+0x24` is set, `Actor_BeginScript` takes the record from the actor's character table (work `+0x4C`) through `Actor_SelectScriptBank (exe/slus_004_22@0x8014DC08)` instead, and the same step code reads it. No record stores its length, so the table offsets are the only stored record boundaries. `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)` does not read this table. It selects a record through `Actor_SelectScriptBank` and copies a byte count that its caller passes: `0xA00` from `func_801BEE5C (emi/etc/game/00@0x801BEE5C)` and `0x1800` from `Battle_ReloadPartyBank (emi/battle/battle/03@0x801D6F28)` and `func_801DEFE4 (emi/battle/battle/03@0x801DEFE4)`.
 
 Every section describes itself, because `u16[0]` is both the table size and record 0's offset. In all 2,380 sections the distinct offsets of a table increase strictly, and the spans between them tile the section from the table end to its end. 308 of the 2,380 tables contain a descent (51 byte-identical tables, the most used 23 times, across 88 archives), and 225 more contain only equal words. A table entry may therefore repeat an earlier offset, and then it shares that record with the earlier entry.
 
@@ -133,14 +133,14 @@ The scene table lists the actors of the area: for each one, an id to match and a
 
 A record has these fields.
 
-| Offset | Size | Type  | Meaning                                                                 |
-| -----: | ---: | ----- | ----------------------------------------------------------------------- |
-| `0x00` |    2 | `u16` | id; the match key in `@0x8014DD3C` and `@0x80167E00`                    |
-| `0x02` |    2 | `u16` | low byte stored to `work+0x27`; the `u16` is `work+0x2C`                |
-| `0x04` |    1 | `u8`  | stored to `work+0x25` (4 values)                                        |
-| `0x05` |    1 | `u8`  | stored to `work+0x26` (31 values)                                       |
-| `0x06` |    1 | `u8`  | stored to `work+0x28`; read by the CLUT and texture code                |
-| `0x07` |    1 | `u8`  | stored to `work+0x2C`; the scene's section in the archive's script bank |
+| Offset | Size | Type  | Meaning                                                                  |
+| -----: | ---: | ----- | ------------------------------------------------------------------------ |
+| `0x00` |    2 | `u16` | id; the match key in `@0x8014DD3C` and `@0x80167E00`                     |
+| `0x02` |    2 | `u16` | low byte stored to `work+0x27`; the `u16` is `work+0x2C`                 |
+| `0x04` |    1 | `u8`  | stored to `work+0x25` (4 values)                                         |
+| `0x05` |    1 | `u8`  | stored to `work+0x26` (31 values)                                        |
+| `0x06` |    1 | `u8`  | stored to `work+0x28`; read by the CLUT and texture code                 |
+| `0x07` |    1 | `u8`  | stored to `work+0x2C`; the scene's section in the archive's script table |
 
 ```c
 typedef struct AreaActorDef {
@@ -155,7 +155,7 @@ typedef struct AreaActorDef {
 
 Source: [`include/world/area.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/world/area.h)
 
-`+0x7` is a section index, not a record ordinal. With `L = u32[script_bank] / 4`, `max(+0x7) < L` in 200 of 200 payloads and the values cover `0` to `L-1` in 200 of 200. The "9 and 10 special" cases are not this byte. They belong to the actor member `+0x06` ([actor members](../../data/field/)), which `func_80167E00` reads: 9 gates the draw mode and 10 calls `func_8015A944`.
+`+0x7` is a section index, not a record ordinal. With `L = u32[script_table] / 4`, `max(+0x7) < L` in 200 of 200 payloads and the values cover `0` to `L-1` in 200 of 200. The "9 and 10 special" cases are not this byte. They belong to the actor member `+0x06` ([actor members](../../data/field/)), which `func_80167E00` reads: 9 gates the draw mode and 10 calls `func_8015A944`.
 
 ## `0x800E4000`: encounters and enemy records
 
@@ -486,8 +486,8 @@ Nineteen payloads hold no `addiu $sp` and no `jr $ra` at any word offset, so the
 
 ## Sources and confidence
 
-- **Confidence:** medium. The block formats, the script bank and the map bundle header are read and checked on all 200 archives, and the script record grammar is read in the step and draw code, but the byte-code names, the `scroll` field and the battle and world-map graphics are not decoded.
-- **Evidence:** the 200 area archives, the loader and the area, field and battle functions named above. The script record grammar comes from `Actor_BeginScript`, `Actor_SeekScript`, `func_8014DB98`, the three step functions and `Area_DrawObjectSprite`. The frame count at record byte 0 is `[inferred]` from the layout, because no step function reads it. The script bank holds no opcodes, so the event-script opcodes that the community [bof3-script-editor](https://github.com/glitch-in-the-herring/bof3-script-editor) (MIT) lists do not describe it ([sources](../../appendix/sources/)).
+- **Confidence:** medium. The block formats, the script table and the map bundle header are read and checked on all 200 archives, and the script record grammar is read in the step and draw code, but the byte-code names, the `scroll` field and the battle and world-map graphics are not decoded.
+- **Evidence:** the 200 area archives, the loader and the area, field and battle functions named above. The script record grammar comes from `Actor_BeginScript`, `Actor_SeekScript`, `func_8014DB98`, the three step functions and `Area_DrawObjectSprite`. The frame count at record byte 0 is `[inferred]` from the layout, because no step function reads it. The script table holds no opcodes, so the event-script opcodes that the community [bof3-script-editor](https://github.com/glitch-in-the-herring/bof3-script-editor) (MIT) lists do not describe it ([sources](../../appendix/sources/)).
 
 ## Related
 

@@ -39,11 +39,11 @@ Addresses ascend. "Up to" is the largest entry over every archive on the disc; o
 | `0x80096800`             | up to 133,316 | `BATTLE`, `BOSS` archives          | battle data module (`battle/15`), loaded with `battle/03`                                                                      |
 | `0x800C1800`             | up to 7,700   | `BOSS` archives                    | boss module                                                                                                                    |
 | `0x800C3800`             | up to 3,148   | `BMAGIC` archives                  | spell table                                                                                                                    |
-| `0x800D3800`             | up to 65,236  | area archive                       | area script bank                                                                                                               |
+| `0x800D3800`             | up to 65,236  | area archive                       | area script table                                                                                                              |
 | `0x800E3800`             | up to 412     | area archive                       | scene table                                                                                                                    |
 | `0x800E4000`             | 1,160         | area archive                       | encounter table                                                                                                                |
 | `0x800E4800..0x800F0800` | 49,152        | `EMI_LoadArchive`                  | CD ring: one header slot and 23 ring slots of 2,048 bytes; the area work window shares it                                      |
-| `0x800F0800`             | 3,692         | `BATTLE`, `BOSS` archives          | battle script bank                                                                                                             |
+| `0x800F0800`             | 3,692         | `BATTLE`, `BOSS` archives          | battle script table                                                                                                            |
 | `0x800F5000`             | up to 8,784   | 3 area archives                    | extra area code block                                                                                                          |
 | `0x80104000`             | up to 84,584  | area archive                       | map bundle                                                                                                                     |
 | `0x80117000`             | up to 5,964   | 9 area archives                    | auxiliary area module                                                                                                          |
@@ -64,7 +64,7 @@ Addresses ascend. "Up to" is the largest entry over every archive on the disc; o
 | `0x801FF000`             | -             | `SYS_StartLogo`                    | stack for the `Exec` of `LOGO.EXE`                                                                                             |
 | `0x801FF400..0x801FFC00` | 2,048         | `CallbackInitThreads`              | four 512-byte callback thread stacks                                                                                           |
 
-The area band is the busiest. A typical area archive writes, in order: the sound bank and cue table, the scene table, the script bank, graphics, three palette slices, the area table, the encounter table, the text table, the map bundle and last the area program at `0x801F2C00`. [Loading](../loading/#area) walks through this.
+The area band is the busiest. A typical area archive writes, in order: the sound bank and cue table, the scene table, the script table, graphics, three palette slices, the area table, the encounter table, the text table, the map bundle and last the area program at `0x801F2C00`. [Loading](../loading/#area) walks through this.
 
 ## Overlay windows
 

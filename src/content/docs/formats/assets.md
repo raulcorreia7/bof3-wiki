@@ -18,10 +18,10 @@ Every EMI entry on the disc belongs to one kind: a name this wiki gives to a cla
 | XA and STR streams                           | `.STR` files                       | [STR and XA](../str/)                                                              |
 | `area-map`                                   | type 0, `0x80104000`               | [area](../area/#0x80104000-map-bundle)                                             |
 | `area-cells`                                 | type 0, `0x80032000`               | [area](../area/#0x80032000-packed-4-bit-cell-grid)                                 |
-| `area-script`                                | type 0, `0x800D3800`               | [area](../area/#0x800d3800-area-script-bank)                                       |
+| `area-script`                                | type 0, `0x800D3800`               | [area](../area/#0x800d3800-area-script-table)                                      |
 | `area-actor-defs`                            | type 0, `0x800E3800`               | [area](../area/#0x800e3800-scenestep-table)                                        |
 | `area-encounters`                            | type 0, `0x800E4000`               | [area](../area/#0x800e4000-encounters-and-enemy-records)                           |
-| `battle-script`, `bmagic-table`              | type 0, `0x800F0800`, `0x800C3800` | [EMI](../emi/#open-questions)                                                      |
+| `battle-script`, `bmagic-script`             | type 0, `0x800F0800`, `0x800C3800` | [EMI](../emi/#open-questions)                                                      |
 | `area-module`                                | type 0, `0x80117000`               | [area](../area/#0x80117000-auxiliary-module-window)                                |
 | `area-message`                               | type 0, `0x80010000`               | [Message tables](#message-tables)                                                  |
 | `resource-table`                             | type 0, `0x8001A000`               | [game text](../../data/text/#references)                                           |

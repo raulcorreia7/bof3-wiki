@@ -51,7 +51,7 @@ The first area, `AREA001`, is the archive for slot `0x2AB + 1`. Its table of con
 | Entries |    Type | Load argument                                          | What the loader does                                                         |
 | ------- | ------: | ------------------------------------------------------ | ---------------------------------------------------------------------------- |
 | 0, 1, 2 | 6, 8, 7 | `0x2` (bank index)                                     | sound bank header, cue table and sample body, to the bank record and SPU RAM |
-| 3, 4    |       0 | `0x800E3800`, `0x800D3800`                             | copy the scene table and the script bank                                     |
+| 3, 4    |       0 | `0x800E3800`, `0x800D3800`                             | copy the scene table and the script table                                    |
 | 5, 7    |       3 | `0x0E001000`, `0x0A081000`                             | upload two graphics blocks to VRAM                                           |
 | 6, 8    |       0 | `0x80035800`, `0x80033E00`                             | copy two palette slices to the palette arena                                 |
 | 9 to 12 |       0 | `0x80032000`, `0x800E4000`, `0x80010000`, `0x80104000` | copy the area table, encounter table, text table and map bundle              |
@@ -244,7 +244,7 @@ Each archive writes the event code to `0x801D0C00`, graphics to VRAM, two RAM bl
 
 1. `Battle_LoadPartySprites` sets sound bank layout 1 and streams the party's `BPLD` or `BPLU` archive ([characters](#characters-and-the-party)).
 2. `Battle_LoadBattleArchive` pauses the music and saves the sequence state (1,376 bytes from `D_80148A50` to `D_8018E268`) unless the battle keeps its music, and sets `g_EmiStreamFlags` bit `0x40`. It then picks the battle archive. For an encounter it streams `g_BossArchiveSlots[D_801CD78F[encounter * 4]]`, a table of 42 slots whose first value is `6` (`BATTLE`) and whose other 40 values are the `BOSS` archives `0x1B3` to `0x1DA`. Otherwise it streams slot 6 when `scenario_id` is below 8, and slot 7 if not.
-3. A `BATTLE` archive writes `battle/03` to `0x801D0C00`, `battle/15` to `0x80096800` and the script bank to `0x800F0800`. A `BOSS` archive has the same entries plus the boss's own code at `0x800C1800`, text at `0x8001A000`, two RAM blocks at `0x800357E0` and `0x80036E00`, and sound banks for SPU banks 1, 2 and 6. `Battle_Update` then runs each frame.
+3. A `BATTLE` archive writes `battle/03` to `0x801D0C00`, `battle/15` to `0x80096800` and the script table to `0x800F0800`. A `BOSS` archive has the same entries plus the boss's own code at `0x800C1800`, text at `0x8001A000`, two RAM blocks at `0x800357E0` and `0x80036E00`, and sound banks for SPU banks 1, 2 and 6. `Battle_Update` then runs each frame.
 4. `func_801D1228` (the battle reset) streams the enemy sound bank `ENEMY` + `g_GameAreaId` (`g_GameAreaId + 9`) for SPU bank 6, one bank per area.
 5. `func_80197F48` restores the music and returns `g_GameEntryState` to 2.
 
