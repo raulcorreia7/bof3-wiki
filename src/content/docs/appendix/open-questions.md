@@ -120,16 +120,15 @@ Pages: [screens](../../systems/screens/#open-questions), [UI](../../systems/ui/#
 
 Pages: [rendering](../../systems/rendering/#open-questions), [graphics](../../formats/graphics/#open-questions).
 
-| Question                                                                              | What would settle it                                                                                                       |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Ordering meaning of each layer number, and layers above 7 passed to `GFX_AddPrim`     | List every `GFX_AddPrim` layer literal per overlay and compare with screenshots. Search call sites for non-literal values. |
-| VRAM page allocation between area, character, battle and font sheets                  | A VRAM dump from an emulator at each phase.                                                                                |
-| Whether `LoadImage` finishes before `DrawOTag` in the same frame                      | PsyQ `LoadImage` queue behavior, or a trace of the GPU DMA.                                                                |
-| Purpose of the (0x340, 0x100, 0xC0, 0x100) draw area                                  | Trace which records set record flag `0x08`.                                                                                |
-| Page 16 mismatch between sheet upload and draw formulas                               | Read the page bytes of shipped sprite records.                                                                             |
-| Behavior of `func_8014BC70`                                                           | A full read of its assembly.                                                                                               |
-| The palette and depth of the 381 textures with no proven join                         | The resident banks of the scene and the callers' arguments for the battle, `SCENARIO` and `ETC` draw sites.                |
-| Which of several overlapping sheets is resident (for example `AREA024` slots 5 and 7) | The stream order of `EMI_UploadSectorImage`.                                                                               |
+| Question                                                                          | What would settle it                                                                                                       |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Ordering meaning of each layer number, and layers above 7 passed to `GFX_AddPrim` | List every `GFX_AddPrim` layer literal per overlay and compare with screenshots. Search call sites for non-literal values. |
+| VRAM page allocation between area, character, battle and font sheets              | A VRAM dump from an emulator at each phase.                                                                                |
+| Whether `LoadImage` finishes before `DrawOTag` in the same frame                  | PsyQ `LoadImage` queue behavior, or a trace of the GPU DMA.                                                                |
+| Purpose of the (0x340, 0x100, 0xC0, 0x100) draw area                              | Trace which records set record flag `0x08`.                                                                                |
+| Page 16 mismatch between sheet upload and draw formulas                           | Read the page bytes of shipped sprite records.                                                                             |
+| Behavior of `func_8014BC70`                                                       | A full read of its assembly.                                                                                               |
+| The palette and depth of the 391 textures with no proven join                     | The callers' arguments for the battle, `SCENARIO` and `ETC` draw sites, and a scene for `ENDKANJI` and `SCENA17`.          |
 
 ## Audio
 
