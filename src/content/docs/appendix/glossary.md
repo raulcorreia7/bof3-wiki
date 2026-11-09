@@ -17,7 +17,7 @@ offsets, citations and evidence tags.
 | payload        | the bytes of an entry after its table-of-contents record                                                                                                                                            |
 | load argument  | a type-dependent 32-bit value in an entry's table record: a RAM address for code and data, a VRAM position for textures                                                                             |
 | kind           | a name this wiki gives to a class of disc content, such as `area-map`, `texture` or `audio-bank` ([asset kinds](../../formats/assets/))                                                             |
-| record         | one fixed-size element of a table, such as a character, an enemy or a drop; or one string in a message bank                                                                                         |
+| record, row    | one fixed-size element of a table, such as a character, an enemy or a drop; or one string in a message bank                                                                                         |
 | stride         | the byte distance between two consecutive records of a table                                                                                                                                        |
 | slot           | an index. An archive slot id is the archive's index in the disc file list. A text slot is an index in a message bank's offset table. A battler slot is a position in a battle. Each page says which |
 | message bank   | a payload that opens with a little-endian `u16` offset table. Each slot of the table points at a record of text; several slots can share one record ([text](../../data/text/#message-bank))         |
