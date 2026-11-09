@@ -3,7 +3,7 @@ title: "Audio system"
 description: "The game plays music and effects as sampled instruments in SPU memory, driven by a sequencer or by direct key-on, and streams recorded speech from the disc through the CD controller without touching main RAM."
 ---
 
-The game plays music and effects as sampled instruments in SPU memory, driven by a sequencer or by direct key-on, and streams recorded speech from the disc through the CD controller without touching main RAM. This page covers the runtime between the disc and the speakers: how banks load into SPU memory, how a music track starts and survives a battle, how an effect cue becomes voices and how the XA streams are driven. It does not cover the file formats, the loader steps or the RAM windows.
+The game plays music and effects as sampled instruments in SPU memory, driven by a sequencer or by direct key-on, and streams recorded speech from the disc through the CD controller without touching main RAM. This page covers the runtime between the disc and the speakers: bank loading into SPU memory, music start and battle handover, effect cues and XA streaming. File formats, loader steps and RAM windows are on other pages ([audio formats](../../formats/audio/), [loading](../../concepts/loading/), [memory](../../concepts/memory/#sound-memory)).
 
 ## Data to SPU
 
@@ -48,8 +48,8 @@ The CD controller mixes XA into the audio output itself. `SND_SetCdVolume (exe/s
 `SYS_StartFrontend` calls `SND_Init (exe/slus_004_22@0x8015CD00)`, `SND_SetBankLayout(0)` and later `SND_Start (exe/slus_004_22@0x8015CE70)` ([boot](../boot/)).
 
 - `SND_Init` calls `SsInit`, `SsSetTableSize(D_80148A50, 2, 4)`, `SsSetTickMode` in 60 Hz mode, turns room reverb on, and calls `SsSetAutoKeyOffMode(0)` and `SsSetReservedVoice(0x10)`. It sets the seven VAB ids `D_80148FB0..FB6` to 0 through 6 and the seven SEP owners `g_SelectionFxVoices[0..6]` (`0x80148FC0`) to `-1`. It then calls `SpuSetVoiceAttr` to set volume `0x3FFF` on voices 16 to 23.
-- The tick mode argument selects a 60 Hz sequencer step, the NTSC frame rate `[inferred]` from the PsyQ meaning of that mode.
-- The first `SsSetTableSize` argument is the sequence table. `Battle_LoadBattleArchive` and `func_80197F48` save and restore 1,376 bytes of it, so the table is 1,376 bytes at `0x80148A50`.
+- The tick mode argument selects a 60 Hz sequencer step, the NTSC frame rate `[inferred]`.
+- The first `SsSetTableSize` argument is the sequence table. `Battle_LoadBattleArchive` and `func_80197F48` save and restore 1,376 bytes of it: the table is 1,376 bytes at `0x80148A50`.
 - `SND_Start` calls `SsStart2` and sets the master volume to `0x7F` and the serial (CD) volume to `0x6E`.
 - `SND_Exit (exe/slus_004_22@0x8015CEBC)` keys off all voices, closes the seven VABs and SEP owners, turns reverb off and calls `SsEnd`.
 
@@ -57,7 +57,7 @@ The CD controller mixes XA into the audio output itself. `SND_SetCdVolume (exe/s
 
 Seven bank records (20 bytes each, at `0x8014677C`) tie a VAB id to a RAM window, an SPU address and a cue table. `SND_SetBankLayout (exe/slus_004_22@0x80161808)` fills them from one of three static layouts. It lays two RAM windows per bank back to back from `0x8011A000`: a header window (`D_8018239C[n][bank]`), then a sequence window (`D_801823F0[n][bank]`). The SPU address comes from `D_80182348[n][bank]`. The cue table pointer is `0x801486A0 + 124 * bank`.
 
-The active layout decides what fits in SPU RAM:
+The active layout sets the SPU RAM partition:
 
 | Layout | Set by                                                                                                                                                                 | Banks in use | When                         |
 | -----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------: | ---------------------------- |
@@ -67,7 +67,7 @@ The active layout decides what fits in SPU RAM:
 
 Bank 0 carries the music in every layout, with a different window size in each. The sizes are in [RAM and SPU budget per layout](#ram-and-spu-budget-per-layout), [memory](../../concepts/memory/#sound-memory) and [loading](../../concepts/loading/#audio-banks).
 
-An EMI audio entry reaches its bank record in this order:
+An EMI audio entry reaches its bank record as follows:
 
 1. **Type 6** (`EMI_LoadVabHeader`) copies the VAB header (VH) into the bank's header window. If the bank already owns a SEP (`g_SelectionFxVoices[bank] != -1`), it calls `SsUtAllKeyOff(0)` and `SsSepClose`, and resets the owner to `-1`.
 2. **Types 9 and 10** (`EMI_LoadSequence`) copy the SEP package into the bank's sequence window and set record flag bit 1 (value 2).
@@ -79,7 +79,7 @@ The entry's load argument says which bank record it targets. The `BGM` archives 
 
 ## Music
 
-`BgmTrack` rows connect a track id to an archive and a sequence. The table `g_BGMTracks` (`0x80181EB8`) has 165 rows of 4 bytes: a `u16` `bank_slot`, then `sep_slot` and `sequence` bytes. All 165 rows use `sep_slot` 0. Their `bank_slot` values are 81 distinct archives from `0xD1` to `0x121`, the `BGM` family. `sequence` runs 0 to 3, since a SEP package holds four sequences.
+The table `g_BGMTracks` (`0x80181EB8`) has 165 rows of 4 bytes: a `u16` `bank_slot`, then `sep_slot` and `sequence` bytes. All 165 rows use `sep_slot` 0. Their `bank_slot` values are 81 distinct archives from `0xD1` to `0x121`, the `BGM` family. `sequence` runs 0 to 3, since a SEP package holds four sequences.
 
 `SND_StartBGM (exe/slus_004_22@0x80161B24)(id, level, shape)` is the field-side entry:
 
@@ -89,7 +89,7 @@ The entry's load argument says which bank record it targets. The `BGM` archives 
 
 Two tracks of one archive share the load: the second `SND_RequestBGM` returns 0 and only the sequence changes. `0xFF` means no track. `SND_FadeOutBgm (exe/slus_004_22@0x80161CD0)` fades out and stops the track's sequence.
 
-Five sources start a track.
+Five sources start a track:
 
 | Source                 | Code                                                                                                                                                                                                                                       |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -99,20 +99,20 @@ Five sources start a track.
 | Scenario and area code | Direct `SND_PlayBgm`, `SND_RequestBGM` and `SND_FadeOutBgm` calls in `scena00`, `scena16` and area overlays.                                                                                                                               |
 | Title                  | `Game_BeginTitle` calls `SND_PlayBgm(0x8D, 100, 8)`.                                                                                                                                                                                       |
 
-The name `g_GamePrevSelection` is misleading: `func_801A0380` writes the track of the area that is about to load, and `func_8019FAA0` reads it. The zone rectangle is described in [area](../areas/#zone-list).
+`g_GamePrevSelection` holds the track of the area about to load: `func_801A0380` writes it and `func_8019FAA0` reads it. The zone rectangle is described in [area](../areas/#zone-list).
 
 When the area changes to a different track, `Game_UpdateField` case 5 calls `SND_StartDecrescendo` on the old track (level 100, shape 16) and `SND_StopSequence` after the transition effect. `func_801985C8` does the same for the other exit path.
 
 ### Music across a battle
 
-A battle replaces bank 0 and then restores it.
+A battle replaces bank 0, then restores it.
 
 1. `Battle_LoadBattleArchive` (`emi/etc/game/00`, battle entry) checks `g_BattleOptions & 0x40` (keep the field music). When it is clear, it sets bit `0x40` of `g_EmiStreamFlags`, whether or not a track is active. When a track is active it also pauses the field sequence with `SsSepPause`, copies the 1,376-byte sequence table `D_80148A50` into `D_8018E268`, and stops the sequence. It then streams the battle archive (slot 6 or 7, or the boss slot).
-2. `EMI_UploadVabBody` sees bit `0x40` and the bank match (`D_80146855` and `D_80146856` are 0, 0) and calls `SND_PlaySequence(0, 0, 100, 100)` as soon as the battle bank is open. The same call restarts the field track after a battle when `Battle_ReloadMusicBank` stored its owner and sequence in `D_80146855` and `D_80146856`. The battle music is therefore the SEP package inside the `BATTLE` or `BOSS` archive.
+2. `EMI_UploadVabBody` sees bit `0x40` and the bank match (`D_80146855` and `D_80146856` are 0, 0) and calls `SND_PlaySequence(0, 0, 100, 100)` as soon as the battle bank is open. The same call restarts the field track after a battle when `Battle_ReloadMusicBank` stored its owner and sequence in `D_80146855` and `D_80146856`. The battle music is the SEP package inside the `BATTLE` or `BOSS` archive.
 3. At the battle end `Battle_ReloadMusicBank` (`emi/battle/battle/03`) waits for the loader and runs the end hook. When the keep-music option (`g_BattleOptions & 0x40`) is clear it calls `SND_StopAllSequences`, sets `g_EmiStreamFlags` bit `0x20`, and, when the result has bit `0x10`, bit `0x40` too. It then re-streams the field track's archive (`g_BGMTracks[g_SndBgmId].bank_slot`). Bit `0x20` makes `EMI_NextEntry` skip every entry of type below 6, so only audio entries load.
 4. `func_80197F48` (`emi/etc/game/00`, battle exit) copies `D_8018E268` back into `D_80148A50` and calls `SsSepReplay`, `SND_SetSequenceVolume` and `SND_FadeInSequence` on the field track.
 
-Steps 3 and 4 together resume the field track, either from a reloaded bank or from the restored table. The code does not say which path wins when both run `[inferred]`. The bits of `g_EmiStreamFlags` are `0x20` for audio-only reload and `0x40` for auto-play on load. See [battle](../battle/) for the entry and exit states.
+Steps 3 and 4 resume the field track, from a reloaded bank or from the restored table. Which path wins when both run is `[unknown]`. The bits of `g_EmiStreamFlags` are `0x20` for audio-only reload and `0x40` for auto-play on load. See [battle](../battle/) for the entry and exit states.
 
 ## Sound effects
 
@@ -121,14 +121,14 @@ A cue is a 16-bit id: bank in bits 8 to 11, record index in bits 0 to 7. `SND_Pl
 - A cue's bank must be 0 to 6. The table has seven entries and `SND_PlayCue` does not range-check a larger bank nibble.
 - Event scripts reach cues through opcodes `0xB0` to `0xB3` (`SND_PlayCue(byte | bank << 8)`, banks 0 to 3) and `0xBC` (`SND_QueueCueVolume`, a 16-bit id), both in `func_801A96E4`. `SND_QueueCueVolume (exe/slus_004_22@0x8015D7C8)` loads left and right volume from `D_80182288`, then calls `SND_PlayCue`.
 - The volume cells come from `D_80182288` and the tables after it (`D_80182290` to `D_80182308`): 16-bit `0xXXFF` pairs, a stepped ladder. Their use beyond `SND_QueueCueVolume` is not traced `[unknown]`.
-- `SND_QueueSelectionFx` clears the four voice-slot cells to `-1`, calls `SND_PlayCue`, and packs the first four voice numbers (5 bits each) into the caller's actor record at `+0x70`, setting flag bit 3. Actors therefore remember the voices they own.
+- `SND_QueueSelectionFx` clears the four voice-slot cells to `-1`, calls `SND_PlayCue`, and packs the first four voice numbers (5 bits each) into the caller's actor record at `+0x70`, setting flag bit 3. Actors keep the voices they own.
 
 Sequence control of effect packages uses `SND_StopSequence`, `SND_SetSequenceVolume`, `SND_StopAllSequences` (stops the four sequences of every live owner) and `SND_FindFreeFxVoice` (scans the four sequences of owner 0 with `SsIsEos`; its outer loop ends after index 0). Event opcodes `0xB8` to `0xBB` call the sequence functions with script bytes.
 
 ## Voices and loudness
 
 - `SND_UpdateVoiceStatus (exe/slus_004_22@0x8015D044)` stores `SpuGetKeyStatus(1 << i)` for `i = 0..23` into `D_8018E140` each frame, called from `SYS_Main`.
-- The PlayStation SPU has 24 voices. `SsSetReservedVoice(0x10)` reserves 16 of them for the library, and voices 16 to 23 are prepared as the effect voices `[inferred]`. The reservation meaning is the PsyQ contract.
+- The PlayStation SPU has 24 voices. `SsSetReservedVoice(0x10)` reserves 16 of them for the library, and voices 16 to 23 are prepared as the effect voices `[inferred]`.
 - `D_80144954` is a duck gate. While it is nonzero, `SND_PlaySequence` starts sequences at volume 0 and the fade-in and decrescendo calls return. `SYS_StartFrontend` and `func_801E18D0` (`emi/etc/start/08`) clear it. Who sets it is not traced `[unknown]`.
 - `g_SndMono` selects mono: when it is nonzero, `SND_SetCdVolume` halves all four `CdMix` bytes, so each output gets half the level on both channels. Who sets it is not traced `[unknown]`.
 
@@ -140,7 +140,7 @@ XA plays speech and long effects from three disc files, selected by a key. `SND_
 
 - The group is `key >> 12` and the index is `key & 0xFFF`. The file is `g_EmiSlotLbas[D_80183230[group]]`, that is loader slot `0x2A9` (group 0), `0x1B2` (group 1) or `0x2AA` (group 2).
 - Each group has a `u16` table (`D_8018323C[group]`: `D_801839C4`, `D_801832C4`, `D_80183298`). The code walks `index` entries. An entry with bit 15 set skips one extra `u16` and adds 1 to a channel counter (`D_80146835`).
-- The start sector is `base + (entry & 0x7FFF) * scale + channel`, with `scale` 8 for group 0 and 16 for the others. The stop bound is the same expression for the next entry, minus 150 sectors (`0x96`). The 150 is probably the CD pregap offset of the position conversion, one table entry is a track start in units of interleaved sectors, and the counter is the XA channel `[inferred]`.
+- The start sector is `base + (entry & 0x7FFF) * scale + channel`, with `scale` 8 for group 0 and 16 for the others. The stop bound is the same expression for the next entry, minus 150 sectors (`0x96`). 150 is the CD pregap offset of the position conversion, one table entry is a track start in interleaved sectors, and the counter is the XA channel `[inferred]`.
 - `CdlSetfilter` is sent with file `1` and that channel `[inferred]` from the parameter block at `D_80146834`.
 
 `SND_UpdateXA (exe/slus_004_22@0x801638B0)` runs one state of `g_XaStateFuncs[state]` per frame, called by `EMI_Update` while `g_EmiServiceMode == 2`, then increments a timer `D_8014681C`:
@@ -180,7 +180,7 @@ XA callers are the scene scripts (opcode `0x89` in `func_801AB458`, key from the
 
 ### RAM and SPU budget per layout
 
-Each bank has a header window and a sequence window in main RAM (sizes in bytes, from `D_8018239C` and `D_801823F0`) and an SPU start address (`D_80182348`). The SPU body of a bank may extend up to the next bank's start. The spans below are that subtraction `[inferred]`.
+Each bank has a header window and a sequence window in main RAM (sizes in bytes, from `D_8018239C` and `D_801823F0`) and an SPU start address (`D_80182348`). The SPU body of a bank may extend up to the next bank's start. The spans are that subtraction `[inferred]`.
 
 | Layout | Bank | Header window | Sequence window | SPU start | SPU span to next bank (bytes)          |
 | -----: | ---: | ------------: | --------------: | --------: | -------------------------------------- |
@@ -197,9 +197,9 @@ Each bank has a header window and a sequence window in main RAM (sizes in bytes,
 |      2 |    0 |        12,320 |          54,176 |  `0x1010` | 440,000                                |
 |      2 |    1 |         4,640 |               0 | `0x6C6D0` | to the end, at most 80,176             |
 
-The round decimal spans (250,000, 70,000, 82,000, 440,000) suggest designed budgets `[inferred]`.
+The round spans (250,000, 70,000, 82,000, 440,000) are design budgets `[inferred]`.
 
-What an edited audio asset must stay within:
+Limits for an edited audio asset:
 
 - **VAB header (VH).** A VH is 2,592 + 512 * `ps` bytes (`0xA20 + ps * 0x200`) ([audio formats](../../formats/audio/#bank-layout)). The header window sets the program count `ps`. Bank 0 allows `ps <= 16` in layout 0, `<= 14` in layout 1 and `<= 19` in layout 2. In layout 0, bank 1 allows 3 and bank 2 allows 4. The loader functions copy sectors with no size check that this reading found `[inferred]`.
 - **VAB body (VB).** It must fit the SPU span of its bank and layout above. SPU RAM is 512 KiB (`0x80000`) and the table starts at `0x1010`. The reverb work area also occupies the top of SPU RAM in room mode, which is the PsyQ contract `[inferred]`. The loader reports an error only when `SsVabOpenHeadSticky` or `SsSepOpenJ` returns -1.

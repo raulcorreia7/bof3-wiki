@@ -3,25 +3,25 @@ title: "Frame loop"
 description: "After boot, SYS_Main (exe/slus_004_22@0x8014AAC8) never returns."
 ---
 
-After [boot](../../systems/boot/), `SYS_Main (exe/slus_004_22@0x8014AAC8)` never returns. It repeats one loop for the rest of the session, and every frame of the game, from the title to the credits, is one pass through it. The loop owns the display, the controller read and the CD loader tick. It owns no game logic: the four callback threads that the [scheduler](../scheduler/) runs hold it. Primitive layouts and drawing are in [rendering](../../systems/rendering/).
+After [boot](../../systems/boot/), `SYS_Main (exe/slus_004_22@0x8014AAC8)` never returns. Every frame, from the title to the credits, is one pass through this loop. The loop owns the display, the controller read and the CD loader tick. Game logic runs in the four callback threads of the [scheduler](../scheduler/). Primitive layouts and drawing are in [rendering](../../systems/rendering/).
 
 ## The double-buffered frame
 
-The game keeps two copies of everything the GPU needs for one picture. Each copy is a 144-byte render record at `g_GfxDisplayFrames (exe/slus_004_22@0x80143D48)`. A record holds the display and draw environments, an 8-word ordering table and the arena in which the frame's primitives are built. VRAM holds two 320 x 240 frame buffers, one at y = 0 and one at y = 0xF0. Each record draws into one buffer and displays the other.
+The display is double-buffered. Each buffer has a 144-byte render record at `g_GfxDisplayFrames (exe/slus_004_22@0x80143D48)`. A record holds the display and draw environments, an 8-word ordering table and the arena in which the frame's primitives are built. VRAM holds two 320 x 240 frame buffers, one at y = 0 and one at y = 0xF0. Each record draws into one buffer and displays the other.
 
-While the GPU draws the picture of frame N from one record, the CPU builds frame N + 1 in the other record. `g_FrameBufferIndex (exe/slus_004_22@0x80143D44)` says which record is being built, and the loop flips it once per pass. The GPU starts early in the pass and runs in parallel with the controller read, the callbacks and the loader tick. The pass ends by waiting for the GPU to finish. A picture therefore appears one pass after the game logic that built it.
+While the GPU draws frame N from one record, the CPU builds frame N + 1 in the other. `g_FrameBufferIndex (exe/slus_004_22@0x80143D44)` selects the record being built and flips once per pass. The GPU starts early in the pass and runs in parallel with the controller read, the callbacks and the loader tick. The pass ends by waiting for the GPU. A picture appears one pass after the logic that built it.
 
 Game code reaches the primitive arena through `GFX_AddPrim (exe/slus_004_22@0x8014E5A0)`. Each call appends one primitive to one of eight layer chains. At the end of the pass `SYS_SubmitFrame (exe/slus_004_22@0x8014B0F0)` splices the eight chains into the record's ordering table.
 
 ## The callback threads
 
-`CallbackRun (exe/slus_004_22@0x8014B73C)` is the only place game code runs. The game logic is not a function that the loop calls. It is up to four cooperative kernel threads, one per callback slot. Each thread runs until it calls `CallbackWait` (give control back and run again after n passes) or `CallbackExit`. Control then returns to `CallbackRun`, which moves on to the next slot. A thread that never yields freezes the game, because nothing pre-empts it.
+`CallbackRun (exe/slus_004_22@0x8014B73C)` is the only place game code runs. Game logic is up to four cooperative kernel threads, one per callback slot. Each thread runs until it calls `CallbackWait` (resume after n passes) or `CallbackExit`; control returns to `CallbackRun`, which moves to the next slot. Nothing pre-empts a thread, so a thread that never yields freezes the game.
 
-Every frame is therefore a short turn for each live thread. Slot 0 usually holds the main game loop, slot 1 the title during the title, and slot 2 a screen effect such as a fade. The [scheduler](../scheduler/) lists what each slot runs and how a thread starts, yields and is replaced.
+Slot 0 usually holds the main game loop, slot 1 the title during the title, and slot 2 a screen effect such as a fade. The [scheduler](../scheduler/) lists what each slot runs and how a thread starts, yields and is replaced.
 
 ## Order of one pass
 
-`SYS_Main` runs the steps in the table in order, once per pass. The GPU work that step 5 starts overlaps steps 6 to 11, and step 12 waits for it to finish.
+`SYS_Main` runs these steps in order once per pass. The GPU work that step 5 starts overlaps steps 6 to 11; step 12 waits for it.
 
 | Step | Call                                                                            | Effect                                                                                   |
 | ---: | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -38,13 +38,13 @@ Every frame is therefore a short turn for each live thread. Slot 0 usually holds
 |   11 | `EMI_Update`                                                                    | tick the CD loader or the XA audio player                                                |
 |   12 | `g_SysLastVSync = VSync(1)`; `DrawSync(0)`; `SYS_SubmitFrame`; `g_FrameCount++` | wait for the GPU, then link the new layer chains into the ordering table; count the pass |
 
-`VSync(2)` caps the loop at one pass per two vertical blanks. On an NTSC display, which `SYS_InitHardware (exe/slus_004_22@0x8014AD28)` selects, that is 30 passes per second. A pass that needs longer runs slower, so the game slows down instead of dropping frames. `[inferred]` The rate follows from the PsyQ `VSync` contract and the NTSC mode that the code sets. The play clock agrees: `func_80198CAC (emi/etc/game/00@0x80198CAC)` adds one tick per main-loop pass and rolls 30 ticks into one second.
+`VSync(2)` caps the loop at one pass per two vertical blanks. On an NTSC display, which `SYS_InitHardware (exe/slus_004_22@0x8014AD28)` selects, that is 30 passes per second. A longer pass slows the game; frames are not dropped. `[inferred]` from the PsyQ `VSync` contract and the NTSC mode. The play clock agrees: `func_80198CAC (emi/etc/game/00@0x80198CAC)` adds one tick per main-loop pass and rolls 30 ticks into one second.
 
-The overlap of GPU drawing with steps 6 to 11 follows from the PsyQ contract that `DrawOTag` starts a DMA and returns. `[inferred]`
+The GPU overlap with steps 6 to 11 follows from the PsyQ contract that `DrawOTag` starts a DMA and returns. `[inferred]`
 
 ## Render records and the primitive arena
 
-The table lists the fields of one 144-byte render record that the loop addresses.
+Fields of one 144-byte render record that the loop addresses:
 
 | Offset | Size | Type      | Meaning                                                          |
 | -----: | ---: | --------- | ---------------------------------------------------------------- |
@@ -60,7 +60,7 @@ The table lists the fields of one 144-byte render record that the loop addresses
 - resets 56 cell records of 48 bytes at `D_80142CC0` `[inferred]`, which the area map engine uses;
 - sets `D_801459F8` to `0x800E4800` and `D_801459FC` to `0x800F5000`, the area work window and the area code base.
 
-`GFX_AddPrim` appends a primitive only while the cursor plus the primitive size stays below `0x80028FCC + b * 0x9000`. The arena of one buffer is therefore 36,812 bytes. When it is full the call returns without a signal and the primitive is lost. Every sprite, window, glyph and map cell of one frame draws from this one arena. Layer order and primitive layouts are in [rendering](../../systems/rendering/).
+`GFX_AddPrim` appends a primitive only while the cursor plus the primitive size stays below `0x80028FCC + b * 0x9000`. The arena of one buffer is therefore 36,812 bytes. When it is full the call returns silently and the primitive is lost. Every sprite, window, glyph and map cell of a frame draws from this arena. Layer order and primitive layouts are in [rendering](../../systems/rendering/).
 
 ## Input
 
@@ -68,7 +68,7 @@ The table lists the fields of one 144-byte render record that the loop addresses
 
 ## Soft reset
 
-Holding Select and Start together returns the game to the first boot callback. The test is `(g_InputHeld & (PADselect | PADstart)) == 0x900`. A counter `g_SysResetHoldFrames (exe/slus_004_22@0x80143F44)` counts the passes in which it holds and clears when it stops holding. On the pass where the counter already equals 60, so the 61st pass in a row, and only if `EMI_IsReady` is true, the loop runs `SND_Exit` and `CallbackStopAll`, then `CallbackRegister(0, SYS_StartFrontend)`. The game reloads `FIRST.EMI` and `GAME.EMI` and reaches the title again. It plays no logo. If the loader is busy, the reset waits.
+Holding Select and Start together returns the game to the first boot callback. The test is `(g_InputHeld & (PADselect | PADstart)) == 0x900`. A counter `g_SysResetHoldFrames (exe/slus_004_22@0x80143F44)` counts the passes in which it holds and clears when it stops holding. On the pass where the counter already equals 60, so the 61st pass in a row, and only if `EMI_IsReady` is true, the loop runs `SND_Exit` and `CallbackStopAll`, then `CallbackRegister(0, SYS_StartFrontend)`. The game reloads `FIRST.EMI` and `GAME.EMI` and returns to the title without the logo. If the loader is busy, the reset waits.
 
 ## Loader tick
 
@@ -79,8 +79,6 @@ Holding Select and Start together returns the game to the first boot callback. T
 A random encounter does not start in a frame whose drawing ended late. `SYS_CaptureDrawTime (exe/slus_004_22@0x8014B17C)` is the `DrawSync` callback and stores `VSync(1)` in `D_80143EFC`. `Area_CanStartEncounter (emi/etc/game/00@0x801B3EB0)` returns 0 when `D_80143EFC >= 0xF1` and `g_GameRequestFlags` bit 0 is clear. By the PsyQ contract `VSync(1)` returns the horizontal blanks elapsed since the last `VSync` call, so the limit is about 240 scan lines. `[inferred]`
 
 ## Data and limits
-
-The table gives the fixed sizes of the loop and where each comes from.
 
 | Limit                         | Value                                                 | Source                                                                         |
 | ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |

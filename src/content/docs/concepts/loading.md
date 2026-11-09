@@ -3,7 +3,7 @@ title: "Loading"
 description: "The game streams almost everything it runs or draws from the disc during play: overlay code, area maps, battle data, character graphics, sound banks and story scenes."
 ---
 
-The game streams almost everything it runs or draws from the disc during play: overlay code, area maps, battle data, character graphics, sound banks and story scenes. Only the main executable and the resident game program stay in RAM. A load request names one archive by its slot id, and `EMI_LoadArchive` starts a CD stream that writes each entry of the archive to its destination in a fixed [memory](../memory/) window. This page follows one request from the call to the first byte in RAM and then covers the load path of each kind of data. The archive layout is in the [EMI container](../../formats/emi/).
+The game streams nearly all code and data from the disc during play: overlays, area maps, battle data, character graphics, sound banks and story scenes. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_LoadArchive` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each kind of data. The archive layout is in the [EMI container](../../formats/emi/).
 
 ## Load request flow
 
@@ -42,7 +42,7 @@ sequenceDiagram
     Caller->>Ram: call the fixed entry<br/>address
 ```
 
-Two properties follow. Only one stream owns the CD at a time: a new request overrides the old one, and nothing queues. `[inferred]` The loader also does not know what the window held before. A later load at the same address overwrites the overlay, and no guard stops a load into a window whose previous overlay is still running. `[unknown]` for any guard in code not read.
+Only one stream owns the CD at a time: a new request replaces the old one and nothing queues. `[inferred]` The loader does not track what a window holds. A load overwrites the overlay at its address, and no guard in the code read stops a load into a window whose overlay is still running. Guards in unread code are `[unknown]`.
 
 ### A worked example
 
@@ -57,7 +57,7 @@ The first area, `AREA001`, is the archive for slot `0x2AB + 1`. Its table of con
 | 9 to 12 |       0 | `0x80032000`, `0x800E4000`, `0x80010000`, `0x80104000` | copy the area table, encounter table, text bank and map bundle               |
 | 13      |       0 | `0x801F2C00`                                           | copy the area program, last                                                  |
 
-The program is last, so the stream is ready only after the program is in place, and the caller can call into it the moment the wait ends. `[inferred]` The type-3 load arguments are packed: for `0x0E001000` the top byte holds the start column (14), the next byte the row (0) and the third byte the number of columns before the upload wraps (16). Each column is 32 pixels wide, so this block starts at VRAM x = 448.
+The area program is last, so the stream is ready only once the program is in place. `[inferred]` The type-3 load arguments are packed: for `0x0E001000` the top byte holds the start column (14), the next byte the row (0) and the third byte the number of columns before the upload wraps (16). Each column is 32 pixels wide, so this block starts at VRAM x = 448.
 
 ## Slot ids
 
@@ -116,7 +116,7 @@ Bit `0x20` of `g_EmiStreamFlags (exe/slus_004_22@0x80146854)` shortens a load. `
 
 ## Overlay swaps
 
-A swap overwrites the old overlay's code and its own variables. Only the persistent block and the executable's variables outlive it ([memory](../memory/#overlay-windows)). Every swap starts with one `EMI_LoadArchive` call. Code outside battle mostly waits in a `CallbackWait` loop. Battle code polls `EMI_IsReady` from a step machine and advances `g_BattleSubStep` when the stream is ready. The table lists the call sites read. Functions not read are not covered.
+A swap overwrites the old overlay's code and its own variables. Only the persistent block and the executable's variables outlive it ([memory](../memory/#overlay-windows)). Every swap starts with one `EMI_LoadArchive` call. Code outside battle mostly waits in a `CallbackWait` loop. Battle code polls `EMI_IsReady` from a step machine and advances `g_BattleSubStep` when the stream is ready. The table lists the call sites read; unread functions are not covered.
 
 | Trigger                | Caller                                                                                                             | Slot                                                                                                                                 | Waits for                                      |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
@@ -135,7 +135,7 @@ A swap overwrites the old overlay's code and its own variables. Only the persist
 
 ## Load paths
 
-Each kind of data has its own request function. The table lists every request site that the code shows, and the subsections give the trigger, the archive, the destinations and the code that reads the result.
+Each kind of data has its own request function. The table lists every request site in the code. The subsections give the trigger, archive, destinations and reader of each path.
 
 | Path                                        | Request function                                                                                                   | Archive                                         | Lands                                                                   | Read by                                  |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------- |
@@ -323,7 +323,7 @@ The only movie code is in `LOGO.EXE`, which [boot](../../systems/boot/#the-logo-
 
 ## Data and limits
 
-The table lists the loader's data and where each item sits.
+The loader's data:
 
 | Data                        | Type                  | Address                      | Role                                                             |
 | --------------------------- | --------------------- | ---------------------------- | ---------------------------------------------------------------- |
@@ -355,7 +355,7 @@ The table lists the loader's data and where each item sits.
 | Which pointer table picks each battle form archive (`D_800B4A64`, `D_800B4A68`) and what the forms are | Find where the two pointers are set, and read the `BRT`, `CRYU`, `DRG`, `PAPY`, `RT` and `RYU` archives |
 | The conditions in `func_8019FAA0` that choose a world or area change                                   | The function branches on state values not yet traced                                                    |
 
-Settled by the code: `BOSS` (`0x1B3` to `0x1DA`) is requested through `g_BossArchiveSlots` in `Battle_LoadBattleArchive`; `ENDKANJI` (`0x260`) is requested by the ending scene in `scena17`; `AFLDKWA` restores the message table after a battle ([after a battle](#after-a-battle)).
+Also read in the code: `BOSS` (`0x1B3` to `0x1DA`) is requested through `g_BossArchiveSlots` in `Battle_LoadBattleArchive`; `ENDKANJI` (`0x260`) is requested by the ending scene in `scena17`; `AFLDKWA` restores the message table after a battle ([after a battle](#after-a-battle)).
 
 ## Sources and confidence
 
