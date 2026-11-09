@@ -79,13 +79,13 @@ section = u32[table + 4 * lhu(work + 0x2C)]
 record  = table + section + u16[table + section + 2 * lbu(work + 0x4B)]
 ```
 
-`SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` sets the pointer to `0x800D3800`. The battle handlers swap in `0x800F0800` around each handler call and restore `0x800D3800` afterwards (`func_801E6724 (emi/battle/battle/03@0x801E6724)`, `func_801E6C84 (emi/battle/battle/03@0x801E6C84)`). When bit 0 of work `+0x24` is set, `Actor_BeginScript` takes the record from the actor's character table (work `+0x4C`) through `Actor_SelectScriptBank (exe/slus_004_22@0x8014DC08)` instead, and the same step code reads it. No record stores its length, so the table offsets are the only stored record boundaries. `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)` does not read this table. It selects a record through `Actor_SelectScriptBank` and copies a byte count that its caller passes: `0xA00` from `func_801BEE5C (emi/etc/game/00@0x801BEE5C)` and `0x1800` from `Battle_ReloadPartyBank (emi/battle/battle/03@0x801D6F28)` and `func_801DEFE4 (emi/battle/battle/03@0x801DEFE4)`.
+`SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` sets the pointer to `0x800D3800`. The battle handlers swap in `0x800F0800` around each handler call and restore `0x800D3800` afterwards (`func_801E6724 (emi/battle/battle/03@0x801E6724)`, `func_801E6C84 (emi/battle/battle/03@0x801E6C84)`). When bit 0 of work `+0x24` is set, `Actor_BeginScript` takes the record from the actor's character table (work `+0x4C`) through `Actor_SelectScriptBank (exe/slus_004_22@0x8014DC08)` instead, and the same step code reads it. No record stores its length, so the table offsets are the only stored record boundaries. `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)` does not read this table. It selects a record through `Actor_SelectScriptBank` and copies a byte count that its caller passes: `0xA00` from `Battle_LoadPartyScripts (emi/etc/game/00@0x801BEE5C)` and `0x1800` from `Battle_ReloadPartyBank (emi/battle/battle/03@0x801D6F28)` and `func_801DEFE4 (emi/battle/battle/03@0x801DEFE4)`.
 
 Every section describes itself, because `u16[0]` is both the table size and record 0's offset. In all 2,380 sections the distinct offsets of a table increase strictly, and the spans between them tile the section from the table end to its end. 308 of the 2,380 tables contain a descent (51 byte-identical tables, the most used 23 times, across 88 archives), and 225 more contain only equal words. A table entry may therefore repeat an earlier offset, and then it shares that record with the earlier entry.
 
 ### Script record
 
-A record is one animation script. `Actor_SeekScript (exe/slus_004_22@0x8014D910)` reads byte 1 as the step count, moves the cursor (work `+0x50`) past the two count bytes and points the frame table (work `+0x54`) at `cursor + 2 * steps`. `func_8014DB98 (exe/slus_004_22@0x8014DB98)` loads one step: it stores the hold byte to work `+0x4A` and the frame-table entry that the frame byte selects to work `+0x5A`.
+A record is one animation script. `Actor_SeekScript (exe/slus_004_22@0x8014D910)` reads byte 1 as the step count, moves the cursor (work `+0x50`) past the two count bytes and points the frame table (work `+0x54`) at `cursor + 2 * steps`. `Actor_StageAnimStep (exe/slus_004_22@0x8014DB98)` loads one step: it stores the hold byte to work `+0x4A` and the frame-table entry that the frame byte selects to work `+0x5A`.
 
 |             Offset |         Size | Type           | Meaning                                                                                     |
 | -----------------: | -----------: | -------------- | ------------------------------------------------------------------------------------------- |
@@ -97,11 +97,11 @@ A record is one animation script. `Actor_SeekScript (exe/slus_004_22@0x8014D910)
 
 A step is a pair of bytes: a hold and a frame index. A step function counts the hold down by one on each call and loads the next step at zero. A hold of `0x80` or more makes the pair a jump: the step function moves to the step whose index is the pair's second byte, loads it at once and reports 1. Three step functions differ only at the end of the list.
 
-| Step function                                | After the last step                                                                                 |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `func_8014D978 (exe/slus_004_22@0x8014D978)` | starts again at step 0 and reports 1                                                                |
-| `func_8014DAEC (exe/slus_004_22@0x8014DAEC)` | keeps the last frame and reports 1 on each later call                                               |
-| `func_8014DA24 (exe/slus_004_22@0x8014DA24)` | walks the steps backward without jumps; after step 0 it starts again at the last step and reports 1 |
+| Step function                                        | After the last step                                                                                 |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `Actor_StepAnimLoop (exe/slus_004_22@0x8014D978)`    | starts again at step 0 and reports 1                                                                |
+| `Actor_StepAnimOnce (exe/slus_004_22@0x8014DAEC)`    | keeps the last frame and reports 1 on each later call                                               |
+| `Actor_StepAnimReverse (exe/slus_004_22@0x8014DA24)` | walks the steps backward without jumps; after step 0 it starts again at the last step and reports 1 |
 
 ### Frame parts
 
@@ -235,7 +235,7 @@ Source: [`include/game/enemy.h`](https://github.com/raulcorreia7/bof3-decomp/blo
 
 An action block is 16 bytes: a condition byte, seven AI parameters and eight ability indexes. Condition `0x63` marks an unused block. [Game records](../../data/records/#area-data) lists the same fields by group.
 
-HP `0xFFFF` appears in 10 of the 448 non-empty enemy records: Worker (two blocks), Operator, Miner, Engineer, Foreman, Gary, Mogu, Nina and Garr (`enemy_id` 1108, the party-member variant that [records](../../data/records/) lists). It is a sentinel, not a large HP value. The battle setup `func_800AC218 (emi/battle/battle/15@0x800AC218)` loads the halfword at `0x800E4068 + index x 0x88` (`@0x800AC448`) and stores it at battler `+0xC0` and in the `D_801EB6C4` row (`@0x800AC450` and `@0x800AC45C`) without a check. The damage step `Battle_ApplyDamage (emi/battle/battle/03@0x801DBB78)` then skips the whole enemy HP change when the battler's HP at `+0x94` is `0xFFFF`, so the battler takes no damage. Two boss handlers also test it: `func_800C1A00 (emi/boss/boss002/16@0x800C1A00)` and `func_800C1CDC (emi/boss/boss033/16@0x800C1CDC)` set the action type to 3 when the current enemy's HP is `0xFFFF`. The other `0xFFFF` immediates in the battle overlays are the default-element argument of `Battle_CalcDamage (emi/battle/battle/03@0x801DC044)`. The script that ends these fights is `[unknown]`.
+HP `0xFFFF` appears in 10 of the 448 non-empty enemy records: Worker (two blocks), Operator, Miner, Engineer, Foreman, Gary, Mogu, Nina and Garr (`enemy_id` 1108, the party-member variant that [records](../../data/records/) lists). It is a sentinel, not a large HP value. The battle setup `Battle_LoadEnemyBattler (emi/battle/battle/15@0x800AC218)` loads the halfword at `0x800E4068 + index x 0x88` (`@0x800AC448`) and stores it at battler `+0xC0` and in the `D_801EB6C4` row (`@0x800AC450` and `@0x800AC45C`) without a check. The damage step `Battle_ApplyDamage (emi/battle/battle/03@0x801DBB78)` then skips the whole enemy HP change when the battler's HP at `+0x94` is `0xFFFF`, so the battler takes no damage. Two boss handlers also test it: `func_800C1A00 (emi/boss/boss002/16@0x800C1A00)` and `func_800C1CDC (emi/boss/boss033/16@0x800C1CDC)` set the action type to 3 when the current enemy's HP is `0xFFFF`. The other `0xFFFF` immediates in the battle overlays are the default-element argument of `Battle_CalcDamage (emi/battle/battle/03@0x801DC044)`. The script that ends these fights is `[unknown]`.
 
 ## Neighboring buffers
 
@@ -487,7 +487,7 @@ Nineteen payloads hold no `addiu $sp` and no `jr $ra` at any word offset, so the
 ## Sources and confidence
 
 - **Confidence:** medium. The block formats, the script table and the map bundle header are read and checked on all 200 archives, and the script record grammar is read in the step and draw code, but the byte-code names, the `scroll` field and the battle and world-map graphics are not decoded.
-- **Evidence:** the 200 area archives, the loader and the area, field and battle functions named above. The script record grammar comes from `Actor_BeginScript`, `Actor_SeekScript`, `func_8014DB98`, the three step functions and `Area_DrawObjectSprite`. The frame count at record byte 0 is `[inferred]` from the layout, because no step function reads it. The script table holds no opcodes, so the event-script opcodes that the community [bof3-script-editor](https://github.com/glitch-in-the-herring/bof3-script-editor) (MIT) lists do not describe it ([sources](../../appendix/sources/)).
+- **Evidence:** the 200 area archives, the loader and the area, field and battle functions named above. The script record grammar comes from `Actor_BeginScript`, `Actor_SeekScript`, `Actor_StageAnimStep`, the three step functions and `Area_DrawObjectSprite`. The frame count at record byte 0 is `[inferred]` from the layout, because no step function reads it. The script table holds no opcodes, so the event-script opcodes that the community [bof3-script-editor](https://github.com/glitch-in-the-herring/bof3-script-editor) (MIT) lists do not describe it ([sources](../../appendix/sources/)).
 
 ## Related
 

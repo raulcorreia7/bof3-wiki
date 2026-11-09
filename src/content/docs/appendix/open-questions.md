@@ -91,30 +91,30 @@ Pages: [battle engine](../../systems/battle/#open-questions), [battle records](.
 | Readers of battle state bit `0x0008`                                                                                                              | Search the battle overlays for tests of the bit.                             |
 | The roles of the unnamed cells in the actor rows and field slots ([field](../../data/field/#open-questions))                                      | A write trace per cell.                                                      |
 | The widths of the lure float-rate groups ([field](../../data/field/#open-questions))                                                              | Read the lure tables once their addresses are known.                         |
-| The rod and lure table addresses: the strides are read, but `0x801E2748` lies in the panel-icon array ([field](../../data/field/#open-questions)) | A read breakpoint on `func_801DDE2C`.                                        |
+| The rod and lure table addresses: the strides are read, but `0x801E2748` lies in the panel-icon array ([field](../../data/field/#open-questions)) | A read breakpoint on `Fishing_SelectGear`.                                   |
 
 ## Screens and interface
 
 Pages: [screens](../../systems/screens/#open-questions), [UI](../../systems/ui/#open-questions).
 
-| Question                                                                  | What would settle it                                                                                                                                |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The button that writes request code 1 (menu open)                         | Read the callers of the actor step table `D_801CD110`.                                                                                              |
-| Names of the 9 STATUS steps and the 10 SHOP screens                       | Read each step function after `D_801EC35C` and `D_801E5144`.                                                                                        |
-| What the BATE tally counts                                                | Find the writers of `0x801FE4E8`, `0x801FE4EF` and `0x801FE4F0` in the `scena06` image.                                                             |
-| Which prize each SHISU rank gives                                         | Find the readers of `D_80144E5E`, and of `g_ScriptVars[3]` after code 8.                                                                            |
-| Which script selects scene event 4 (master) and the events for COMMU01-05 | Search the area setup streams and scenarios for `D_801448EB` stores.                                                                                |
-| The caller of fishing substate 3 (`func_801E0C20`)                        | Search `area030` for stores to `g_GameEntrySubstate`. Only `func_801DDC54` stores 3.                                                                |
-| Which addresses hold the fishing rod and lure tables                      | The strides are read from `func_801DDE2C`, but both addresses lie in the `D_801E2424` panel-icon array ([field](../../data/field/#open-questions)). |
-| Ending and credits screens                                                | `scena17` loads `ENDKANJI` at `0x801F8554`. Read `scena17` to `scena19` `[inferred]`.                                                               |
-| `D_8014869C` and `D_8014869D`, set by the menu overlay                    | Find their writers in `emi/etc/start/08`.                                                                                                           |
-| Per-step roles of message states 4, 5 and 7                               | Read the 8, 6 and 2 step functions and the shop and start-menu callers.                                                                             |
-| Source of `D_80144950` (message speed) and the row count of `D_8017F5B4`  | Search writers of `D_80144950` in the options menu.                                                                                                 |
-| Who writes `g_UiWindowEffectBusy`                                         | Read `func_801D74D4`, `Game_LoadAbilityMenu`, `func_801985C8`.                                                                                      |
-| Overlay owners of six panel handlers of `g_MenuPanelHandlers`             | Map each address to its overlay window and archive.                                                                                                 |
-| Panel fill drawing and the pass-order meaning of modes 0, 1, 2            | Read `func_80158FE0`, `func_801598F4`, `func_80159A20`.                                                                                             |
-| The separate path of battle messages (`g_BattleMessageState`)             | Read the `emi/battle/battle/03` message functions.                                                                                                  |
-| Camera-spin effects (modes 10 to 20)                                      | Read `func_8014EF80`, `func_8014F024`, `func_8014F24C`, `func_8014F2F0`, `func_8014F460`.                                                           |
+| Question                                                                  | What would settle it                                                                                                                                     |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The button that writes request code 1 (menu open)                         | Read the callers of the actor step table `D_801CD110`.                                                                                                   |
+| Names of the 9 STATUS steps and the 10 SHOP screens                       | Read each step function after `D_801EC35C` and `D_801E5144`.                                                                                             |
+| What the BATE tally counts                                                | Find the writers of `0x801FE4E8`, `0x801FE4EF` and `0x801FE4F0` in the `scena06` image.                                                                  |
+| Which prize each SHISU rank gives                                         | Find the readers of `D_80144E5E`, and of `g_ScriptVars[3]` after code 8.                                                                                 |
+| Which script selects scene event 4 (master) and the events for COMMU01-05 | Search the area setup streams and scenarios for `D_801448EB` stores.                                                                                     |
+| The caller of fishing substate 3 (`func_801E0C20`)                        | Search `area030` for stores to `g_GameEntrySubstate`. Only `func_801DDC54` stores 3.                                                                     |
+| Which addresses hold the fishing rod and lure tables                      | The strides are read from `Fishing_SelectGear`, but both addresses lie in the `D_801E2424` panel-icon array ([field](../../data/field/#open-questions)). |
+| Ending and credits screens                                                | `scena17` loads `ENDKANJI` at `0x801F8554`. Read `scena17` to `scena19` `[inferred]`.                                                                    |
+| `D_8014869C` and `D_8014869D`, set by the menu overlay                    | Find their writers in `emi/etc/start/08`.                                                                                                                |
+| Per-step roles of message states 4, 5 and 7                               | Read the 8, 6 and 2 step functions and the shop and start-menu callers.                                                                                  |
+| Source of `D_80144950` (message speed) and the row count of `D_8017F5B4`  | Search writers of `D_80144950` in the options menu.                                                                                                      |
+| Who writes `g_UiWindowEffectBusy`                                         | Read `func_801D74D4`, `Game_LoadAbilityMenu`, `func_801985C8`.                                                                                           |
+| Overlay owners of six panel handlers of `g_MenuPanelHandlers`             | Map each address to its overlay window and archive.                                                                                                      |
+| Panel fill drawing and the pass-order meaning of modes 0, 1, 2            | Read `func_80158FE0`, `func_801598F4`, `func_80159A20`.                                                                                                  |
+| The separate path of battle messages (`g_BattleMessageState`)             | Read the `emi/battle/battle/03` message functions.                                                                                                       |
+| Camera-spin effects (modes 10 to 20)                                      | Read `func_8014EF80`, `func_8014F024`, `func_8014F24C`, `func_8014F2F0`, `func_8014F460`.                                                                |
 
 ## Rendering and graphics
 
@@ -143,7 +143,7 @@ Pages: [audio runtime](../../systems/audio/#open-questions), [audio formats](../
 | Writers of `D_80144954` (duck gate) and `g_SndMono` (mono)                                  | Search overlays and `emi/etc/start/08` for stores to the two addresses.             |
 | Meaning of the cue volume ladders `D_80182290` to `D_80182308`                              | Find readers of those tables beyond `SND_QueueCueVolume`.                           |
 | XA group sizes, group 2 callers, and the content of each table entry                        | Read the three tables against the XA file sector map.                               |
-| The seven bank readers' per-bank differences                                                | Read `func_8015E994` to `func_80160E38`.                                            |
+| The seven bank readers' per-bank differences                                                | Read `SND_ReadCueBank0` to `SND_ReadCueBank6`.                                      |
 | Opcode `0xBD` (`func_8015D820`) in event scripts                                            | Read `func_8015D820`.                                                               |
 | Role of type-8 cue byte 0 bits 3 to 7 and byte 2 bits 0 to 3                                | The voice-state consumer of the compared nibble.                                    |
 | Consumer of the BGM cue tables in BGM004, BGM108 and BGM117                                 | The sound-request code that indexes bank cue tables.                                |

@@ -41,7 +41,7 @@ Control codes that insert text (`{GOTO}`, `{INSERT}`, `{VAR}`, `{LINK}`, [text c
 
 ## Message state machine
 
-`func_801507BC` copies the table `D_80149A5C` to the stack and calls the handler for `D_801490A0.state_00`. `func_801518F4` does the same for the selection state `D_801490A2` with `D_80149AB4`. Each handler either runs the script or waits for the player.
+`Message_DispatchState` copies the table `D_80149A5C` to the stack and calls the handler for `D_801490A0.state_00`. `Message_DispatchChoiceMode` does the same for the selection state `D_801490A2` with `D_80149AB4`. Each handler either runs the script or waits for the player.
 
 | State | Handler              | Role                                                                                             |
 | ----: | -------------------- | ------------------------------------------------------------------------------------------------ |
@@ -74,7 +74,7 @@ The diagram shows only the transitions out of state 0, from the `switch` in `fun
 
 ## Windows and panels
 
-The text box is the panel in `g_MenuPanelTasks` slot 0. `UI_ResetMessage (exe/slus_004_22@0x80150304)` calls `Menu_OpenPanelTask(0, 0)`, which sets the slot active with handler index 0, and sets the slot's mode byte to 2. Handler 0 is `func_80158F80`. It picks one of three sub-kinds from the byte `+2` through `D_80149B30`: `func_80158FE0`, `func_801598F4` or `func_80159A20`. `func_80158FE0` runs the five panel states of `D_80149B3C`, indexed by the byte `+3`: `func_80159050`, `func_8015920C`, `func_80159510`, `func_80159580`, `func_801598B8`. The panel task machine itself (22 slots, 9 handlers, three passes) is in [scheduler](../../concepts/scheduler/#work-record-tables).
+The text box is the panel in `g_MenuPanelTasks` slot 0. `UI_ResetMessage (exe/slus_004_22@0x80150304)` calls `Menu_OpenPanelTask(0, 0)`, which sets the slot active with handler index 0, and sets the slot's mode byte to 2. Handler 0 is `func_80158F80`. It picks one of three sub-kinds from the byte `+2` through `D_80149B30`: `func_80158FE0`, `func_801598F4` or `func_80159A20`. `func_80158FE0` runs the five panel states of `D_80149B3C`, indexed by the byte `+3`: `func_80159050`, `func_8015920C`, `func_80159510`, `func_80159580`, `Menu_ClosePanel`. The panel task machine itself (22 slots, 9 handlers, three passes) is in [scheduler](../../concepts/scheduler/#work-record-tables).
 
 A box opens by growing from a point to its full size, stays, then shrinks:
 
@@ -84,7 +84,7 @@ A box opens by growing from a point to its full size, stays, then shrinks:
 | State 1, growing | `func_8015920C` adds the step each frame, snaps to the origin table, then draws the frame with `func_80159FA0`.                                                                 |
 | State 2, open    | `func_80159510`, the step between growing and shrinking. Its body is `[unknown]`.                                                                                               |
 | State 3, closing | `func_80159580` shrinks the box the same way and calls `UI_UpdateLayout` while the sub-kind is 0.                                                                               |
-| Frame            | `func_80159FA0` draws a gray (`0x78`) four-point outline and `func_8015A2B0` draws the inner line, both on layer 1.                                                             |
+| Frame            | `func_80159FA0` draws a gray (`0x78`) four-point outline and `UI_DrawLine` draws the inner line, both on layer 1.                                                               |
 | Text origin      | `UI_UpdateLayout` sets it to `(D_80148334 >> 4) + 10`, `(D_80148336 >> 4) + 6` before each redraw.                                                                              |
 | Position         | `g_MenuPanelOrigins (exe/slus_004_22@0x8017F90C)`, 32 bytes: two sets of 8 (x, y) byte pairs, selected by `D_801490CE`.                                                         |
 

@@ -52,9 +52,9 @@ A base of 0 means no encounters. Higher `rate` values give shorter walks between
 
 `Area_BuildEncounter (emi/etc/game/00@0x801C60E0)` builds the field-side description of the battle. It rolls a formation, copies the enemy list, tests each party cell, and clears every enemy that does not fit. It returns 1 only when the gate passes and at least one enemy remains.
 
-1. `func_801C6A7C` rolls `(rand() & 0xF) + 1` and walks the eight 9-byte formation records at `0x800E4000`, adding byte 8 (the weight) until the running sum reaches the roll. A roll past all eight weights gives formation 0.
-2. `func_801C6AEC` copies the record's 8 enemy ids into `D_801463DC` (8 `EncounterEnemy` of 12 bytes). An id other than `0xFF` stays when `(rand() & 0xF) + 1 <= s_EntitySpawnChances[slot]`. The chances are `16, 16, 16, 10, 8, 6, 4, 2`, so slots 0 to 2 always stay and slot 7 stays 2 times in 16. If no enemy stays, there is no battle.
-3. `func_801C6BB4` places each remaining enemy. For `n` active enemies the offset comes from `D_801CD620[n(n-1)/2 + placed]`, which is why the table has `1 + 2 + ... + 8 = 36` entries. The code then tries up to 49 cells from `s_EntitySpawnOffsets` around the party until `func_801C7518` and `func_801C6EE0` accept one. An enemy with no cell is dropped. `func_801C6DCC` and `func_801C7244` adjust positions for the scroll direction `g_BattleScrollDir`. The cell tests in step 3 are `[inferred]`.
+1. `Area_PickEncounter` rolls `(rand() & 0xF) + 1` and walks the eight 9-byte formation records at `0x800E4000`, adding byte 8 (the weight) until the running sum reaches the roll. A roll past all eight weights gives formation 0.
+2. `Area_RollEncounterEnemies` copies the record's 8 enemy ids into `D_801463DC` (8 `EncounterEnemy` of 12 bytes). An id other than `0xFF` stays when `(rand() & 0xF) + 1 <= s_EntitySpawnChances[slot]`. The chances are `16, 16, 16, 10, 8, 6, 4, 2`, so slots 0 to 2 always stay and slot 7 stays 2 times in 16. If no enemy stays, there is no battle.
+3. `Area_PlaceEncounterEnemies` places each remaining enemy. For `n` active enemies the offset comes from `D_801CD620[n(n-1)/2 + placed]`, which is why the table has `1 + 2 + ... + 8 = 36` entries. The code then tries up to 49 cells from `s_EntitySpawnOffsets` around the party until `func_801C7518` and `func_801C6EE0` accept one. An enemy with no cell is dropped. `func_801C6DCC` and `Area_SetEncounterCamera` adjust positions for the scroll direction `g_BattleScrollDir`. The cell tests in step 3 are `[inferred]`.
 
 The enemy record layout (`0x800E4048 + id * 0x88`, 8 records) is in the [area format](../../formats/area/).
 
@@ -99,7 +99,7 @@ Unless `g_BattleOptions & 0x40` is set, substate 3 copies 1,376 bytes of the seq
 `Battle_Update` runs once per frame in a fixed order:
 
 1. `Battle_DispatchMode`, but only when `g_BattleState` bit `0x0002` (boss window busy) is clear, no panel task 0 is live (or the mode is 5), and `g_BattleEventFlags & 2` is clear (or the mode is 5).
-2. `Battle_UpdateParty`, `Battle_UpdateEnemies`, `Battle_UpdateEvents`, `func_801527E4`, `Battle_UpdateEffects`.
+2. `Battle_UpdateParty`, `Battle_UpdateEnemies`, `Battle_UpdateEvents`, `Area_UpdateCamera`, `Battle_UpdateEffects`.
 3. `Battle_UpdatePartyActors`, `Battle_UpdateEnemyActors`.
 4. `func_801A0514` (scripted battle) or `func_801A061C` (random battle): the battle scene draw.
 5. `Area_UpdateParty`, `Actor_DispatchAll`, `GFX_UpdatePaletteAnimations`, `func_8019625C`, `Menu_UpdatePanelTasks`, `Area_DrawScene`.
@@ -131,10 +131,10 @@ stateDiagram-v2
 | ---: | -------------------------------- | ----: | ---------------------------------------------------------------------------------------------- |
 |    0 | `Battle_DispatchStep`            |     2 | `func_801D1228` (reset), `Battle_DispatchEntrance` (4 sub-steps)                               |
 |    1 | `func_801D1C54`                  |     5 | `D_801EABB8`. Steps 3 and 4 use sub-tables `D_801EABD8[3]` and `D_801EABE4[8]`.                |
-|    2 | `func_801D2740`                  |     3 | `D_801EAC04`                                                                                   |
-|    3 | `func_801D2AA8`                  |     5 | `D_801EAC10`. Sub-tables `D_801EAC24[2]`, `D_801EAC2C[6]`, `D_801EACA4`, `D_801EACB0[3]`.      |
-|    4 | `func_801D4AC0`                  |     3 | `D_801EACBC`. Sub-table `D_801EACC8[3]`.                                                       |
-|    5 | `func_801D6774`                  |     5 | `D_801EACD4`. Sub-tables `D_801EACE8`, `D_801EACF4`, `D_801EAD00`, `D_801EAD0C`, `D_801EAD20`. |
+|    2 | `Battle_UpdateTurnSetup`         |     3 | `D_801EAC04`                                                                                   |
+|    3 | `Battle_UpdateTurns`             |     5 | `D_801EAC10`. Sub-tables `D_801EAC24[2]`, `D_801EAC2C[6]`, `D_801EACA4`, `D_801EACB0[3]`.      |
+|    4 | `Battle_UpdateRoundEnd`          |     3 | `D_801EACBC`. Sub-table `D_801EACC8[3]`.                                                       |
+|    5 | `Battle_UpdateResult`            |     5 | `D_801EACD4`. Sub-tables `D_801EACE8`, `D_801EACF4`, `D_801EAD00`, `D_801EAD0C`, `D_801EAD20`. |
 
 The mode names in the diagram are `[inferred]` from the step shapes and from `func_801D656C`, which returns to mode 1 or leaves for mode 5. Mode 3 also clears `g_BattleState` bit `0x0010` (command armed) when a button in `D_80145AC4` is held. Some step functions, for example `Battle_WaitUiMode` and `Battle_ReloadMusicBank`, advance their sub-step through a pointer that is written during the wait.
 
@@ -163,7 +163,7 @@ The boss hook is called with seven event codes. The call sites are known; what e
 |    1 | `func_801D2FC0` (mode 3, step 0, sub-step 1)        |
 |    2 | `func_801D656C` (mode 4, round end)                 |
 |    3 | `Battle_DispatchMode` (every frame in modes 1 to 5) |
-|    4 | `func_801D3F6C` (mode 3)                            |
+|    4 | `Battle_FinishEffectLoad` (mode 3)                  |
 |    5 | `func_801D43EC` (mode 3, last step)                 |
 |    6 | `func_801D1228` (reset)                             |
 
@@ -187,13 +187,13 @@ The chooser, `Battle_LoadEndOverlay (emi/battle/battle/03@0x801D6A14)`, waits un
 
 **Exit.** Step 4, sub-step 2 is `Battle_WriteBackParty (emi/battle/battle/03@0x801D7350)`. It revives party rows with status bit `0x4000` (KO): current HP and willpower become 1, `fatigue` rises by 1 while it is below 5, the status loses bit `0x4000`, and the flag byte loses bit `0x04`. Living rows are untouched. It then zeroes every battle byte and increments `g_GameEntrySubstate` to 6. Substate 7 hands control back to the field (`g_GameEntryState = 2`).
 
-**Default hooks.** For a random battle `func_801E320C` (the first enemy step handler, `D_801EB3B0[0]`) installs `func_801E5768` as `g_BattleChooseEndingHook` and `func_801E57C8` as `g_BattleEndHook`. In area `0xBD` (`D_80143F04 == 0xBD`) a defeat does not go to game over. The hooks request a scene (`D_80146875 = 0x19`) and a screen effect. What the scene is, is `[unknown]`.
+**Default hooks.** For a random battle `func_801E320C` (the first enemy step handler, `D_801EB3B0[0]`) installs `Battle_HandleDesertDefeat` as `g_BattleChooseEndingHook` and `func_801E57C8` as `g_BattleEndHook`. In area `0xBD` (`D_80143F04 == 0xBD`) a defeat does not go to game over. The hooks request a scene (`D_80146875 = 0x19`) and a screen effect. What the scene is, is `[unknown]`.
 
 ## Boss modules
 
 A scripted boss battle runs extra code from a boss module, the code entry of a `BOSSnnn.EMI` archive. It sits at `0x800C1800` and is entry 16 of the archive (entry 13 for boss001, boss004, boss022, boss025 and boss031). Random battles do not load one.
 
-`Boss_InstallBattleHooks` stores three function pointers: `Boss_ChooseBattleEnding` into `g_BattleChooseEndingHook` (`0x801463A4`), `Boss_EndBattle` into `g_BattleEndHook` (`0x801463A8`) and `Boss_HandleBattleEvent` into `g_BossBattleEventHook` (`0x801463AC`). Each of the 35 boss modules has its own copy. A `jal` never calls it. `Battle_UpdateEnemies` runs, for each of the 8 enemy slots, `D_801EB298[enemy->unk_F0]()` in a scripted battle and `D_801EB294[enemy->unk_F0]()` (one entry, `func_801E31C8`) otherwise. `D_801EB298` has 63 entries, and the targets lie in the boss window (`func_800C1804` onward). For boss015 the target `func_800C18F0` is the installer's address, so the installer runs as the per-frame enemy handler of a boss whose kind index matches. That every module is reached this way is `[inferred]`; the table-to-module match for the other 34 is `[unknown]`.
+`Boss_InstallBattleHooks` stores three function pointers: `Boss_ChooseBattleEnding` into `g_BattleChooseEndingHook` (`0x801463A4`), `Boss_EndBattle` into `g_BattleEndHook` (`0x801463A8`) and `Boss_HandleBattleEvent` into `g_BossBattleEventHook` (`0x801463AC`). Each of the 35 boss modules has its own copy. A `jal` never calls it. `Battle_UpdateEnemies` runs, for each of the 8 enemy slots, `D_801EB298[enemy->unk_F0]()` in a scripted battle and `D_801EB294[enemy->unk_F0]()` (one entry, `func_801E31C8`) otherwise. `D_801EB298` has 63 entries, and the targets lie in the boss window (`func_800C1804` onward). For boss015 the target `Boss_InstallBattleHooks` is the installer's address, so the installer runs as the per-frame enemy handler of a boss whose kind index matches. That every module is reached this way is `[inferred]`; the table-to-module match for the other 34 is `[unknown]`.
 
 Installer addresses in the boss window, by module. A module that has more than one installer publishes variants of the three hooks.
 
@@ -214,7 +214,7 @@ Installer addresses in the boss window, by module. A module that has more than o
 | `ENEMY` `0x9 + area`                     | `func_801D1228` (random battle)                      | enemy archive                               |
 | `BATL_SE` 5                              | `func_801D277C`, `func_801D25A0`, `func_8009B488`    | sound bank                                  |
 | `BATL_RET` 4, `BATL_RE2` 3               | `func_801D3E80`; several sites in `battle/battle/15` | effect archives                             |
-| `BATL_DRA` 0                             | `func_800A4700` (`battle/battle/15`)                 | effect archive                              |
+| `BATL_DRA` 0                             | `Battle_LoadDraArchive` (`battle/battle/15`)         | effect archive                              |
 | `COMN_SE` 8                              | `func_801D656C`                                      | sound bank                                  |
 | `BATL_END` 1 or `BATL_OVR` 2             | `Battle_LoadEndOverlay`                              | `0x801EEC00`                                |
 | `AREA` `0x2AB + area`, `AFLDKWA` `0x256` | mode 5 steps 3 and 4                                 | area image, field sound                     |
@@ -227,7 +227,7 @@ The battler rows and the enemy record fields are in [battle records](../../data/
 
 | Limit                    | Value                                                          | Source                                                                |
 | ------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Formation weights        | Roll 1 to 16 against the running sum of the eight weights      | `func_801C6A7C`; a roll above the total gives formation 0             |
+| Formation weights        | Roll 1 to 16 against the running sum of the eight weights      | `Area_PickEncounter`; a roll above the total gives formation 0        |
 | Step threshold           | Base 0 to 120, random part capped by the pair's second byte    | `s_EncounterStepThresholds[16]`                                       |
 | Zone `rate`              | 0 to 7 (index `rate * 2` into a 16-byte table)                 | `Area_RollEncounterThreshold`                                         |
 | Encounter zone lists     | 200 lists over 666 records of 8 bytes                          | `D_80181164[200]`, `g_AreaEncounterZones[666]`                        |

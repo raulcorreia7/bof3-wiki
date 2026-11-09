@@ -11,22 +11,22 @@ Evidence cells name the function that reads or writes a cell, as `name (image@ad
 
 The table gives the address, row size and row count of each object. Several objects are the same data seen from different overlays, so a reader may be an overlay function and not an executable one.
 
-| Object                  |      Address | Size | Count | Readers                                                                                                    |
-| ----------------------- | -----------: | ---: | ----: | ---------------------------------------------------------------------------------------------------------- |
-| actor rows              | `0x80146888` |  152 |    30 | `func_801A06D8 (emi/etc/game/00@0x801A06D8)`, area, plchar and scenario overlays                           |
-| published actor pointer | `0x80146884` |    4 |     1 | `Area_UpdateParty (exe/slus_004_22@0x8015A758)`, `func_8015A7E8 (exe/slus_004_22@0x8015A7E8)`              |
-| scratchpad work pointer | `0x1F800044` |    4 |     1 | every field, plchar, world and scenario overlay                                                            |
-| field slots             | `0x80143FC8` |  116 |    20 | `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)`, scene overlays and the setup stream's type-`E` record   |
-| party records           | `0x80144968` |  164 |     8 | see [records](../records/#character-and-master-data)                                                       |
-| inventory ids           | `0x8014504C` |  512 | 4x128 | `Party_CountItem (exe/slus_004_22@0x8016628C)`, item menu                                                  |
-| inventory counts        | `0x8014524C` |  512 | 4x128 | item menu, `func_801D8364 (emi/world00/area030/04@0x801D8364)`                                             |
-| vital items             | `0x8014544C` |   32 |    32 | `Party_HasVitalItem (exe/slus_004_22@0x80166140)`, `Party_AddVitalItem (exe/slus_004_22@0x80166180)`       |
-| zenny                   | `0x80144F50` |    4 |     1 | `Party_SpendZenny (exe/slus_004_22@0x8016663C)`, `Party_AddZenny (exe/slus_004_22@0x8016666C)`, every shop |
-| play clock              | `0x80144FC0` |    4 |     1 | `func_80198CAC (emi/etc/game/00@0x80198CAC)`, status, save and shop panels                                 |
-| fairy jobs              | `0x801455C8` |    8 |    60 | `Fairy_JoinVillage (emi/etc/commu00/00@0x801F00D4)`, `func_801F01F4 (emi/etc/commu00/00@0x801F01F4)`       |
-| best catches            | `0x80144FE4` |    1 |    32 | `func_801DB554 (emi/world00/area030/04@0x801DB554)`, `func_801E0B6C (emi/world00/area030/04@0x801E0B6C)`   |
-| fishing rod table       | `0x801E2748` |   10 |     - | `func_801DDE2C (emi/world00/area030/04@0x801DDE2C)`                                                        |
-| fishing lure table      | `0x801E2720` |   20 |     - | `func_801DDE2C (emi/world00/area030/04@0x801DDE2C)`                                                        |
+| Object                  |      Address | Size | Count | Readers                                                                                                             |
+| ----------------------- | -----------: | ---: | ----: | ------------------------------------------------------------------------------------------------------------------- |
+| actor rows              | `0x80146888` |  152 |    30 | `func_801A06D8 (emi/etc/game/00@0x801A06D8)`, area, plchar and scenario overlays                                    |
+| published actor pointer | `0x80146884` |    4 |     1 | `Area_UpdateParty (exe/slus_004_22@0x8015A758)`, `func_8015A7E8 (exe/slus_004_22@0x8015A7E8)`                       |
+| scratchpad work pointer | `0x1F800044` |    4 |     1 | every field, plchar, world and scenario overlay                                                                     |
+| field slots             | `0x80143FC8` |  116 |    20 | `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)`, scene overlays and the setup stream's type-`E` record            |
+| party records           | `0x80144968` |  164 |     8 | see [records](../records/#character-and-master-data)                                                                |
+| inventory ids           | `0x8014504C` |  512 | 4x128 | `Party_CountItem (exe/slus_004_22@0x8016628C)`, item menu                                                           |
+| inventory counts        | `0x8014524C` |  512 | 4x128 | item menu, `func_801D8364 (emi/world00/area030/04@0x801D8364)`                                                      |
+| vital items             | `0x8014544C` |   32 |    32 | `Party_HasVitalItem (exe/slus_004_22@0x80166140)`, `Party_AddVitalItem (exe/slus_004_22@0x80166180)`                |
+| zenny                   | `0x80144F50` |    4 |     1 | `Party_SpendZenny (exe/slus_004_22@0x8016663C)`, `Party_AddZenny (exe/slus_004_22@0x8016666C)`, every shop          |
+| play clock              | `0x80144FC0` |    4 |     1 | `Game_UpdateClock (emi/etc/game/00@0x80198CAC)`, status, save and shop panels                                       |
+| fairy jobs              | `0x801455C8` |    8 |    60 | `Fairy_JoinVillage (emi/etc/commu00/00@0x801F00D4)`, `func_801F01F4 (emi/etc/commu00/00@0x801F01F4)`                |
+| best catches            | `0x80144FE4` |    1 |    32 | `Fishing_CatchRecord (emi/world00/area030/04@0x801DB554)`, `Fishing_TotalScore (emi/world00/area030/04@0x801E0B6C)` |
+| fishing rod table       | `0x801E2748` |   10 |     - | `Fishing_SelectGear (emi/world00/area030/04@0x801DDE2C)`                                                            |
+| fishing lure table      | `0x801E2720` |   20 |     - | `Fishing_SelectGear (emi/world00/area030/04@0x801DDE2C)`                                                            |
 
 The area archive feeds these rows. The diagram shows the entries of `WORLDnn/AREAnnn.EMI` and where each one loads.
 
@@ -78,16 +78,16 @@ The code reads some offsets at several widths and signs: `+0x5D`, for example, i
 | `0x38` | `s32` (16.16) | world y                                                                                                                                                    | `func_8014DE78`; `Char_SpawnActor`                                                                                                                                                                                      |
 | `0x3C` | `s32` (16.16) | elevation; readers use the high half `+0x3E` as the ground height                                                                                          | `func_8014DE78`; `Char_SpawnActor`                                                                                                                                                                                      |
 | `0x4B` | `u8`          | script-table record index                                                                                                                                  | `Actor_BeginScript (exe/slus_004_22@0x8014D6DC)` reads `work + 0x4B` ([area](../../formats/area/#0x800d3800-area-script-table))                                                                                         |
-| `0x50` | `u8*`         | cursor into the area script stream                                                                                                                         | `Actor_CopyScriptEntry`; `Actor_SeekScript (exe/slus_004_22@0x8014D910)`; `func_8014DAEC (exe/slus_004_22@0x8014DAEC)`                                                                                                  |
+| `0x50` | `u8*`         | cursor into the area script stream                                                                                                                         | `Actor_CopyScriptEntry`; `Actor_SeekScript (exe/slus_004_22@0x8014D910)`; `Actor_StepAnimOnce (exe/slus_004_22@0x8014DAEC)`                                                                                             |
 | `0x54` | `ActorRange`  | range record pointer, also read as an integer; byte 2 is the reach, byte 3 bit `0x10` blocks                                                               | `func_8014DE78`                                                                                                                                                                                                         |
 | `0x5C` | `u8[4]`       | a flags byte, then three tint bytes (`+0x5D` to `+0x5F`); read whole as a packed tint, as unsigned bytes and as the signed steps a fade adds toward `0xC0` | `func_801F3728 (emi/world00/area032/13@0x801F3728)`; `func_801F3920 (emi/world00/area032/13@0x801F3920)`                                                                                                                |
 | `0x70` | `u8`          | low byte of a state word: the scene flag-table byte; packed voice numbers sit above it                                                                     | written by `Area_FindSceneRecord (exe/slus_004_22@0x8014DD3C)`; voice numbers OR'd above it by `SND_QueueSelectionFx (exe/slus_004_22@0x8015D71C)`; read as an argument by `func_801B8A9C (emi/etc/game/00@0x801B8A9C)` |
 | `0x74` | `u8`          | interaction state; bits in the flag table below                                                                                                            | `func_801A06D8`                                                                                                                                                                                                         |
 | `0x7A` | `u8`          | scenario callback table index; `0xFF` is none                                                                                                              | `func_801F8358 (emi/scenario/scena16/00@0x801F8358)`; `Scene_DispatchActor (emi/scenario/scena00/00@0x801FC7D0)` and the other scenario overlays index their table                                                      |
-| `0x8C` | `s16`         | fishing gauge maximum                                                                                                                                      | `func_801E026C (emi/world00/area030/04@0x801E026C)`                                                                                                                                                                     |
-| `0x8E` | `u16`         | fishing gauge; a signed delta is added and the result is clamped into `[0, gauge maximum]`                                                                 | `func_801E026C`                                                                                                                                                                                                         |
+| `0x8C` | `s16`         | fishing gauge maximum                                                                                                                                      | `Fishing_FishStaminaAdd (emi/world00/area030/04@0x801E026C)`                                                                                                                                                            |
+| `0x8E` | `u16`         | fishing gauge; a signed delta is added and the result is clamped into `[0, gauge maximum]`                                                                 | `Fishing_FishStaminaAdd`                                                                                                                                                                                                |
 | `0x90` | `u16`         | compared with `0x1F` by the update: the idle path runs when it is `>= 0x1F` and `+0x09` is 0                                                               | `func_801A06D8`                                                                                                                                                                                                         |
-| `0x92` | `u8`          | the fishing code writes `rand() & 3` into it; it is a lane or position selector, not a turn                                                                | `func_801DE5EC (emi/world00/area030/04@0x801DE5EC)`                                                                                                                                                                     |
+| `0x92` | `u8`          | the fishing code writes `rand() & 3` into it; it is a lane or position selector, not a turn                                                                | `Fishing_FishAppear (emi/world00/area030/04@0x801DE5EC)`                                                                                                                                                                |
 
 ```c
 typedef struct Actor {
@@ -322,10 +322,10 @@ Fishing keeps three state bytes, 10-byte rod rows, 20-byte lure rows and 32 best
 | `0x80144FE4` | `u8[32]` | best catch, one byte per fish, in the index order of the count table; saved at save offset `0x90C` |
 
 The rod row is `rod_table + rod * 10` and the lure row is `lure_table + lure * 20`
-(`func_801DDE2C`). Nothing bounds either selector, so the code fixes no row count. Both selectors are
+(`Fishing_SelectGear`). Nothing bounds either selector, so the code fixes no row count. Both selectors are
 accessory ids: the fishing screens draw their names from the accessory table, and `Party_CountItem`
 compares them with accessory ids. That table holds six rods (ids 46 to 51), so six rod rows is
-`[inferred]`. `func_801E0B6C` walks all 32 best-catch bytes. The fishing code reads the pond rows
+`[inferred]`. `Fishing_TotalScore` walks all 32 best-catch bytes. The fishing code reads the pond rows
 through the same actor table: the gauge at `+0x8E` is clamped into `[0, +0x8C]`, and `+0x92` takes
 `rand() & 3`.
 
@@ -359,10 +359,10 @@ The community notes call each float group a 16-bit value but give the byte spans
 
 ## Open questions
 
-- `[unknown]` Where the rod and lure tables sit. `func_801DDE2C` reads the strides 10 and 20, but
+- `[unknown]` Where the rod and lure tables sit. `Fishing_SelectGear` reads the strides 10 and 20, but
   `0x801E2748` lies inside the `D_801E2424` panel-icon array (74 x 16) and reads as icon data.
   Reference notes give `0x801E2914` and `0x801E2950`, which are unverified. A read-breakpoint on
-  `func_801DDE2C` would settle it.
+  `Fishing_SelectGear` would settle it.
 - `[unknown]` The roles of the actor-row and field-slot cells listed as having no known role.
 - `[unknown]` The widths of the lure float-rate groups.
 

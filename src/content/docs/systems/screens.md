@@ -62,7 +62,7 @@ Code 1 calls `UI_SetMode(2)` and `func_80198BC4(0)`, then sets state 3, substate
 | Substate | Function (`emi/etc/game/00`) | Work                                                                                         |
 | -------: | ---------------------------- | -------------------------------------------------------------------------------------------- |
 |        0 | `Game_LoadMenuOverlay`       | Stream STATUS, copy palettes 1 and 2, `D_80148650 = 0`, `UI_SetMode(3)`, `func_80198C38(1)`. |
-|        1 | `func_80199368`              | `Game_UpdateScenario`, `Menu_DispatchStep`, `Menu_UpdatePanelTasks`.                         |
+|        1 | `Game_UpdateMenuFrame`       | `Game_UpdateScenario`, `Menu_DispatchStep`, `Menu_UpdatePanelTasks`.                         |
 |        2 | `Game_ReturnFromMenu`        | Leave: restore the character sprites, reload the fairy village, re-enter the area, state 2.  |
 
 `Menu_DispatchStep (emi/etc/start/08@0x801D1740)` runs `D_801EC35C[D_80148650]`, nine step functions. The program is STATUS entry 0. The start menu (New Game, Load Game) runs the same bytes from `START.EMI` entry 8, a copy of `BIN/ETC/STATUS.EMI` entry 0. The roles of the nine steps are `[unknown]`. The load-game steps are in [saving](../saving/).
@@ -92,7 +92,7 @@ State 7 runs `g_GameStateHandlers` (`0x801C7B7C`):
 
 ## BATE and SHISU (entry states 9 and 10)
 
-States 9 and 10 have the same shape. Substate 0 (`Game_LoadAbilityMenu` and `Game_LoadStatusMenu`) calls `UI_SetMode(2)`, waits two frames, streams the slot (BATE `0x257`, SHISU `0x265`), copies palettes 1 and 2, and advances. Substate 1 (`func_801993F0` and `func_80199418`) runs `func_801D0D9C` or `func_801D0D80` plus `Menu_UpdatePanelTasks`. Substate 2 (`GameRunMapLoadHandshake`) streams the character sprites, calls `UI_SetMode(3)`, waits for the effect, and returns to state 2.
+States 9 and 10 have the same shape. Substate 0 (`Game_LoadAbilityMenu` and `Game_LoadStatusMenu`) calls `UI_SetMode(2)`, waits two frames, streams the slot (BATE `0x257`, SHISU `0x265`), copies palettes 1 and 2, and advances. Substate 1 (`Game_UpdateAbilityMenuFrame` and `Game_UpdateStatusMenuFrame`) runs `func_801D0D9C` or `func_801D0D80` plus `Menu_UpdatePanelTasks`. Substate 2 (`GameRunMapLoadHandshake`) streams the character sprites, calls `UI_SetMode(3)`, waits for the effect, and returns to state 2.
 
 Each overlay starts with an `OverlayHeader`, then a step entry that dispatches a step table by `D_80148650`, with sub-tables indexed by `D_80148651` and `D_80148652`. Only `scena06` stores request code 7, and only `scena11` stores code 8. No other program on the disc stores either value to `g_GameStateIndex`.
 
@@ -100,12 +100,12 @@ Each overlay starts with an `OverlayHeader`, then a step entry that dispatches a
 
 BATE works on `g_Characters[7]` (`0x80144DE4`), the eighth [character record](../../data/records/#character-and-master-data). `func_801D0D9C (emi/etc/bate/00@0x801D0D9C)` runs `D_801D86E0[D_80148650]`, a table of four steps:
 
-| Step | Function        | Work                                                                                    |
-| ---: | --------------- | --------------------------------------------------------------------------------------- |
-|    0 | `func_801D0DD8` | Selector. Sets the step to `D_8018E244 + 2` and clears both sub-steps.                  |
-|    1 | `func_801D0E04` | Leave. `Menu_ResetPanelTasks`, then `g_GameEntrySubstate` plus 1.                       |
-|    2 | `func_801D0E38` | The equipment screen: open, run and close, by `D_801D8700[D_80148651]`. Ends in step 1. |
-|    3 | `func_801D2070` | The stat tally: open, count and close, by `D_801D8764[D_80148651]`. Ends in step 1.     |
+| Step | Function           | Work                                                                                    |
+| ---: | ------------------ | --------------------------------------------------------------------------------------- |
+|    0 | `func_801D0DD8`    | Selector. Sets the step to `D_8018E244 + 2` and clears both sub-steps.                  |
+|    1 | `Menu_ResetPanels` | Leave. `Menu_ResetPanelTasks`, then `g_GameEntrySubstate` plus 1.                       |
+|    2 | `func_801D0E38`    | The equipment screen: open, run and close, by `D_801D8700[D_80148651]`. Ends in step 1. |
+|    3 | `func_801D2070`    | The stat tally: open, count and close, by `D_801D8764[D_80148651]`. Ends in step 1.     |
 
 `scena06` picks the step. `func_801F97C0` stores 0 to `D_8018E244` with each of its three writes of code 7. `func_801F9DF4` stores 1 with one write and 0 with the other. Value 0 opens the equipment screen and value 1 the tally.
 
@@ -227,7 +227,7 @@ The table lists the limits that the screen code enforces. Counts of entry states
 | SHOP actor kinds                | 0 to 8 select a screen (`+0x18` plus 2 must stay at 10 or less). Kind 9 skips it. `[inferred]`                                                                | `func_801D0EDC`, `Game_LoadShopOverlay`                                |
 | Master steps                    | 7                                                                                                                                                             | `g_MasterMenuFuncs`                                                    |
 | BATE, SHISU step tables         | 4 and 5 entries. Two five-byte names follow BATE's table, at `0x801D86F0` and `0x801D86F8`.                                                                   | `D_801D86E0`; `D_801D96DC`                                             |
-| Fishing rod rows                | The code does not bound the selector: it indexes `sel * 10`. [Field](../../data/field/#fairy-village-and-fishing) owns the rod and lure rows and their count. | `func_801DDE2C (emi/world00/area030/04@0x801DDE2C)`                    |
+| Fishing rod rows                | The code does not bound the selector: it indexes `sel * 10`. [Field](../../data/field/#fairy-village-and-fishing) owns the rod and lure rows and their count. | `Fishing_SelectGear (emi/world00/area030/04@0x801DDE2C)`               |
 | COMMU archives                  | 7 slots, `0x258` to `0x25E`                                                                                                                                   | [disc slot ids](../../formats/emi/#disc-slot-ids)                      |
 | Screen overlay slots            | BATE `0x257`, SHISU `0x265`, SHOP `0x266`, SISYOU `0x267`, START `0x268`, STATUS `0x269`                                                                      | [disc slot ids](../../formats/emi/#disc-slot-ids)                      |
 
