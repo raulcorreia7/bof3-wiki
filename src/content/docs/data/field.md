@@ -125,7 +125,7 @@ Source: [`include/work/actor.h`](https://github.com/raulcorreia7/bof3-decomp/blo
 
 Offsets `0x03`, `0x04`, `0x0A`, `0x0B`, `0x10`, `0x25-0x2D`, `0x32`, `0x40`, `0x44`, `0x49`, `0x4C`,
 `0x5A`, `0x60-0x6C`, `0x71-0x73`, `0x76-0x77`, `0x79`, `0x7B`, `0x7E`, `0x80-0x88` and `0x93-0x97`
-have no proven role. Other overlays use further cells for their own purposes (`+0x18`, `+0x1C`,
+have no known role. Other overlays use further cells for their own purposes (`+0x18`, `+0x1C`,
 `+0x48`, `+0x78` and `+0x7C` in the communication minigame, `+0x4A`, `+0x58` and `+0x75`). Those
 names describe one overlay and are `[inferred]` for the others.
 
@@ -224,7 +224,7 @@ typedef struct ActorSlot {
 
 Source: [`include/game/records.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/records.h)
 
-Other cells have no proven role: `0x02-0x04`, `0x07`, `0x08`, `0x0A`, `0x14`, `0x20-0x28`,
+Other cells have no known role: `0x02-0x04`, `0x07`, `0x08`, `0x0A`, `0x14`, `0x20-0x28`,
 `0x2A-0x33`, `0x40-0x63` (including `0x4A`) and `0x70-0x73`.
 
 ### Allocation and spawn
@@ -257,7 +257,7 @@ The inventory is four parallel rows of 128 id bytes and four rows of 128 count b
 
 The arrays are flat. The pointer tables `D_801C893C` (ids) and `D_801C8950` (counts) hold their bases in
 category order, with five slots each. The vital-item row is the fifth id pointer, and the fifth count
-pointer is null. The code proves the first four labels. The fifth is `[inferred]` from its position
+pointer is null. The code names the first four labels. The fifth is `[inferred]` from its position
 and category 4. A count is the stack size, and `0x63` (99) is the cap that the code tests.
 
 Zenny is a `u32` that `Party_AddZenny` clamps at 9,999,999. A shop subtracts only when the balance covers the price. The play clock is four bytes.
@@ -363,12 +363,12 @@ The community notes call each float group a 16-bit value but give the byte spans
   `0x801E2748` lies inside the `D_801E2424` panel-icon array (74 x 16) and reads as icon data.
   Reference notes give `0x801E2914` and `0x801E2950`, which are unverified. A read-breakpoint on
   `func_801DDE2C` would settle it.
-- `[unknown]` The roles of the actor-row and field-slot cells listed as having no proven role.
+- `[unknown]` The roles of the actor-row and field-slot cells listed as having no known role.
 - `[unknown]` The widths of the lure float-rate groups.
 
 ## Sources and confidence
 
-- **Confidence:** medium. The addresses, strides and the main fields are established, but many cells have no proven role and the fishing tables and the lure float widths are unresolved.
+- **Confidence:** medium. The addresses, strides and the main fields are established, but many cells have no known role and the fishing tables and the lure float widths are unresolved.
 - **Evidence:** the functions named in the evidence cells, in the executable, the `emi/etc/game/00` overlay, the area, plchar and scenario overlays and the fishing overlay. Community notes confirm addresses and strides only ([sources](../../appendix/sources/)).
 
 ## Related

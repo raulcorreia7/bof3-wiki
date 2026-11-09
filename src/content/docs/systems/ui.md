@@ -3,7 +3,7 @@ title: "UI and text drawing"
 description: "Every conversation, menu label and number goes through one text engine in the resident executable."
 ---
 
-Every conversation, menu label and number goes through one text engine in the resident executable. The engine turns a message record from the area's [message bank](../../formats/area/) into a box that opens at the bottom of the screen, text that appears a letter at a time, a marker that waits for a button, an optional list of choices and fades between screens, and it draws them with the primitive queue ([rendering](../rendering/)). This page covers the message state machine, the window panels, the text drawers and the full-screen fades. The byte encoding and control codes are in [game text](../../data/text/), and which overlay opens which full-screen mode is in [screens](../screens/). All functions on this page are in the main executable `exe/slus_004_22` unless stated.
+All conversation, menu and number text goes through one text engine in the resident executable. The engine turns a message record from the area's [message bank](../../formats/area/) into a box at the bottom of the screen, text drawn one character at a time, a button-wait marker, an optional choice list and screen fades. It draws through the primitive queue ([rendering](../rendering/)). This page covers the message state machine, the window panels, the text drawers and the full-screen fades. The byte encoding and control codes are in [game text](../../data/text/); the overlay that opens each full-screen mode is in [screens](../screens/). Functions are in the main executable `exe/slus_004_22` unless stated.
 
 ## Terms
 
@@ -22,7 +22,7 @@ A string reaches the screen in five steps.
 1. **Bank in RAM.** The EMI loader copies an area archive's message bank to `0x80010000` ([loading](../../concepts/loading/)). `Message_StartAreaMessage` and `Message_StartRequest` read that address as the bank.
 2. **Request.** Game code calls `Message_StartAreaMessage (exe/slus_004_22@0x80150224)` with a message index, or `Message_Request (exe/slus_004_22@0x80150284)` with a resource id. The first reads the `u16` at `0x80010000 + index * 2` and adds `0x80010000`. The second calls `Message_GetText (exe/slus_004_22@0x801502D0)`, which uses the table at `0x8001A000`: `(id >> 12) & 0xC` selects a base word, then a `u16` offset table follows. Both store the record pointer in `D_801490AC` and `D_801490B0`, store the request in `g_MessageRequest`, and call `UI_ResetMessage`.
 3. **Engine.** `UI_UpdateLayout (exe/slus_004_22@0x801503E0)` runs once per frame while the panel is open. It dispatches the message state (8 states) and the selection state (6 states), then redraws the message.
-4. **Glyph.** `UI_DrawMessageScript (exe/slus_004_22@0x80150470)` walks the script from the start each frame and draws `D_801490B9` characters, one `UI_DrawText` call per character at 8 pixels advance. The script step `func_8015083C` adds one to `D_801490B9` per character. Because the whole message is redrawn each frame, this counter is the typewriter effect.
+4. **Glyph.** `UI_DrawMessageScript (exe/slus_004_22@0x80150470)` walks the script from the start each frame and draws `D_801490B9` characters, one `UI_DrawText` call per character at 8 pixels advance. The script step `func_8015083C` adds one to `D_801490B9` per character. The whole message is redrawn each frame, so this counter produces the typewriter effect.
 5. **Sprite.** `UI_DrawTextGlyphs` builds one `SPRT` per glyph and calls `GFX_AddPrim` on layer 1 ([rendering](../rendering/)).
 
 ```mermaid
@@ -68,7 +68,7 @@ flowchart LR
 
 The diagram shows only the transitions out of state 0, from the `switch` in `func_8015083C` and the table `D_80149A5C`. The exits of states 2 to 7 are `[inferred]`: the handlers change the owner mode byte `D_80148333` and bits of `g_UiWindowChannel` that other code reads.
 
-**Typewriter speed.** After each glyph, `func_8015083C` loads the delay from the byte table at `D_8017F5B4`, row `D_80144950` (a signed byte; the option that sets it was not traced). Byte 0 applies when a pad button is held (`g_InputMasks & g_InputHeld`), byte 1 otherwise. A zero delay keeps state 0. Any other value goes to state 1 for that many frames. `FRONTEND_FLAG_FORCE_STEP` forces a delay of 3. The channel flag `FRONTEND_FLAG_NO_INPUT_WAIT` (toggled by opcodes `0x10` and `0x11`) makes the script run without waiting.
+**Typewriter speed.** After each glyph, `func_8015083C` loads the delay from the byte table at `D_8017F5B4`, row `D_80144950` (a signed byte; the option that sets it is `[unknown]`). Byte 0 applies when a pad button is held (`g_InputMasks & g_InputHeld`), byte 1 otherwise. A zero delay keeps state 0. Any other value goes to state 1 for that many frames. `FRONTEND_FLAG_FORCE_STEP` forces a delay of 3. The channel flag `FRONTEND_FLAG_NO_INPUT_WAIT` (toggled by opcodes `0x10` and `0x11`) makes the script run without waiting.
 
 **Choice.** The `{CHOICE}` code (`0x14`) stores the count (`operand & 0xF`, minus one) and the layout nibble, then enters state 4 or 5. The pick is kept in `D_801490C7`. `UI_HandleChoiceInput` moves it on repeated direction input, wrapping at zero. The pick selects the next message through a dozen small functions (`func_80152370`, `Message_SetAnswerMessage5` to `Message_SetAnswerMessage15`). Each stores entry `D_801490C7` of a row of tables at `0x8017F628..0x8017F664` into `g_MessageRequest`. The next message starts at the `u16` of the bank at `0x80010000 + g_MessageRequest * 2` (`Message_StartRequest`).
 
@@ -82,13 +82,13 @@ A box opens by growing from a point to its full size, stays, then shrinks:
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | State 0, set up  | `func_80159050` picks size 200 by 54 (`0xC8`, `0x36`), or 120 by 54 when the request flag `0x40` is set. It sets the start position and per-frame steps of a fifth of the size. |
 | State 1, growing | `func_8015920C` adds the step each frame, snaps to the origin table, then draws the frame with `func_80159FA0`.                                                                 |
-| State 2, open    | `func_80159510`. Not read `[unknown]`. It is the step between growing and shrinking.                                                                                            |
+| State 2, open    | `func_80159510`, the step between growing and shrinking. Its body is `[unknown]`.                                                                                               |
 | State 3, closing | `func_80159580` shrinks the box the same way and calls `UI_UpdateLayout` while the sub-kind is 0.                                                                               |
 | Frame            | `func_80159FA0` draws a gray (`0x78`) four-point outline and `func_8015A2B0` draws the inner line, both on layer 1.                                                             |
 | Text origin      | `UI_UpdateLayout` sets it to `(D_80148334 >> 4) + 10`, `(D_80148336 >> 4) + 6` before each redraw.                                                                              |
 | Position         | `g_MenuPanelOrigins (exe/slus_004_22@0x8017F90C)`, 32 bytes: two sets of 8 (x, y) byte pairs, selected by `D_801490CE`.                                                         |
 
-The panel fill and the other panel handlers are not in the resident image. The table `g_MenuPanels` (the executable's constant data at `0x80149B0C`) holds `func_80158F80` followed by eight fixed addresses: `0x801D2F9C`, `0x80199558`, `0x801E9074`, `0x801EFD98`, `0x800B0180`, `0x801E8D14`, `0x801E27BC` and `0x800B2088`. They point into overlay windows ([memory](../../concepts/memory/)). A panel armed while its overlay is not loaded would jump into other code `[inferred]`; no loader check was found. `0x80199558` is in `emi/etc/game/00` and `0x801E9074` in `emi/battle/battle/03`. The owners of the other six are `[unknown]`.
+The panel fill and the other panel handlers are not in the resident image. The table `g_MenuPanels` (the executable's constant data at `0x80149B0C`) holds `func_80158F80` followed by eight fixed addresses: `0x801D2F9C`, `0x80199558`, `0x801E9074`, `0x801EFD98`, `0x800B0180`, `0x801E8D14`, `0x801E27BC` and `0x800B2088`. They point into overlay windows ([memory](../../concepts/memory/)). A panel armed while its overlay is not loaded jumps into other code `[inferred]`; the loader does not check. `0x80199558` is in `emi/etc/game/00` and `0x801E9074` in `emi/battle/battle/03`. The owners of the other six are `[unknown]`.
 
 ## Text drawing
 
@@ -124,13 +124,13 @@ All of them first call `func_8014FC00(0)`, which emits a draw-mode packet with t
 | 13, 14, 15, 16      | `+0x200 / -0x200` with `F514` or `F5F0`         | Slow fades, 64 frames.             |
 | 19                  | `GFX_RunBlackFade(0x100, 1, 0)`                 | Very slow fade, 128 frames.        |
 
-The fade body `GFX_UpdateScreenFade` draws a 320 by 240 `TILE` with gray level `position >> 7`, semi-transparent with draw mode `GetTPage(1, abr, 0x140, 0)`, and adds the step to a 16-bit level each frame until the sign bit flips. The frame count is `0x8000 / step`. The thread then calls `CallbackExit`, so every effect ends its slot. That `abr = 2` is a subtractive blend, a fade to black, is PlayStation GPU behavior rather than game data `[inferred]`. The modes with camera changes were read only for their loop shape `[unknown]`.
+The fade body `GFX_UpdateScreenFade` draws a 320 by 240 `TILE` with gray level `position >> 7`, semi-transparent with draw mode `GetTPage(1, abr, 0x140, 0)`, and adds the step to a 16-bit level each frame until the sign bit flips. The frame count is `0x8000 / step`. The thread then calls `CallbackExit`, so every effect ends its slot. That `abr = 2` is a subtractive blend, a fade to black, is PlayStation GPU behavior rather than game data `[inferred]`. The camera behavior of the modes that change the camera is `[unknown]`.
 
 `g_UiWindowEffectBusy` (`0x80143C40`) is the flag other code tests before it starts input or a new effect. The readers are `UI_SetMode` and the title code (`UI_WaitTitleInput` at `0x801D0F00`, `UI_UpdateChoicePrompt` at `0x801D0FB8`, `UI_DrawChoicePrompt` at `0x801D11E4`, all `emi/etc/game/01`). No writer is in the resident code. The overlay functions `func_801D74D4`, `Game_LoadAbilityMenu` and `func_801985C8` touch it, but who sets it is `[unknown]`.
 
 ## State variables
 
-The table lists the engine's state in RAM by address.
+The engine's state in RAM:
 
 | Address      | Type             | Name                | Meaning                                                                            |
 | ------------ | ---------------- | ------------------- | ---------------------------------------------------------------------------------- |
@@ -147,7 +147,7 @@ The table lists the engine's state in RAM by address.
 
 ## Data and limits
 
-The table lists the limits of the text engine and what a replacement asset must respect.
+Limits of the text engine and what a replacement asset must respect:
 
 | Limit                       | Value                                                                                            | Source                                                         | Asset must stay within                                                  |
 | --------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------- |
