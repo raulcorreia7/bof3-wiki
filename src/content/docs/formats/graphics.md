@@ -143,54 +143,95 @@ The arena base holds 256 units of 64 bytes (32 rows of 512). [Rendering](../../s
 
 ## Texture-to-palette join
 
-A texture's palette follows from a draw rule, never from the texture payload. A draw site names a texture page and a CLUT. Two kinds of rule are proven:
+A texture's palette follows from the scene that draws it, never from the texture payload. A draw site names a texture page and a CLUT row. The VRAM those names address holds whatever the scene's loads left there, so the join is read from a replay of the loads, not from the archive alone.
 
-- A literal site names both in one function. `WORLD00/AREA024.EMI#14` writes the page `0x003B` and the CLUT `0x78CA`.
-- The world-map terrain rule reads each tile descriptor word in `func_80155560 (exe/slus_004_22@0x80155560)`. Bit 31 selects the depth, bits 24 to 27 the CLUT index and bits 28 to 29 the page bank. An 8bpp descriptor (`bit 31 = 0`) reads CLUT row `(0, 483 + index)`. A 4bpp descriptor reads `(16 * index, 483)`. Both use page `(320 + 128 * bank, 256)`. Empty descriptors name nothing. [Area](../area/#terrain-mesh) describes the descriptor.
+### Replay
 
-A rule joins only when exactly one type-3 sheet in the archive covers the page, and exactly one distinct bank holds the row. Two sheets over the same words, or two banks that disagree at one arena position, leave the texture unjoined. The sheet slot is known, and no palette is guessed. The search first uses the texture's own archive. If that archive has no bank for the row, it consults the resident set of palette banks loaded from the disc, where identical banks collapse. The battle icon rows show the limit: row 506 differs between `BATL_OVR.EMI` and `BATL_DRA.EMI`. Row 507 agrees in `BATTLE.EMI`, `BATL_RE2.EMI`, `BATL_RET.EMI` and `BATTLE2.EMI` but differs in `BATL_DRA.EMI`. A disc-wide resident set therefore leaves them unjoined.
+A scene is the ordered loads that build its screen. Each starts from the frame buffer that `SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` clears and the `FIRST` archive it streams. The replay then applies, in order:
 
-A site whose page or CLUT depends on runtime state (a caller argument, a branch or a table) is not a joined site. A `GetGraphType()` test is different: it chooses between two encodings of one page, so it does not change which page the site names.
+- `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` for each archive the scene streams. A type-3 entry is uploaded one 32x32 rectangle at a time by `EMI_UploadSectorImage (exe/slus_004_22@0x80163378)`, skipped when the rectangle's left edge is at column 1001 or beyond or its top edge at row 501 or beyond. A type-0 entry that lands in the palette arena changes arena RAM, not VRAM.
+- `GFX_ResetPalette (exe/slus_004_22@0x8014E284)` and `GFX_CopyPalette (exe/slus_004_22@0x8014E3A0)`, which copy arena rows to the working copy, then `GFX_UploadPalette (exe/slus_004_22@0x8014E22C)`, which writes the working copy to VRAM rows 480 to 511.
 
-Every CLUT and TPage write in the game code was resolved from literals and `GetClut` and `GetTPage` calls. Several sites write the page twice, once per graph-type encoding. Decoding each pair (`0x229` with the type 1 and 2 form and `0x99` with the type 0 form, and so on) gives the same page in all eight pairs, so the table lists one decoded page. "Family" means that the CLUT column is a function of a caller argument.
+Every VRAM word keeps the archive entry that wrote it, and a palette word keeps the entry that wrote its arena word. Later writes replace earlier ones, so a bank from another archive serves a row only when it is the one the scene left there. The scenes are the frontend, the title, each walked area and each world-map area, the menu overlays, the Fairy Village events, the battle archives and the spell and summon effects in battle. Palettes that actors load at run time with `GFX_LoadPalette (exe/slus_004_22@0x80166C48)` and palette fades are not replayed.
 
-| Overlay and function                                                                                                                                    | tpage (decoded)                                            | clut (decoded)                                          | Status                                                                             |
+### Join
+
+A rule names a page and a CLUT row, and the replay says what wrote them. The texture is the upload that wrote the page's first word. The palette is the one entry that wrote the whole row, 16 words at 4bpp and 256 at 8bpp. A row with words from two entries, or none, does not join, and no palette is guessed. Two kinds of rule name a page and a row:
+
+- A draw site with a literal page and CLUT in one function. `WORLD00/AREA024.EMI#14` writes the page `0x003B` and the CLUT `0x78CA`; in the `AREA024` scene the page is written by entry 7 and the row `(160, 483)` by entry 8.
+- The tile descriptor word read by `func_80155560 (exe/slus_004_22@0x80155560)`, which every area map bundle uses, walked area and world map alike. Bit 31 selects the depth, bits 24 to 27 the CLUT index and bits 28 to 29 the page bank. An 8bpp descriptor (`bit 31 = 0`) reads CLUT row `(0, 483 + index)`. A 4bpp descriptor reads `(16 * index, 483)`. Both use page `(320 + 128 * bank, 256)`. Empty descriptors name nothing. [Area](../area/#terrain-mesh) describes the descriptor.
+
+A site whose page or CLUT depends on runtime state (a caller argument, a branch or a table) names no row. A `GetGraphType()` test is different: it chooses between two encodings of one page, so it does not change which page the site names. Several sites write the page twice, once per graph-type encoding. Decoding each pair (`0x229` with the type 1 and 2 form and `0x99` with the type 0 form, and so on) gives the same page in all eight pairs, so the table lists one decoded page.
+
+### Sites
+
+Each row is a decomp fact: the function writes this page and CLUT. "Family" means that the CLUT column is a function of a caller argument. A row names a join only when the scene that runs it holds a texture at the page and a palette at the row.
+
+| Overlay and function                                                                                                                                    | tpage (decoded)                                            | clut (decoded)                                          | Note                                                                               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `func_801F2DF8 (emi/world00/area024/14@0x801F2DF8)`                                                                                                     | `0x003B` (4bpp, abr 1, page (704, 256))                    | `0x78CA` ((160, 483))                                   | joined: sheet slot 7, bank slot 8                                                  |
-| `func_801F6E48 (emi/scenario/scena00/00@0x801F6E48)`                                                                                                    | `0x001B` (4bpp, (704, 256))                                | `0x78CB` ((176, 483))                                   | literal; no sheet in the archive                                                   |
-| `func_801D2C34 (emi/world00/area030/04@0x801D2C34)`                                                                                                     | `0x229` or `0x99`: 8bpp, page (576, 256)                   | `0x7A40` ((0, 489))                                     | page fixed in both encodings                                                       |
-| `func_800F5E44 (emi/world00/area030/05@0x800F5E44)`                                                                                                     | `0x225` or `0x95`: 8bpp, page (320, 256)                   | `0x7A80` ((0, 490))                                     | page fixed in both encodings                                                       |
-| `Area_DrawHudSprite (emi/world00/area016/13@0x801F39D8)`                                                                                                | `0x22C` or `0x9C`: 8bpp, page (768, 256)                   | `0x7B80` ((0, 494))                                     | page fixed in both encodings                                                       |
-| `func_801F4768 (emi/world00/area016/13@0x801F4768)`                                                                                                     | `0x12B` or `0x5B`: 4bpp, abr 2, page (704, 256)            | `0x78CB` ((176, 483))                                   | page fixed in both encodings                                                       |
-| `func_801F7134 (emi/scenario/scena00/00@0x801F7134)`                                                                                                    | `0x32D` or `0xDD`: 8bpp, abr 2, page (832, 256)            | `0x7A80` ((0, 490))                                     | page fixed in both encodings                                                       |
-| `Menu_DrawIcon (emi/etc/shop/00@0x801DA00C)`                                                                                                            | `0x8F` or `0x2F`: 4bpp, abr 1, page (960, 0)               | `0x7800` ((0, 480))                                     | page fixed in both encodings                                                       |
-| `Menu_DrawPortrait (emi/etc/sisyou/00@0x801D23A0)`                                                                                                      | `0x2E` or `0x1E`: 4bpp, page (896, 256)                    | `getClut(entry[2], entry[3] + 0x1E0)`                   | page fixed in both encodings; palette from a table entry                           |
-| `Scene_DrawBands (emi/scenario/sce10eff/00@0x801D165C)`                                                                                                 | `0xA5` or `0x35`: 4bpp, abr 1, page (320, 256)             | none in function                                        | page fixed in both encodings                                                       |
+| `func_801F2DF8 (emi/world00/area024/14@0x801F2DF8)`                                                                                                     | `0x003B` (4bpp, abr 1, page (704, 256))                    | `0x78CA` ((160, 483))                                   |                                                                                    |
+| `func_801F6E48 (emi/scenario/scena00/00@0x801F6E48)`                                                                                                    | `0x001B` (4bpp, (704, 256))                                | `0x78CB` ((176, 483))                                   |                                                                                    |
+| `Fishing_DrawFishArrow (emi/world00/area030/04@0x801D2C34)`                                                                                             | `0x229` or `0x99`: 8bpp, page (576, 256)                   | `0x7A40` ((0, 489))                                     |                                                                                    |
+| `func_800F5E44 (emi/world00/area030/05@0x800F5E44)`                                                                                                     | `0x225` or `0x95`: 8bpp, page (320, 256)                   | `0x7A80` ((0, 490))                                     |                                                                                    |
+| `func_801D8248 (emi/world00/area030/04@0x801D8248)`                                                                                                     | `0x1D`: 4bpp, page (832, 256)                              | `0x7887` ((112, 482))                                   |                                                                                    |
+| `func_801D799C (emi/world00/area030/04@0x801D799C)`                                                                                                     | column from a style table entry, row 256                   | `0x7887` ((112, 482))                                   | the page column is table data                                                      |
+| `Area_DrawHudSprite (emi/world00/area016/13@0x801F39D8)`                                                                                                | `0x22C` or `0x9C`: 8bpp, page (768, 256)                   | `0x7B80` ((0, 494))                                     | the same body is in 11 area overlays                                               |
+| `func_801F4768 (emi/world00/area016/13@0x801F4768)`                                                                                                     | `0x12B` or `0x5B`: 4bpp, abr 2, page (704, 256)            | `0x78CB` ((176, 483))                                   |                                                                                    |
+| `func_801F7134 (emi/scenario/scena00/00@0x801F7134)`                                                                                                    | `0x32D` or `0xDD`: 8bpp, abr 2, page (832, 256)            | `0x7A80` ((0, 490))                                     |                                                                                    |
+| `Menu_DrawIcon (emi/etc/shop/00@0x801DA00C)`                                                                                                            | `0x8F` or `0x2F`: 4bpp, abr 1, page (960, 0)               | `0x7800` ((0, 480))                                     |                                                                                    |
+| `Menu_DrawPortrait (emi/etc/sisyou/00@0x801D23A0)`                                                                                                      | `0x2E` or `0x1E`: 4bpp, page (896, 256)                    | `getClut(entry[2], entry[3] + 0x1E0)`                   | palette from a table entry                                                         |
+| `Scene_DrawBands (emi/scenario/sce10eff/00@0x801D165C)`                                                                                                 | `0xA5` or `0x35`: 4bpp, abr 1, page (320, 256)             | none in function                                        |                                                                                    |
 | `Menu_DrawHeaderBar (emi/world00/area008/13@0x801F3D88)` and `Menu_DrawHeaderBar (emi/etc/sisyou/00@0x801D1E54)`                                        | `0x0F` (4bpp, (960, 0))                                    | `GetClut(clut_x, 0x1E1)`, `clut_x = (arg4 << 5) + 0x10` | family: row 481, column `2 x arg4 + 1`                                             |
 | `func_801D7D10 (emi/battle/battle/03@0x801D7D10)`                                                                                                       | `GetTPage(0, 0, 0x100, 0x100)` = `0x14` (4bpp, (256, 256)) | `(table[arg0] & 0x3F) \| 0x7800`, row 480               | table of 7 bytes at `0x801D0C64`; the texture is not at (256, 256) in `BATTLE.EMI` |
 | `func_801D94D4 (emi/battle/battle/03@0x801D94D4)` and `func_801D9804 (emi/battle/battle/03@0x801D9804)`                                                 | none in function                                           | `GetClut((arg2 & 0xFF) << 4, 0x1E0)`                    | family: row 480, column from `arg2`                                                |
-| `UI_DrawSprite (emi/etc/game/00@0x801AF2A0)` and `func_801AE984 (emi/etc/game/00@0x801AE984)`                                                           | none in function                                           | `(176, 481)`, `(128, 482)`, `(192, 480)`                | CLUT only                                                                          |
+| `UI_DrawSprite (emi/etc/game/00@0x801AF2A0)` and `func_801AE984 (emi/etc/game/00@0x801AE984)`                                                           | none in function                                           | `(176, 481)`, `(128, 482)`, `(192, 480)`                |                                                                                    |
 | `UI_DrawSpriteRun (emi/etc/game/00@0x801AF390)`                                                                                                         | 832 or 896 (modes 2 and 3)                                 | none in function                                        | not a texture page                                                                 |
-| `GFX_UpdateScreenFade (exe/slus_004_22@0x8014F704)`, `func_8014FC00 (exe/slus_004_22@0x8014FC00)`, `Menu_DrawCursorSprite (exe/slus_004_22@0x801647C4)` | `GetTPage(1, p4, 0x140, 0)`, `\| 0x2F`; clut `0x7802`      | -                                                       | partial                                                                            |
+| `GFX_UpdateScreenFade (exe/slus_004_22@0x8014F704)`, `func_8014FC00 (exe/slus_004_22@0x8014FC00)`, `Menu_DrawCursorSprite (exe/slus_004_22@0x801647C4)` | `GetTPage(1, p4, 0x140, 0)`, `\| 0x2F`; clut `0x7802`      | -                                                       |                                                                                    |
 
-The proven sites and the terrain rule together join 212 of the 593 type-3 textures to 890 palette rows: 200 terrain sheets (865 distinct rows across the archives, 11 of which also carry a literal site), nine area sprite sheets, two `AREA030` icon sheets and the `BMAGIC/MAGIC218` effect sheet. The other 381 textures have no proven depth or palette. A data check confirms the terrain depth: all 105,308 terrain descriptors have bit 31 clear (8bpp), and the 8bpp decode selects a page and bank that exist in the archive.
+`BMAGIC/MAGIC218.EMI` is the one effect archive with a site, read from assembly: page `0x00BD`, CLUT `0x7E80` (row (0, 506)).
+
+### Coverage
+
+The two rules together join 202 of the 593 type-3 textures to 882 distinct (texture, depth, CLUT row) pairs. Those textures hold 52,510,720 of the 112,312,320 bytes of type-3 payload. The tile descriptors join 200 textures (865 rows, all 8bpp): one terrain sheet in each of the 200 area bundles, the 11 world-map areas among them. Thirteen of those sheets also match a literal site (17 rows in all with the two below). Two textures join through a site alone: `WORLD00/AREA030.EMI#19` and `BMAGIC/MAGIC218.EMI#4`. Every terrain row is at 8bpp, so no retail descriptor that names a joined page has bit 31 set.
+
+| Folder     | Textures | Joined |
+| ---------- | -------: | -----: |
+| `WORLD00`  |       80 |     39 |
+| `WORLD01`  |       76 |     38 |
+| `WORLD02`  |       78 |     38 |
+| `WORLD03`  |       78 |     38 |
+| `WORLD04`  |       96 |     48 |
+| `BMAGIC`   |       97 |      1 |
+| `BOSS`     |       40 |      0 |
+| `ETC`      |       36 |      0 |
+| `BATTLE`   |       10 |      0 |
+| `SCENARIO` |        2 |      0 |
+
+### Unjoined textures
+
+The other 391 textures have no proven depth or palette. For these, a scorer ranks a depth and CLUT rows from the texture's words and the scene's palette rows. Its ranking is a suggestion: it is never written as a join.
+
+- Depth. Each of 4bpp, 8bpp and 16bpp reads the words as an image. A drawn image repeats a texel next to itself far more often than chance, and the wrong depth loses that. The score is the agreement of each texel with its right and lower neighbours, corrected for the agreement the texel histogram gives by chance (Cohen's kappa).
+- CLUT. A candidate is a row of the palette band that one entry wrote: column 0 of each row at 8bpp, each 16-word column at 4bpp. Neighbouring texels with different indices should get close colours, so the score is one minus their mean colour distance, less the share of texels that land on the transparent word `0x0000`, plus a bonus of 0.25 when the texture's own archive wrote the row.
+
+Run on the 202 joined textures with the join hidden, the top depth is right for 196 (97 percent), but a fixed guess of 8bpp is right for 201, because the joined set is nearly all terrain. The best depth and row together match the join for 146 (72 percent), the best five rows include it for 195, and the first row the texture's own archive wrote matches for 2. The scorer is checked only on terrain-heavy data, so it says little about the sprite and effect sheets it is meant for.
 
 A reading of a texture without a join is limited. Read as 16bpp, each VRAM word is one pixel, and 4bpp and 8bpp textures look like noise. A texture and one CLUT row are what a Sony TIM file holds (Sony's *File Formats* manual, chapter 3), but the game stores no TIM of its own for textures. The six TIM records on the disc are the memory card icons ([save](../save/#icons)).
 
 ## Open questions
 
-These are ranked by the bytes they leave unexplained.
+These are ranked by the textures they leave unexplained.
 
-1. Battle, `SCENARIO` and `ETC` sites. Their pages and CLUTs come from tables, caller arguments or banks in other archives. `BATTLE.EMI` has no row-506 bank, and `BATL_OVR` and `BATL_DRA` disagree there. The join needs the resident banks of the scene, not the archive alone.
-2. Family and table CLUTs (`BATTLE`, `AREA008`, `SISYOU`). The row 480 and row 481 CLUTs come from caller arguments or the 7-byte table at `0x801D0C64`. They need the callers' arguments.
-3. Textures outside their archive. The page that `SCENA00` and the battle quads use is not a sheet of the same archive, so the same-archive rule finds nothing.
-4. Overlapping sheets. Several sheets cover the same VRAM words, for example slots 5 and 7 of `AREA024`. Which upload is resident depends on the stream order (`EMI_UploadSectorImage`).
-5. Texel depth without a site. A depth of 4bpp, 8bpp or 15bpp is known only for the sites in the table and for a joined terrain descriptor.
+1. The 391 unjoined textures: 207 sheets in the area archives that are not the terrain sheet (`WORLD00` to `WORLD04`), 96 in `BMAGIC`, 40 in `BOSS`, 36 in `ETC`, 10 in `BATTLE` and 2 in `SCENARIO`. No site in the table joins them in a replayed scene. The sites that could name some of them (battle, `SCENARIO`, `ETC`, and the family and table rows above) take the page or the CLUT from a table or a caller argument, so they need the callers' arguments.
+2. `ENDKANJI` and `SCENA17` (4 uploads) have no default scene: the loaders that stream them are not read, so their VRAM is not replayed.
+3. `FIRST` entry 4 does not appear in the replayed VRAM, because entry 12 covers all of its words. `FIRST` entries 3 to 7 and 12 stay unjoined.
+4. Texel depth without a site. A depth of 4bpp, 8bpp or 15bpp is known only for the sites in the table and for a joined terrain descriptor.
+5. Scene state the replay does not hold: palette fades, cycling and the palettes actors load with `GFX_LoadPalette`, and the leftovers of an earlier screen, which depend on the route the player took.
 
 ## Sources and confidence
 
-- **Confidence:** medium. The upload, the color words and the proven joins are read and checked on every payload, but 381 of 593 textures have no proven depth or palette.
-- **Evidence:** all 593 type-3 payloads and 620 palette banks, the loader and drawing functions named above (including `GFX_CopyPaletteAnimationColors`, which copies colors inside the working copy), and every CLUT and TPage write in the game code. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) (texture and palette notes) only confirms. The runtime primitives are PsyQ 3.7 ([sources](../../appendix/sources/)).
+- **Confidence:** medium. The upload, the color words and the replayed joins are read and checked on every payload, but 391 of 593 textures have no proven depth or palette.
+- **Evidence:** all 593 type-3 payloads and 620 palette banks, the loader and drawing functions named above (including `GFX_CopyPaletteAnimationColors`, which copies colors inside the working copy), the archive load order of each scene, and every CLUT and TPage write in the game code. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) (texture and palette notes) only confirms. The runtime primitives are PsyQ 3.7 ([sources](../../appendix/sources/)).
 
 ## Related
 
