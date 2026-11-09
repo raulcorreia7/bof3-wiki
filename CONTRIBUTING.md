@@ -29,7 +29,7 @@ both described under [Record layouts](#record-layouts).
 ## Record layouts
 
 - Every layout table has a `Type` column. Use `u8`, `s8`, `u16`, `s16`, `u32`, `s32`, `T[N]`, `T*`,
-  `s32 (16.16)` or a record name. Tag a type that no reader proves with `[inferred]`.
+  `s32 (16.16)` or a record name. Tag a type that no reader confirms with `[inferred]`.
 - A record that has a struct in the [decompilation](https://github.com/raulcorreia7/bof3-decomp) has a
   `c` block after its table. The block uses the header's struct and member names, gives each member an
   offset comment such as `/* 0x98 */`, writes gaps as `u8 unk_XX[N];` and stays within 30 lines. One line
