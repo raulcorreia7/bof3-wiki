@@ -3,11 +3,11 @@ title: "Screens"
 description: "Besides the field, the game runs full-screen modes: the in-game menu, shops, the save screen, the fishing pond, the fairy village, the master menu, the world map, and the BATE and SHISU screens."
 ---
 
-Besides the field, the game runs full-screen modes: the in-game menu, shops, the save screen, the fishing pond, the fairy village, the master menu, the world map, and the BATE and SHISU screens. Most stream their code from the disc into a shared window and run inside the same main loop. This page maps what opens each screen: the request code or flag, the entry state that runs it, the overlay that holds its code, and how control returns to the field. Save and load card paths are in [saving](../saving/), window and panel drawing in [UI and text drawing](../ui/), and the codes in [phases](../phases/).
+Besides the field, the game runs full-screen modes: the in-game menu, shops, the save screen, the fishing pond, the fairy village, the master menu, the world map, and the BATE and SHISU screens. Most stream their code from the disc into a shared window and run inside the main loop. This page maps each screen to its request code or flag, entry state, overlay and return path to the field. Save and load card paths are in [saving](../saving/), window and panel drawing in [UI and text drawing](../ui/), and the codes in [phases](../phases/).
 
 ## Terms
 
-The [glossary](../../appendix/glossary/) defines request code and entry state.
+The [glossary](../../appendix/glossary/) defines request code and entry state. This page also uses:
 
 | Term            | Meaning                                                                                                                                                                      |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -65,7 +65,7 @@ Code 1 calls `UI_SetMode(2)` and `func_80198BC4(0)`, then sets state 3, substate
 |        1 | `func_80199368`              | `Game_UpdateScenario`, `Menu_DispatchStep`, `Menu_UpdatePanelTasks`.                         |
 |        2 | `Game_ReturnFromMenu`        | Leave: restore the character bank, reload the fairy village, re-enter the area, state 2.     |
 
-`Menu_DispatchStep (emi/etc/start/08@0x801D1740)` runs `D_801EC35C[D_80148650]`, nine step functions. The program is STATUS entry 0. The start menu (New Game, Load Game) runs the same bytes from `START.EMI` entry 8, a copy of `BIN/ETC/STATUS.EMI` entry 0. The nine steps have no established names or roles `[unknown]`. The load-game steps are in [saving](../saving/).
+`Menu_DispatchStep (emi/etc/start/08@0x801D1740)` runs `D_801EC35C[D_80148650]`, nine step functions. The program is STATUS entry 0. The start menu (New Game, Load Game) runs the same bytes from `START.EMI` entry 8, a copy of `BIN/ETC/STATUS.EMI` entry 0. The roles of the nine steps are `[unknown]`. The load-game steps are in [saving](../saving/).
 
 `Game_ReturnFromMenu` leaves in one of four ways, by the conditions in the table:
 
@@ -88,7 +88,7 @@ State 7 runs `g_GameStateHandlers` (`0x801C7B7C`):
 |        1 | `func_80199398`              | Field frame, `Area_UpdateParty`, panels, `Shop_DispatchStep`.                                                                 |
 |        2 | `Game_ReturnFromShop`        | Restore the character bank, stream COMMU00 when the area has flag `0x10`, return to state 2.                                  |
 
-`Shop_DispatchStep (emi/etc/shop/00@0x801D0EA0)` runs `D_801E5144[11]` by `D_80148650`. Entry 0, `func_801D0EDC`, is the selector. It reads `D_8014865C`. A negative value (a script or code origin) sets the step to `D_80148698 + 2`. A shop-actor index copies the actor row's `+0x18` and adds 2, and copies `+0x1C` to `D_80148699`. Actor kind 9 never reaches the screen (see `Game_LoadShopOverlay`). The other ten entries are the screens. Only step 3 is identified, the save screen ([saving](../saving/)). The roles of steps 2 and 4 to 10 are `[unknown]`.
+`Shop_DispatchStep (emi/etc/shop/00@0x801D0EA0)` runs `D_801E5144[11]` by `D_80148650`. Entry 0, `func_801D0EDC`, is the selector. It reads `D_8014865C`. A negative value (a script or code origin) sets the step to `D_80148698 + 2`. A shop-actor index copies the actor row's `+0x18` and adds 2, and copies `+0x1C` to `D_80148699`. Actor kind 9 never reaches the screen (`Game_LoadShopOverlay`). The other ten entries are the screens. Only step 3 is identified, the save screen ([saving](../saving/)). The roles of steps 2 and 4 to 10 are `[unknown]`.
 
 ## BATE and SHISU (entry states 9 and 10)
 
@@ -198,7 +198,7 @@ The master menu is not an entry state. `g_SceneEvents[4]` is `Menu_OpenMaster (e
 
 The fairy village is an area (`flag_32` bit 4), not an entry state.
 
-- After the menu (`Game_ReturnFromMenu`) and the shop and save screens (`Game_ReturnFromShop`) return, the code streams COMMU00 (`0x258`) and calls `func_801F03D0` when the area has the flag. The reload is likely needed because the screen overlays take over the shared window `[inferred]`.
+- After the menu (`Game_ReturnFromMenu`) and the shop and save screens (`Game_ReturnFromShop`) return, the code streams COMMU00 (`0x258`) and calls `func_801F03D0` when the area has the flag. The reload is needed because the screen overlays take over the shared window `[inferred]`.
 - `Fairy_InitVillage` (`emi/etc/commu00/00`) acts when `g_GameAreaId != D_80143F04`. When no fairy is active it calls `Fairy_JoinVillage` three times (one per party slot) and seeds five counters from `g_BattleCount`.
 - COMMU01 to 05 (`0x259`, `0x25A` and `0x25B`, `0x25C`, `0x25D`, `0x25E`) are streamed one per step by `Fairy_LoadCommu01`, `Fairy_LoadCommu02`, `Fairy_LoadCommu03`, `Fairy_LoadCommu04` and `Fairy_LoadCommu05`. Each advances `D_801448EC`, and all dispatch on the COMMU step byte `D_801F294C`, which COMMU00 owns.
 
@@ -212,7 +212,7 @@ The world map is an area with `g_GameRequestFlags & 1`. It stays in entry state 
 - The field step `func_801B146C` tests the cell under the party with `Area_GetCellCode`. The value `0xAF` requests an area change (`Game_RequestAreaChange`, `g_GameRequestKind = 0xC`).
 - Random encounters on the world map skip the `D_80143EFC >= 0xF1` test in `Area_CanStartEncounter`. Its last test reads the cell class ahead of the party instead of building a formation ([battle](../battle/)).
 
-The world-map code is in the `world*` area overlays, which were not read `[unknown]`.
+The world-map code is in the `world*` area overlays `[unknown]`.
 
 ## Data and limits
 
@@ -249,7 +249,7 @@ The dispatch indexes the step byte into the owning overlay's table with no bound
 
 ## Sources and confidence
 
-- **Confidence:** medium. The entry-state routes, the substate tables and the return paths are read in the code. The BATE and SHISU steps and the SHISU score are read in the code and the assembly. The roles of the STATUS and SHOP steps, the sources of the BATE tally, the SHISU prizes, and the world-map and master triggers are `[inferred]` or `[unknown]`.
+- **Confidence:** medium. The entry-state routes, the substate tables and the return paths are read in the code. The BATE and SHISU steps and the SHISU score are read in the code. The roles of the STATUS and SHOP steps, the sources of the BATE tally, the SHISU prizes, and the world-map and master triggers are `[inferred]` or `[unknown]`.
 - **Evidence:** the state functions in `emi/etc/game/00`, the heads and step tables of the STATUS, SHOP, BATE, SHISU, SISYOU, COMMU and `area030` overlays, the BATE functions `func_801D1FA0`, `func_801D1E8C` and `func_801D259C`, the SHISU functions `func_801D1018`, `func_801D1E60` and `func_801D1EE8`, and the writers of the request codes in the scenario overlays.
 
 ## Related
