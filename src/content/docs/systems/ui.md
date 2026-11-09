@@ -3,13 +3,13 @@ title: "UI and text drawing"
 description: "Every conversation, menu label and number goes through one text engine in the resident executable."
 ---
 
-All conversation, menu and number text goes through one text engine in the resident executable. The engine turns a message record from the area's [message bank](../../formats/area/) into a box at the bottom of the screen, text drawn one character at a time, a button-wait marker, an optional choice list and screen fades. It draws through the primitive queue ([rendering](../rendering/)). This page covers the message state machine, the window panels, the text drawers and the full-screen fades. The byte encoding and control codes are in [game text](../../data/text/); the overlay that opens each full-screen mode is in [screens](../screens/). Functions are in the main executable `exe/slus_004_22` unless stated.
+All conversation, menu and number text goes through one text engine in the resident executable. The engine turns a message record from the area's [message table](../../formats/area/) into a box at the bottom of the screen, text drawn one character at a time, a button-wait marker, an optional choice list and screen fades. It draws through the primitive queue ([rendering](../rendering/)). This page covers the message state machine, the window panels, the text drawers and the full-screen fades. The byte encoding and control codes are in [game text](../../data/text/); the overlay that opens each full-screen mode is in [screens](../screens/). Functions are in the main executable `exe/slus_004_22` unless stated.
 
 ## Terms
 
 | Term          | Meaning                                                                                                   |
 | ------------- | --------------------------------------------------------------------------------------------------------- |
-| Message       | One script of text bytes in a message bank. The engine draws it a character at a time.                    |
+| Message       | One script of text bytes in a message table. The engine draws it a character at a time.                   |
 | Channel       | The window script record at `g_UiWindowChannel` (`0x801490A4`): flags, delay timer, script cursors.       |
 | Message state | The byte `D_801490A0.state_00` (0 to 7) that selects the engine's current step.                           |
 | Panel         | A window frame task in `g_MenuPanelTasks`; see [scheduler](../../concepts/scheduler/#work-record-tables). |
@@ -19,7 +19,7 @@ All conversation, menu and number text goes through one text engine in the resid
 
 A string reaches the screen in five steps.
 
-1. **Bank in RAM.** The EMI loader copies an area archive's message bank to `0x80010000` ([loading](../../concepts/loading/)). `Message_StartAreaMessage` and `Message_StartRequest` read that address as the bank.
+1. **Table in RAM.** The EMI loader copies an area archive's message table to `0x80010000` ([loading](../../concepts/loading/)). `Message_StartAreaMessage` and `Message_StartRequest` read that address as the table.
 2. **Request.** Game code calls `Message_StartAreaMessage (exe/slus_004_22@0x80150224)` with a message index, or `Message_Request (exe/slus_004_22@0x80150284)` with a resource id. The first reads the `u16` at `0x80010000 + index * 2` and adds `0x80010000`. The second calls `Message_GetText (exe/slus_004_22@0x801502D0)`, which uses the table at `0x8001A000`: `(id >> 12) & 0xC` selects a base word, then a `u16` offset table follows. Both store the record pointer in `D_801490AC` and `D_801490B0`, store the request in `g_MessageRequest`, and call `UI_ResetMessage`.
 3. **Engine.** `UI_UpdateLayout (exe/slus_004_22@0x801503E0)` runs once per frame while the panel is open. It dispatches the message state (8 states) and the selection state (6 states), then redraws the message.
 4. **Glyph.** `UI_DrawMessageScript (exe/slus_004_22@0x80150470)` walks the script from the start each frame and draws `D_801490B9` characters, one `UI_DrawText` call per character at 8 pixels advance. The script step `func_8015083C` adds one to `D_801490B9` per character. The whole message is redrawn each frame, so this counter produces the typewriter effect.
@@ -27,7 +27,7 @@ A string reaches the screen in five steps.
 
 ```mermaid
 flowchart TD
-    A["area bank at 0x80010000"] --> B["Message_StartAreaMessage / Message_Request"]
+    A["area table at 0x80010000"] --> B["Message_StartAreaMessage / Message_Request"]
     B --> C["D_801490AC / D_801490B0 = record pointer"]
     C --> D["UI_UpdateLayout each frame"]
     D --> E["message state 0: func_8015083C steps the script"]
@@ -37,11 +37,11 @@ flowchart TD
     E -->|"control byte"| E
 ```
 
-Control codes that insert text (`{GOTO}`, `{INSERT}`, `{VAR}`, `{LINK}`, [text codes](../../data/text/)) are followed by a character budget in `UI_DrawMessageScript`. Party-record names are 6 characters, read from `0x80144968 + slot * 0xA4`. A variable string is 33 steps, read from `0x801490D8 + n * 32`. A link through the bank's own table is 17 characters. After the budget the cursor returns to the byte after the code.
+Control codes that insert text (`{GOTO}`, `{INSERT}`, `{VAR}`, `{LINK}`, [text codes](../../data/text/)) are followed by a character budget in `UI_DrawMessageScript`. Party-record names are 6 characters, read from `0x80144968 + slot * 0xA4`. A variable string is 33 steps, read from `0x801490D8 + n * 32`. A link through the message table's own sub-table is 17 characters. After the budget the cursor returns to the byte after the code.
 
 ## Message state machine
 
-`func_801507BC` copies the table `D_80149A5C` to the stack and calls the handler for `D_801490A0.state_00`. `func_801518F4` does the same for the selection state `D_801490A2` with `D_80149AB4`. Each handler either runs the script or waits for the player.
+`Message_DispatchState` copies the table `D_80149A5C` to the stack and calls the handler for `D_801490A0.state_00`. `Message_DispatchChoiceMode` does the same for the selection state `D_801490A2` with `D_80149AB4`. Each handler either runs the script or waits for the player.
 
 | State | Handler              | Role                                                                                             |
 | ----: | -------------------- | ------------------------------------------------------------------------------------------------ |
@@ -70,11 +70,11 @@ The diagram shows only the transitions out of state 0, from the `switch` in `fun
 
 **Typewriter speed.** After each glyph, `func_8015083C` loads the delay from the byte table at `D_8017F5B4`, row `D_80144950` (a signed byte; the option that sets it is `[unknown]`). Byte 0 applies when a pad button is held (`g_InputMasks & g_InputHeld`), byte 1 otherwise. A zero delay keeps state 0. Any other value goes to state 1 for that many frames. `FRONTEND_FLAG_FORCE_STEP` forces a delay of 3. The channel flag `FRONTEND_FLAG_NO_INPUT_WAIT` (toggled by opcodes `0x10` and `0x11`) makes the script run without waiting.
 
-**Choice.** The `{CHOICE}` code (`0x14`) stores the count (`operand & 0xF`, minus one) and the layout nibble, then enters state 4 or 5. The pick is kept in `D_801490C7`. `UI_HandleChoiceInput` moves it on repeated direction input, wrapping at zero. The pick selects the next message through a dozen small functions (`func_80152370`, `Message_SetAnswerMessage5` to `Message_SetAnswerMessage15`). Each stores entry `D_801490C7` of a row of tables at `0x8017F628..0x8017F664` into `g_MessageRequest`. The next message starts at the `u16` of the bank at `0x80010000 + g_MessageRequest * 2` (`Message_StartRequest`).
+**Choice.** The `{CHOICE}` code (`0x14`) stores the count (`operand & 0xF`, minus one) and the layout nibble, then enters state 4 or 5. The pick is kept in `D_801490C7`. `UI_HandleChoiceInput` moves it on repeated direction input, wrapping at zero. The pick selects the next message through a dozen small functions (`func_80152370`, `Message_SetAnswerMessage5` to `Message_SetAnswerMessage15`). Each stores entry `D_801490C7` of a row of tables at `0x8017F628..0x8017F664` into `g_MessageRequest`. The next message starts at the `u16` of the message table at `0x80010000 + g_MessageRequest * 2` (`Message_StartRequest`).
 
 ## Windows and panels
 
-The text box is the panel in `g_MenuPanelTasks` slot 0. `UI_ResetMessage (exe/slus_004_22@0x80150304)` calls `Menu_OpenPanelTask(0, 0)`, which sets the slot active with handler index 0, and sets the slot's mode byte to 2. Handler 0 is `func_80158F80`. It picks one of three sub-kinds from the byte `+2` through `D_80149B30`: `func_80158FE0`, `func_801598F4` or `func_80159A20`. `func_80158FE0` runs the five panel states of `D_80149B3C`, indexed by the byte `+3`: `func_80159050`, `func_8015920C`, `func_80159510`, `func_80159580`, `func_801598B8`. The panel task machine itself (22 slots, 9 handlers, three passes) is in [scheduler](../../concepts/scheduler/#work-record-tables).
+The text box is the panel in `g_MenuPanelTasks` slot 0. `UI_ResetMessage (exe/slus_004_22@0x80150304)` calls `Menu_OpenPanelTask(0, 0)`, which sets the slot active with handler index 0, and sets the slot's mode byte to 2. Handler 0 is `func_80158F80`. It picks one of three sub-kinds from the byte `+2` through `D_80149B30`: `func_80158FE0`, `func_801598F4` or `func_80159A20`. `func_80158FE0` runs the five panel states of `D_80149B3C`, indexed by the byte `+3`: `func_80159050`, `func_8015920C`, `func_80159510`, `func_80159580`, `Menu_ClosePanel`. The panel task machine itself (22 slots, 9 handlers, three passes) is in [scheduler](../../concepts/scheduler/#work-record-tables).
 
 A box opens by growing from a point to its full size, stays, then shrinks:
 
@@ -84,7 +84,7 @@ A box opens by growing from a point to its full size, stays, then shrinks:
 | State 1, growing | `func_8015920C` adds the step each frame, snaps to the origin table, then draws the frame with `func_80159FA0`.                                                                 |
 | State 2, open    | `func_80159510`, the step between growing and shrinking. Its body is `[unknown]`.                                                                                               |
 | State 3, closing | `func_80159580` shrinks the box the same way and calls `UI_UpdateLayout` while the sub-kind is 0.                                                                               |
-| Frame            | `func_80159FA0` draws a gray (`0x78`) four-point outline and `func_8015A2B0` draws the inner line, both on layer 1.                                                             |
+| Frame            | `func_80159FA0` draws a gray (`0x78`) four-point outline and `UI_DrawLine` draws the inner line, both on layer 1.                                                               |
 | Text origin      | `UI_UpdateLayout` sets it to `(D_80148334 >> 4) + 10`, `(D_80148336 >> 4) + 6` before each redraw.                                                                              |
 | Position         | `g_MenuPanelOrigins (exe/slus_004_22@0x8017F90C)`, 32 bytes: two sets of 8 (x, y) byte pairs, selected by `D_801490CE`.                                                         |
 
@@ -154,8 +154,8 @@ Limits of the text engine and what a replacement asset must respect:
 | Characters per frame budget | Bounded by the primitive arena ([rendering](../rendering/#data-and-limits))                      | `GFX_AddPrim`                                                  | Text beyond the arena is dropped, not truncated by the engine.          |
 | Name insert                 | 6 characters                                                                                     | `UI_DrawMessageScript`                                         | Party names fit 6 glyphs when inserted into a message.                  |
 | Variable string             | 32 bytes per entry; the budget is 33 steps because the cursor steps past the operand first       | `g_TextVariables[][0x20]`                                      | Variable text stays under 32 bytes.                                     |
-| Bank link                   | 17 characters                                                                                    | `UI_DrawMessageScript`                                         | A linked message shows at most 17 characters.                           |
-| Message bank offsets        | `u16` offsets from `0x80010000`                                                                  | `Message_StartAreaMessage`                                     | A bank is under 64 KiB; the record pointer is `0x80010000 + u16`.       |
+| Table link                  | 17 characters                                                                                    | `UI_DrawMessageScript`                                         | A linked message shows at most 17 characters.                           |
+| Message table offsets       | `u16` offsets from `0x80010000`                                                                  | `Message_StartAreaMessage`                                     | A table is under 64 KiB; the record pointer is `0x80010000 + u16`.      |
 | Resource groups             | 4 (id bits 14 and 15)                                                                            | `Message_GetText` mask `0xC`                                   | Resource ids use groups 0 to 3, index below `0x4000`.                   |
 | Window size                 | 200 by 54 or 120 by 54 pixels                                                                    | `func_80159050`                                                | Message text fits the box: glyphs advance 8 pixels, a newline moves 14. |
 | Window positions            | 8 per set, 2 sets                                                                                | `g_MenuPanelOrigins`, `D_801490CE`                             | Position index below 8.                                                 |

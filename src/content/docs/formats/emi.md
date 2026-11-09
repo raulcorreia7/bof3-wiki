@@ -123,7 +123,7 @@ The slot id is not the entry slot, which is the TOC index inside one archive. Th
 | `BATTLE/*`   | fixed ids 0-8 in `emi/battle/battle/03` and `emi/battle/battle/15`                                                                                                                                                                                                                                                   |
 | `BENEMY`     | `func_801D1228 (emi/battle/battle/03@0x801D1228)`: `g_GameAreaId + 9`                                                                                                                                                                                                                                                |
 | `BGM`        | `SND_RequestBGM (exe/slus_004_22@0x80161BBC)`: the table `g_BGMTracks[id]` holds the slot (`0xD1`-`0x121`)                                                                                                                                                                                                           |
-| `BMAGIC`     | `func_800AE1F8 (emi/battle/battle/15@0x800AE1F8)` and `func_800AE2D4 (emi/battle/battle/15@0x800AE2D4)`: `BattleSelection.id` from the table at `0x800B65F8` (`0x122`-`0x1B1`)                                                                                                                                       |
+| `BMAGIC`     | `Battle_LoadSelectionEffect (emi/battle/battle/15@0x800AE1F8)` and `func_800AE2D4 (emi/battle/battle/15@0x800AE2D4)`: `BattleSelection.id` from the table at `0x800B65F8` (`0x122`-`0x1B1`)                                                                                                                          |
 | `BMAG_XA`    | `SND_StartXAStream`, key `0x1000 + n`                                                                                                                                                                                                                                                                                |
 | `BOSS`       | `Battle_LoadBattleArchive (emi/etc/game/00@0x80197C94)`: the slot comes from `g_BossArchiveSlots`, indexed by the encounter record (`0x1B3`-`0x1DA`)                                                                                                                                                                 |
 | `BPLCHAR`    | `EMI_GetArchiveId` families 1 and 2 (`BPLD`, `BPLU`, party combination 0-18); `func_801E7948 (emi/battle/battle/03@0x801E7948)` (`BRTD`/`BRTU` `0x201`-`0x208` for combinations 7, 13, 14, 15; tables `D_800B4A64`, `D_800B4A68`); `func_801E75B0` (`REI`, `0x23C`-`0x23F`); `BMagic_Effect` (`RT`, `0x240`-`0x243`) |
@@ -232,7 +232,7 @@ Where the code entry sits depends on the family:
 | WORLD    | `0x801F2C00`                                   | varies by shape ([below](#world-shapes))                                                                                                                                                                                    |
 | PLCHAR   | `0x801CE400`                                   | 0 (`PLPxxx`)                                                                                                                                                                                                                |
 | SCENARIO | `0x801F6C00` (SCENA), `0x801D0C00` (SCE*)      | 0 only (the controller)                                                                                                                                                                                                     |
-| BMAGIC   | `0x801EEC00`                                   | 3 (128 archives with a VAB triple), 0 (13 archives without); the other slots are type-3 uploads, CLUT banks (`0x80033800..0x80036E00`) and data blocks (`0x800C3800`, `0x80036C00`)                                         |
+| BMAGIC   | `0x801EEC00`                                   | 3 (128 archives with a VAB triple), 0 (13 archives without); the other slots are type-3 uploads, CLUT blocks (`0x80033800..0x80036E00`) and data blocks (`0x800C3800`, `0x80036C00`)                                        |
 | BOSS     | `0x800C1800`                                   | 17-entry shape (BOSS001, 004, 022, 025, 031): slots 0, 12, 13; 20-entry shape (35 archives): slots 3, 15, 16. The three programs are the boss module and the two copied battle programs                                     |
 | BATTLE   | none (per archive)                             | `BATTLE` and `BATTLE2`: programs at slots 3 and 15 (16 entries, byte-identical across the two); `BATL_END` and `BATL_OVR`: module at slot 0; `BATL_RE2`: CLUT bundle; `BATL_DRA`, `BATL_RET`, `BATL_SE`, `COMN_SE`: no code |
 | ETC      | `0x801D0C00` (menus), `0x80195800` (`game/00`) | slot 0 for `bate`, `game/00`, `shisu`, `shop`, `sisyou`; 6 for `commu03` and `commu04`; 7 for `commu01`, `commu05` and `commu02b`; 8 for `commu02` and `start/08`; 9 for `start/09`                                         |
@@ -255,7 +255,7 @@ The area program is code in 181 archives. The other 19 payloads at `0x801F2C00` 
 
 ### Data-only code-window payloads
 
-Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT banks with one segment ending at `0x200`, one CLUT and neither a `jr $ra` nor an `addiu sp,sp` prologue.
+Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT blocks with one segment ending at `0x200`, one CLUT and neither a `jr $ra` nor an `addiu sp,sp` prologue.
 
 | Target                   |         Load | Payload                                                                               |
 | ------------------------ | -----------: | ------------------------------------------------------------------------------------- |
@@ -264,15 +264,15 @@ Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT
 
 ## Open questions
 
-| Question                                                                                                                                                                       | What would settle it                                |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| BOSS slot ids `0x1B3`-`0x1DA`: no caller found; the one boss-overlay site read requests slot 4 (`BATL_RET`)                                                                    | a runtime trace of a boss battle load               |
-| BMAGIC loading is table-driven (`BattleSelection` at `0x800B65F8`); no caller maps a spell id to a table row                                                                   | the code that fills `BattleSelection.id`            |
-| BPLCHAR section readers for `0x8005680C`, `0x8007180C` and `0x8007A80C`: not found                                                                                             | a reader of those addresses in a battle overlay     |
-| BPLCHAR filler (16 KiB zero entry at `0x8003B800`, 44 archives): purpose                                                                                                       | a reader of the entry                               |
-| BGM cue tables in BGM004, BGM108 and BGM117 (4-20 B): consumer                                                                                                                 | the sound-request code that indexes bank cue tables |
-| Type-8 cue byte 2, low nibble                                                                                                                                                  | a consumer of the cue byte                          |
-| Type-0 slots with no named reader: BATTLE script bank at `0x800F0800` beyond `Actor_BeginScript`; BMAGIC data blocks at `0x80036C00` and `0x800C3800`; modules at `0x80117000` | readers of those addresses                          |
+| Question                                                                                                                                                                        | What would settle it                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| BOSS slot ids `0x1B3`-`0x1DA`: no caller found; the one boss-overlay site read requests slot 4 (`BATL_RET`)                                                                     | a runtime trace of a boss battle load               |
+| BMAGIC loading is table-driven (`BattleSelection` at `0x800B65F8`); no caller maps a spell id to a table row                                                                    | the code that fills `BattleSelection.id`            |
+| BPLCHAR section readers for `0x8005680C`, `0x8007180C` and `0x8007A80C`: not found                                                                                              | a reader of those addresses in a battle overlay     |
+| BPLCHAR filler (16 KiB zero entry at `0x8003B800`, 44 archives): purpose                                                                                                        | a reader of the entry                               |
+| BGM cue tables in BGM004, BGM108 and BGM117 (4-20 B): consumer                                                                                                                  | the sound-request code that indexes bank cue tables |
+| Type-8 cue byte 2, low nibble                                                                                                                                                   | a consumer of the cue byte                          |
+| Type-0 slots with no named reader: BATTLE script table at `0x800F0800` beyond `Actor_BeginScript`; BMAGIC data blocks at `0x80036C00` and `0x800C3800`; modules at `0x80117000` | readers of those addresses                          |
 
 ## Sources and confidence
 
@@ -283,6 +283,6 @@ Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT
 
 - [Disc and files](../disc/): which archive is in which directory and slot.
 - [Type-1 LZ77 payload](../lz77/): the compressed form of type 1.
-- [Graphics formats](../graphics/): the type-3 VRAM upload and the type-0 palette banks.
+- [Graphics formats](../graphics/): the type-3 VRAM upload and the type-0 CLUT blocks.
 - [Audio formats](../audio/): the VAB, cue and SEP payloads of types 6 to 10.
 - [Area formats](../area/): the blocks of a WORLD archive.

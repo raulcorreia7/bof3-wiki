@@ -71,7 +71,7 @@ sequenceDiagram
 
 `SAVE_BuildSlotImage (emi/etc/shop/00@0x801D69E0)` runs just before the write. In order:
 
-1. `func_801D7080` builds the title string. `SAVE_BuildFileHeader (emi/etc/start/09@0x801EF27C)` writes the `SC` magic, the icon flag `0x13`, block count 1, the title, the icon palette and three icon frames into the frame at `0x800C1800`.
+1. `SAVE_FormatSlotInfo` builds the title string. `SAVE_BuildFileHeader (emi/etc/start/09@0x801EF27C)` writes the `SC` magic, the icon flag `0x13`, block count 1, the title, the icon palette and three icon frames into the frame at `0x800C1800`.
 2. It refreshes the fields in the live block that the save adds: the script variables, the area id, the entry kind and position, the nine button masks, and the slot summary row. The summary row is five name bytes from the first party record, the three field-order portraits (a portrait of kind 4 shows as `0xB` unless the loaded character index is 5 or `0xC`), the first record's level, the play clock, and the result of testing event flag `0x92`.
 3. It clears the checksum halfword at block `+0x70` in live RAM, stores `g_GameFlags` as a byte in `D_80145025`, copies the 4,272 bytes from `0x801448D8` into `g_SaveBuffer`, and sums them in 16 bits.
 4. It zeroes the rest of the buffer up to payload offset `0x1E00`, stores the sum at frame `+0x270`, and publishes the slot row.
@@ -163,7 +163,7 @@ The continue menu is camp substate 1 (`D_801ED11C`, 7 states). `func_801E411C` c
 |     7 | `func_801E55B8`       | slide                                                |
 |     8 | `func_801E5674`       | slide in the slot list                               |
 |     9 | `func_801E5738`       | slot select; an empty row plays the error cue        |
-|    10 | `func_801E590C`       | confirm                                              |
+|    10 | `Battle_AllocEffect`  | confirm                                              |
 |    11 | `SAVE_RunLoadVerify`  | read, copy, verify                                   |
 |    12 | `func_801E5BCC`       | slide back, to state 2                               |
 |    13 | `func_801E5C68`       | message for `g_SaveCardStatus`                       |
@@ -219,7 +219,7 @@ What the driver does in `SAVE_AccessFile (emi/etc/start/09@0x801EEC30)`:
 
 - It makes up to 30 attempts at `SAVE_PollCardInfo` and `SAVE_PollSoftwareEvents`. If the status stays pending or timeout, it returns -1.
 - On status OK it calls `SAVE_PollCardLoad` (60 frames), then opens and transfers. A `SAVE_PollCardLoad` failure returns -1.
-- On status NEW it calls `func_801EF148`, which clears the card (`_card_clear`) and waits for the hardware event, up to 60 tries, then goes on as for OK.
+- On status NEW it calls `Effect_StepWhileTickUnderTwo`, which clears the card (`_card_clear`) and waits for the hardware event, up to 60 tries, then goes on as for OK.
 - On status timeout or any other value it returns -1.
 - `SAVE_OpenFile (emi/etc/start/09@0x801EF96C)` retries `open` 120 times with one `VSync` between tries. On failure it re-polls the card. When it creates a file, it scans the directory and sets status 4 if the summed file sizes plus one block exceed the capacity bound, else status 3. The test is `total + (blocks << 13) > 0x1E000`, which is 122,880 bytes or 15 blocks.
 - `SAVE_TransferFile (emi/etc/start/09@0x801EFB44)` retries a failed `read` or `write` once per `SAVE_PollCardInfo`, up to 60 times, and returns -1 when the card reports a timeout.

@@ -36,7 +36,7 @@ sequenceDiagram
     Note over R,U: the same pair runs<br/>every field frame from<br/>Game_UpdateField
 ```
 
-After the first entry, `Game_UpdateField (emi/etc/game/00@0x80197378)` runs `Game_UpdateScenario` once per field frame. `func_80199230` and `func_80199368` also call it.
+After the first entry, `Game_UpdateField (emi/etc/game/00@0x80197378)` runs `Game_UpdateScenario` once per field frame. `func_80199230` and `Game_UpdateMenuFrame` also call it.
 
 Three places start a scenario:
 
@@ -54,13 +54,13 @@ The first word of each loaded image is its module id, `0x105 + n` (`0x105` for `
 
 The pointer in `g_SceneScenes` leads to a handler block of five code pointers. The resident code calls them through the wrapper named in the `Evidence` column.
 
-| Offset | Type    | Name       | Meaning                                                                                                                       | Evidence                                           |
-| -----: | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `0x00` | `void*` | `entry_00` | Per-frame controller. `SCENA00` and `SCENA16` read `mode_02` and jump through a mode table.                                   | `Game_UpdateScenario`                              |
-| `0x04` | `void*` | `entry_04` | `void (record)`. The player talks to or touches an entity whose `callback_index` is set.                                      | `Game_DispatchScenarioRecord`                      |
-| `0x08` | `void*` | `entry_08` | `s8 (x, y)`. A nonzero result blocks the step into the cell. Zero falls back to `func_801A8728`, a switch on the area id.     | `func_801B0E44` through `Area_IsStepBlocked`       |
-| `0x0C` | `void*` | `entry_0C` | `s8 (x, y)`. A nonzero result overrides the cell test. Zero falls back to `func_801A8B84`.                                    | `func_801B146C` through `func_801A79A4`            |
-| `0x10` | `void*` | `entry_10` | `s8 (a, b)`, optional. A negative or null result falls back to `func_801A8CB4`, which reads the area hook table `D_801C86F8`. | `func_801B6258` through `Game_CallScenarioHandler` |
+| Offset | Type    | Name       | Meaning                                                                                                                              | Evidence                                           |
+| -----: | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| `0x00` | `void*` | `entry_00` | Per-frame controller. `SCENA00` and `SCENA16` read `mode_02` and jump through a mode table.                                          | `Game_UpdateScenario`                              |
+| `0x04` | `void*` | `entry_04` | `void (record)`. The player talks to or touches an entity whose `callback_index` is set.                                             | `Game_DispatchScenarioRecord`                      |
+| `0x08` | `void*` | `entry_08` | `s8 (x, y)`. A nonzero result blocks the step into the cell. Zero falls back to `func_801A8728`, a switch on the area id.            | `func_801B0E44` through `Area_IsStepBlocked`       |
+| `0x0C` | `void*` | `entry_0C` | `s8 (x, y)`. A nonzero result overrides the cell test. Zero falls back to `func_801A8B84`.                                           | `func_801B146C` through `func_801A79A4`            |
+| `0x10` | `void*` | `entry_10` | `s8 (a, b)`, optional. A negative or null result falls back to `Game_CallAreaHandler`, which reads the area hook table `D_801C86F8`. | `func_801B6258` through `Game_CallScenarioHandler` |
 
 The wrappers are `Area_IsStepBlocked (emi/etc/game/00@0x801A7914)`, `func_801A79A4`, `Game_CallScenarioHandler (emi/etc/game/00@0x801A7A34)` and `Game_DispatchScenarioRecord (emi/etc/game/00@0x801A7878)`. A scenario overrides only what differs from the default; the fallbacks cover the rest.
 

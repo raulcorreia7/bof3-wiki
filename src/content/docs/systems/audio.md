@@ -116,7 +116,7 @@ Steps 3 and 4 resume the field track, from a reloaded bank or from the restored 
 
 ## Sound effects
 
-A cue is a 16-bit id: bank in bits 8 to 11, record index in bits 0 to 7. `SND_PlayCue (exe/slus_004_22@0x8015DF18)(id)` stores bank and index, then calls `g_SndCueReaders[bank]`, one of seven readers (`func_8015E994`, `func_8015EFAC`, `func_8015F5C8`, `func_8015FBE4`, `func_80160200`, `func_8016081C`, `func_80160E38`). The reader decodes the 4-byte cue record (voice, program, tone) into up to four voice slots. `SND_PlayCue` then calls `SsUtKeyOnV` once per slot (modes 0 to 3) and, when `D_8018B3F4 == 0x80`, `SsUtSetDetVVol` with the volume cells `D_8018B3D8` and `D_8018B3DC`. The record layout and bank readers are in [audio formats](../../formats/audio/#emi-type-8-cue-records).
+A cue is a 16-bit id: bank in bits 8 to 11, record index in bits 0 to 7. `SND_PlayCue (exe/slus_004_22@0x8015DF18)(id)` stores bank and index, then calls `g_SndCueReaders[bank]`, one of seven readers (`SND_ReadCueBank0`, `SND_ReadCueBank1`, `SND_ReadCueBank2`, `SND_ReadCueBank3`, `SND_ReadCueBank4`, `SND_ReadCueBank5`, `SND_ReadCueBank6`). The reader decodes the 4-byte cue record (voice, program, tone) into up to four voice slots. `SND_PlayCue` then calls `SsUtKeyOnV` once per slot (modes 0 to 3) and, when `D_8018B3F4 == 0x80`, `SsUtSetDetVVol` with the volume cells `D_8018B3D8` and `D_8018B3DC`. The record layout and bank readers are in [audio formats](../../formats/audio/#emi-type-8-cue-records).
 
 - A cue's bank must be 0 to 6. The table has seven entries and `SND_PlayCue` does not range-check a larger bank nibble.
 - Event scripts reach cues through opcodes `0xB0` to `0xB3` (`SND_PlayCue(byte | bank << 8)`, banks 0 to 3) and `0xBC` (`SND_QueueCueVolume`, a 16-bit id), both in `func_801A96E4`. `SND_QueueCueVolume (exe/slus_004_22@0x8015D7C8)` loads left and right volume from `D_80182288`, then calls `SND_PlayCue`.
@@ -217,7 +217,7 @@ Limits for an edited audio asset:
 - Writers of `D_80144954` (duck gate) and `g_SndMono` (mono). Settled by: searching overlays and `emi/etc/start/08` for stores to `0x80144954` and `0x80144951`.
 - Meaning of the cue volume ladders `D_80182290` to `D_80182308`. Settled by: finding the readers of those tables.
 - XA group sizes, group 2 callers and the content of each table entry. Settled by: reading the three tables against the XA file sector map.
-- The seven bank readers' per-bank differences. Settled by: reading `func_8015E994` to `func_80160E38`.
+- The seven bank readers' per-bank differences. Settled by: reading `SND_ReadCueBank0` to `SND_ReadCueBank6`.
 - Opcode `0xBD` (`func_8015D820`) in event scripts. Settled by: reading `func_8015D820`.
 
 ## Sources and confidence

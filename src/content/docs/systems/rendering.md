@@ -7,15 +7,15 @@ The game draws each frame by writing GPU primitives into a fixed RAM arena, thre
 
 ## Terms
 
-| Term          | Meaning                                                                                                               |
-| ------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Primitive     | One GPU packet (`SPRT`, `POLY_FT4`, `DR_MODE`, `DR_AREA`) built at `g_GfxPrimCursor`.                                 |
-| Arena         | The RAM block that holds one frame's primitives. Two arenas, one per render record.                                   |
-| Layer         | One of 8 ordering-table entries. `GFX_AddPrim` appends a primitive to one layer's chain.                              |
-| Cell          | A 16-color palette unit: 16 VRAM words of one palette row. A 256-color palette is 16 cells.                           |
-| Palette arena | The RAM block at `0x80033800` that holds loaded palette banks. Its working copy at `0x80037800` is what the GPU sees. |
-| Stage palette | The VRAM rectangle (0, 0x1E0, 0x100, 0x20): 32 palette rows of 256 words.                                             |
-| Sprite record | The work record (`Actor`) at scratchpad `work_ptr`. Its bytes `+0x24` to `+0x29` pick page, CLUT and layer.           |
+| Term          | Meaning                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Primitive     | One GPU packet (`SPRT`, `POLY_FT4`, `DR_MODE`, `DR_AREA`) built at `g_GfxPrimCursor`.                               |
+| Arena         | The RAM block that holds one frame's primitives. Two arenas, one per render record.                                 |
+| Layer         | One of 8 ordering-table entries. `GFX_AddPrim` appends a primitive to one layer's chain.                            |
+| Cell          | A 16-color palette unit: 16 VRAM words of one palette row. A 256-color palette is 16 cells.                         |
+| Palette arena | The RAM block at `0x80033800` that holds loaded CLUT blocks. Its working copy at `0x80037800` is what the GPU sees. |
+| Stage palette | The VRAM rectangle (0, 0x1E0, 0x100, 0x20): 32 palette rows of 256 words.                                           |
+| Sprite record | The work record (`Actor`) at scratchpad `work_ptr`. Its bytes `+0x24` to `+0x29` pick page, CLUT and layer.         |
 
 ## Frame pipeline
 
@@ -67,7 +67,7 @@ Payloads carry no TIM header and go to VRAM as raw 16-bit words. The only TIM da
 ```mermaid
 flowchart TD
     D["disc archive (EMI entry)"]
-    D -->|"type 0"| P["palette bank<br/>arena 0x80033800<br/>+ offset"]
+    D -->|"type 0"| P["CLUT block<br/>arena 0x80033800<br/>+ offset"]
     D -->|"type 3"| V["graphics, 32 by 32 blocks: VRAM texture pages, LoadImage per block"]
     D -->|"sprite sheet"| Q["area or character data: transfer queue, 20 entries"]
     Q -->|"LoadImage, RGB555<br/>expand or LZSS"| V
@@ -81,7 +81,7 @@ flowchart TD
 
 ### The chain for one color
 
-1. **Palette bank.** A type-0 EMI entry is copied to the RAM address in its table row. Arena offsets `+0x000`, `+0x200`, `+0x400`, `+0x600`, `+0x2000` and `+0x3600` are used ([area formats](../../formats/area/) has the table).
+1. **CLUT block.** A type-0 EMI entry is copied to the RAM address in its table row. Arena offsets `+0x000`, `+0x200`, `+0x400`, `+0x600`, `+0x2000` and `+0x3600` are used ([area formats](../../formats/area/) has the table).
 2. **Working copy.** `GFX_ResetPalette (exe/slus_004_22@0x8014E284)` zeroes arena rows 28 to 31, then copies all 32 rows (512 bytes each) to `0x80037800`. `GFX_CopyPalette (exe/slus_004_22@0x8014E3A0)` copies one row. Both set `g_GfxPalettePending`. Code that changes a palette (fades, animations, battle row moves) writes the working copy, not the arena.
 3. **VRAM.** `SYS_Main` calls `GFX_UploadPalette (exe/slus_004_22@0x8014E22C)` every frame. It uploads the whole 256 by 32 rectangle only if `g_GfxPalettePending` is set. A palette edit takes effect one frame later.
 4. **Texture.** Pixels reach a texture page through the loader or the sprite-sheet queue. The page and the bit depth are chosen when the primitive is built, not stored with the pixels.
@@ -105,7 +105,7 @@ The transparency mode in the page word is the low two bits of record byte `+0x5C
 
 ### Texture page and sheet upload
 
-`Area_DrawObjectSprite` takes the page from record byte `+0x25`, plus a bank offset of -1, 0 or 1 when the kind is nonzero. The offset comes from the cell's `u`: below `0x28` gives -1, and `0xA1` and above gives 1. For graph type 0 the page word is
+`Area_DrawObjectSprite` takes the page from record byte `+0x25`, plus a page offset of -1, 0 or 1 when the kind is nonzero. The offset comes from the cell's `u`: below `0x28` gives -1, and `0xA1` and above gives 1. For graph type 0 the page word is
 
     (tp << 7) | (abr << 5) | ((y & 0x100) >> 4) | ((x & 0x3FF) >> 6)
 
@@ -117,7 +117,7 @@ with `x = (page % 16) << 6` and `y = (page / 16) << 8`. `v` is the cell `v` plus
 
 Wrong texture colors come from one of these `[inferred]`:
 
-- The palette bank is at a different arena offset.
+- The CLUT block is at a different arena offset.
 - The CLUT word names a different row or column.
 - The bit depth (4 or 8) differs from the pixel data.
 - A fade or animation overwrote the working copy after the upload.
@@ -179,7 +179,7 @@ Each row gives a limit, its source in the code and what an asset must stay withi
 | Layers                | 8; no range check on the argument                  | `D_801459D0[8]`                            | Sprite record layer byte `+0x29` stays in 0 to 7.                                                |
 | Frame size            | 320 by 240                                         | `SYS_InitDisplay`                          | UI coordinates are in this space.                                                                |
 | Sprite cull window    | x in -64 to 384, y in -64 to 304                   | `Area_DrawObjectSprite` (`0x1C0`, `0x170`) | Sprites outside are skipped.                                                                     |
-| Stage palette         | 256 by 32 words = 16 KiB, from `0x80037800`        | `GFX_UploadPalette`                        | All palette banks fit the arena offsets above.                                                   |
+| Stage palette         | 256 by 32 words = 16 KiB, from `0x80037800`        | `GFX_UploadPalette`                        | All CLUT blocks fit the arena offsets above.                                                     |
 | Dynamic palette cells | 4 rows by 16 cells = 64 cells                      | `D_80145D54`, `GFX_AllocPaletteCell`       | Fades and animated sprites share these 64 cells; free-run search, no compaction.                 |
 | Fade records          | 32                                                 | `GFX_AllocPaletteFade` (`0x20`)            | Returns `0xFF` when full.                                                                        |
 | Palette animations    | 8                                                  | `GFX_StartPaletteAnimation`                | Returns `0xFF` when full.                                                                        |

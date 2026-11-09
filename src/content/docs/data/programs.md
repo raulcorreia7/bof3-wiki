@@ -29,7 +29,7 @@ Each image loads at one address. Images that share an address share a RAM window
 | `0x801F2C00` | `emi/world0N/area*`: the area program of each of the 200 areas                                                                                                                                  |
 | `0x801F6C00` | `emi/scenario/scenaNN`: the 20 scenario controllers                                                                                                                                             |
 
-Two entries load low as data. `emi/battle/batl_re2/01` goes to `0x80036E00` and `emi/etc/bate/03` to `0x80033A00`; both are 512-byte CLUT banks and hold no code.
+Two entries load low as data. `emi/battle/batl_re2/01` goes to `0x80036E00` and `emi/etc/bate/03` to `0x80033A00`; both are 512-byte CLUT blocks and hold no code.
 
 The battle command-menu overlay is not unique to its archive. Every `BOSS` archive and two `BATTLE` archives carry a byte-identical 133,316-byte copy, so whichever battle starts, the overlay is in the same window.
 

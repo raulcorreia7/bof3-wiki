@@ -77,7 +77,7 @@ The title shown by the card menu is built when the save is written. `g_UiFormatB
 4. the tens digit of Ryu's level;
 5. one more digit.
 
-Each argument is a two-byte full-width digit or label from the `D_801E5434` table (`func_801D7080`). The seventh digit is the byte at `0x8014496E` modulo 10, and the format prints it last, after the level label. Whether that byte is the level's units digit is `[unknown]`, because the address is named for the shop clock's seconds byte. The longest result fits the 64-byte field (`[inferred]`, since every input is a two-byte character).
+Each argument is a two-byte full-width digit or label from the `D_801E5434` table (`SAVE_FormatSlotInfo`). The seventh digit is the byte at `0x8014496E` modulo 10, and the format prints it last, after the level label. Whether that byte is the level's units digit is `[unknown]`, because the address is named for the shop clock's seconds byte. The longest result fits the 64-byte field (`[inferred]`, since every input is a two-byte character).
 
 ## Checksum
 

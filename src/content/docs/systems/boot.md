@@ -69,7 +69,7 @@ After the logo, the first pass of the loop opens slot 0, which runs `SYS_StartFr
 3. Stream `FIRST.EMI` (slot `0x261`) and wait with `CallbackWait(1)` until `EMI_IsReady`. [Loading](../../concepts/loading/) explains the stream.
 4. Set reverb depth, call `SND_Start`.
 5. Clear 4,272 bytes of game state from `D_801448D8`. Reset the game flags, the walk flags and `g_EmiLoadedCharacterIndex` (to `0xFF`), and copy nine halfwords from `D_8017F56C` into `g_InputMasks`.
-6. Reset the panel tasks, palette fades, palette slots, draw flags and script bank. Set the area draw mode to 6 and request a palette upload.
+6. Reset the panel tasks, palette fades, palette slots, draw flags and script table. Set the area draw mode to 6 and request a palette upload.
 7. `CallbackRegister(1, SYS_EnterFrontend)`, then `CallbackExit`, which ends slot 0's own thread.
 
 `SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)` starts in slot 1 in the pass where slot 0 registers it, because the walk reaches slot 1 after slot 0. It streams `GAME.EMI` (slot `0x262`), waits for `EMI_IsReady`, and calls `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`. The `GAME.EMI` stream carries two programs. Entry 0 is the resident game program at `0x80195800`, which stays in RAM until power-off. Entry 1 is the title overlay at `0x801D0C00`, which `Game_UpdateTitle` belongs to.

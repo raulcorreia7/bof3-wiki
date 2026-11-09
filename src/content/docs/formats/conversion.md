@@ -41,8 +41,8 @@ One record has one layout. The table links each record to the page that owns its
 | scene records                                   | [scene/step table](../area/#0x800e3800-scenestep-table)                          |
 | cue records                                     | [cue records](../audio/#emi-type-8-cue-records)                                  |
 | VAB bank                                        | [VAB bank](../audio/#vab-bank)                                                   |
-| character bank                                  | [character bank](../character/)                                                  |
-| message banks, strings                          | [game text](../../data/text/)                                                    |
+| character sprites                               | [character sprites](../character/)                                               |
+| message tables, strings                         | [game text](../../data/text/)                                                    |
 
 ## Rebuilding an EMI archive
 

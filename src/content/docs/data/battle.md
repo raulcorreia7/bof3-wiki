@@ -25,7 +25,7 @@ All addresses are fixed RAM. The table gives the address, row size and row count
 | command state              | `0x80146375` |    1 |     1 | `func_801DD448`, `func_801E020C`                            |
 | target selector            | `0x80146384` |    1 |     1 | both hit endings (`func_800A9820` takes it as an argument)  |
 | result byte                | `0x80146328` |    1 |     1 | `func_801D43EC`, boss endings                               |
-| spoils                     | `0x80146326` |   62 |     1 | `func_801E531C`, `func_801E54EC`                            |
+| spoils                     | `0x80146326` |   62 |     1 | `Battle_RollEnemyDrops`, `Battle_DefeatEnemy`               |
 | candidate entries          | `0x801463DC` |   12 |     8 | `emi/etc/game/00`, `emi/battle/battle/15`                   |
 | player work rows           | `0x80145E90` |  320 |     3 | both overlays                                               |
 | enemy work rows            | `0x801EB630` |  280 |     8 | both overlays                                               |
@@ -37,7 +37,7 @@ All addresses are fixed RAM. The table gives the address, row size and row count
 
 The row count is not the battler index space. Player slots are 0 to 2 and enemy slots are 3 to 10,
 so a battle has 11 battlers at most. An enemy work row stores its slot at `+0x05` as `slot + 3`
-(`func_800ABCE0 (emi/battle/battle/15@0x800ABCE0)`). Code addresses the enemy rows from the virtual
+(`Battle_InitEnemy (emi/battle/battle/15@0x800ABCE0)`). Code addresses the enemy rows from the virtual
 base `0x801EB2E8`, which is `0x801EB630` minus three enemy strides of 280 bytes. One base then serves both sides.
 
 For example, slot 3 is the first enemy: `0x801EB2E8 + 3 * 280 = 0x801EB630`. A pointer to
@@ -114,7 +114,7 @@ cell would settle them.
 
 ## Enemy work row
 
-There are eight rows of 280 bytes at `0x801EB630`. `func_800ABCE0 (emi/battle/battle/15@0x800ABCE0)`
+There are eight rows of 280 bytes at `0x801EB630`. `Battle_InitEnemy (emi/battle/battle/15@0x800ABCE0)`
 and `Battle_AddEnemy (emi/battle/battle/15@0x800AC01C)` arm a slot and clear the cells from `+0x06` to
 `+0x5F` first. The table lists the confirmed fields. Widths follow the accesses.
 
@@ -122,8 +122,8 @@ and `Battle_AddEnemy (emi/battle/battle/15@0x800AC01C)` arm a slot and clear the
 | ------: | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `0x000` | `u8`               | bit 0 row occupied                                                                                                                  | `Battle_SlotIsBlocked (emi/battle/battle/03@0x801DB524)`                |
 | `0x001` | `u8`               | main step                                                                                                                           | none found                                                              |
-| `0x005` | `u8`               | battler slot, stored as `slot + 3`                                                                                                  | `func_800ABCE0`                                                         |
-| `0x008` | `u8`               | scroll direction `g_BattleScrollDir` (0-3) with bit 1 flipped                                                                       | the slot setup (`func_800ABCE0`, `Battle_AddEnemy`)                     |
+| `0x005` | `u8`               | battler slot, stored as `slot + 3`                                                                                                  | `Battle_InitEnemy`                                                      |
+| `0x008` | `u8`               | scroll direction `g_BattleScrollDir` (0-3) with bit 1 flipped                                                                       | the slot setup (`Battle_InitEnemy`, `Battle_AddEnemy`)                  |
 | `0x029` | `u8`               | set to 4 when the slot is armed                                                                                                     | the slot setup                                                          |
 | `0x034` | `s32`              | the enemy's x                                                                                                                       | none found                                                              |
 | `0x038` | `s32`              | the enemy's y                                                                                                                       | none found                                                              |
@@ -133,13 +133,13 @@ and `Battle_AddEnemy (emi/battle/battle/15@0x800AC01C)` arm a slot and clear the
 | `0x07C` | `u8`               | kind id                                                                                                                             | none found                                                              |
 | `0x080` | `u16`              | event flags; bit 2 makes the enemy eligible to counter an attack                                                                    | `func_801E4368`                                                         |
 | `0x082` | `u16`              | status word; `0x4000` is knockout                                                                                                   | `func_801E496C`                                                         |
-| `0x084` | `u16`              | damage; cleared by `func_801E54EC`                                                                                                  | `func_801E54EC`                                                         |
-| `0x086` | `u16`              | damage; banked into `D_8014632C` by `func_801E54EC`                                                                                 | `func_801E54EC`                                                         |
+| `0x084` | `u16`              | damage; cleared by `Battle_DefeatEnemy`                                                                                             | `Battle_DefeatEnemy`                                                    |
+| `0x086` | `u16`              | damage; banked into `D_8014632C` by `Battle_DefeatEnemy`                                                                            | `Battle_DefeatEnemy`                                                    |
 | `0x088` | `u16`              | turn-order ranking value                                                                                                            | the turn-order ranking reader                                           |
-| `0x08C` | `u8[8]`            | techniques; the event packet's tail is copied here                                                                                  | `func_8009C994`                                                         |
+| `0x08C` | `u8[8]`            | techniques; the event packet's tail is copied here                                                                                  | `Battle_ApplyEnemyEvent`                                                |
 | `0x094` | `u16`              | current HP                                                                                                                          | `func_801E496C`                                                         |
 | `0x096` | `u16`              | AP                                                                                                                                  | read by `emi/battle/battle/03`                                          |
-| `0x098` | `u8[8]`            | two drop rows (layout in [Drops](#drops))                                                                                           | `func_801E531C`                                                         |
+| `0x098` | `u8[8]`            | two drop rows (layout in [Drops](#drops))                                                                                           | `Battle_RollEnemyDrops`                                                 |
 | `0x0A0` | `u16`              | maximum HP; every read is `lhu` or `sh`; the panel task copies it as the HP bar divisor                                             | `func_801E496C`, `func_800AFC98`                                        |
 | `0x0A4` | `u16`              | attack                                                                                                                              | read by `emi/battle/battle/15`                                          |
 | `0x0A8` | `u16`              | agility                                                                                                                             | read by `emi/battle/battle/03`                                          |
@@ -196,7 +196,7 @@ Cells with no known role (`[unknown]`): `0x06`, `0x07`, `0x0C`-`0x24`, `0x2B`, `
 
 ## Drops
 
-A defeated enemy can drop up to two items. The two drop rows at enemy `+0x98` and `+0x9C` are the two item rows of the area's [enemy record](../records/#the-enemy-record), copied unchanged by `func_800AC218 (emi/battle/battle/15@0x800AC218)`, which `Battle_AddEnemy` calls when the battle starts. Each row holds an item id and a rate index. The rate index selects a chance from the table in [drops](../records/#drops), which also gives the roll. The table gives the row as the battle code reads it.
+A defeated enemy can drop up to two items. The two drop rows at enemy `+0x98` and `+0x9C` are the two item rows of the area's [enemy record](../records/#the-enemy-record), copied unchanged by `Battle_LoadEnemyBattler (emi/battle/battle/15@0x800AC218)`, which `Battle_AddEnemy` calls when the battle starts. Each row holds an item id and a rate index. The rate index selects a chance from the table in [drops](../records/#drops), which also gives the roll. The table gives the row as the battle code reads it.
 
 | Offset | Type  | Meaning                                                                                                         |
 | -----: | ----- | --------------------------------------------------------------------------------------------------------------- |
@@ -215,7 +215,7 @@ typedef struct EnemyBattlerDrop {
 Source: [`include/battle/records.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/battle/records.h)
 
 The spoils record collects what a battle yields. It sits at `0x80146326`, is 62 bytes long and is
-walked by `func_801E531C (emi/battle/battle/03@0x801E531C)`, which alone rolls the drop rows.
+walked by `Battle_RollEnemyDrops (emi/battle/battle/03@0x801E531C)`, which alone rolls the drop rows.
 
 | Offset | Type      | Meaning                                                 |
 | -----: | --------- | ------------------------------------------------------- |
@@ -241,14 +241,14 @@ Source: [`include/battle/ram.h`](https://github.com/raulcorreia7/bof3-decomp/blo
 Before a wild encounter, the field overlay fills a table of eight candidate entries of 12 bytes
 at `0x801463DC`. The battle overlay walks the table and places each live enemy.
 `func_800ABC30 (emi/battle/battle/15@0x800ABC30)` reads the id, x and y of an entry and hands them to
-`func_800ABCE0`.
+`Battle_InitEnemy`.
 
-| Offset | Type          | Meaning                                                                                                    |
-| -----: | ------------- | ---------------------------------------------------------------------------------------------------------- |
-| `0x00` | `u8`          | live flag; set by `func_801C6AEC (emi/etc/game/00@0x801C6AEC)`, cleared when the candidate is out of reach |
-| `0x01` | `u8`          | index of one 136-byte enemy record (`&D_800E405E + id * 136`); `0xFF` means none                           |
-| `0x04` | `s32` (16.16) | encounter x; written by `func_801C6BB4 (emi/etc/game/00@0x801C6BB4)`                                       |
-| `0x08` | `s32` (16.16) | encounter y; written by `func_801C6BB4`                                                                    |
+| Offset | Type          | Meaning                                                                                                                |
+| -----: | ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `0x00` | `u8`          | live flag; set by `Area_RollEncounterEnemies (emi/etc/game/00@0x801C6AEC)`, cleared when the candidate is out of reach |
+| `0x01` | `u8`          | index of one 136-byte enemy record (`&D_800E405E + id * 136`); `0xFF` means none                                       |
+| `0x04` | `s32` (16.16) | encounter x; written by `Area_PlaceEncounterEnemies (emi/etc/game/00@0x801C6BB4)`                                      |
+| `0x08` | `s32` (16.16) | encounter y; written by `Area_PlaceEncounterEnemies`                                                                   |
 
 ```c
 typedef struct EncounterEnemy {
@@ -363,7 +363,7 @@ setter and the reader of each bit.
 | `0x8000` | reload party     | the reload path                         | the reload path clears it                                          |
 
 The effect loading bit stays set from the action's effect stream request until the loader is ready
-(`func_801D3F6C`). Bit `0x0008` is also used. `func_801D277C` and `func_8009B828` set it and
+(`Battle_FinishEffectLoad`). Bit `0x0008` is also used. `func_801D277C` and `func_8009B828` set it and
 `func_801D656C` clears it, but no reader is known, so it has no name.
 
 The damage word (enemy `+0x100`, player `+0x124`) and the action word (enemy `+0x104`, player `+0x128`)

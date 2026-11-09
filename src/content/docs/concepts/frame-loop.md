@@ -38,7 +38,7 @@ Slot 0 usually holds the main game loop, slot 1 the title during the title, and 
 |   11 | `EMI_Update`                                                                    | tick the CD loader or the XA audio player                                                |
 |   12 | `g_SysLastVSync = VSync(1)`; `DrawSync(0)`; `SYS_SubmitFrame`; `g_FrameCount++` | wait for the GPU, then link the new layer chains into the ordering table; count the pass |
 
-`VSync(2)` caps the loop at one pass per two vertical blanks. On an NTSC display, which `SYS_InitHardware (exe/slus_004_22@0x8014AD28)` selects, that is 30 passes per second. A longer pass slows the game; frames are not dropped. `[inferred]` from the PsyQ `VSync` contract and the NTSC mode. The play clock agrees: `func_80198CAC (emi/etc/game/00@0x80198CAC)` adds one tick per main-loop pass and rolls 30 ticks into one second.
+`VSync(2)` caps the loop at one pass per two vertical blanks. On an NTSC display, which `SYS_InitHardware (exe/slus_004_22@0x8014AD28)` selects, that is 30 passes per second. A longer pass slows the game; frames are not dropped. `[inferred]` from the PsyQ `VSync` contract and the NTSC mode. The play clock agrees: `Game_UpdateClock (emi/etc/game/00@0x80198CAC)` adds one tick per main-loop pass and rolls 30 ticks into one second.
 
 The GPU overlap with steps 6 to 11 follows from the PsyQ contract that `DrawOTag` starts a DMA and returns. `[inferred]`
 
@@ -102,7 +102,7 @@ A random encounter does not start in a frame whose drawing ended late. `SYS_Capt
 ## Sources and confidence
 
 - **Confidence:** medium. The order of the pass, the records and the limits are read in the code, but the frame rate, the GPU overlap and the unit of the late-frame value are `[inferred]` from the PsyQ contract.
-- **Evidence:** the code of `SYS_Main`, `SYS_PrepareFrame`, `SYS_SubmitFrame`, `GFX_AddPrim`, `GFX_UpdateTransferQueue`, `SYS_UpdateKeyState`, `CallbackRun` and `EMI_Update`; the play clock of `func_80198CAC`.
+- **Evidence:** the code of `SYS_Main`, `SYS_PrepareFrame`, `SYS_SubmitFrame`, `GFX_AddPrim`, `GFX_UpdateTransferQueue`, `SYS_UpdateKeyState`, `CallbackRun` and `EMI_Update`; the play clock of `Game_UpdateClock`.
 
 ## Related
 

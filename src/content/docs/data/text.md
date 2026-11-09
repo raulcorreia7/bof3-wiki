@@ -3,7 +3,7 @@ title: "Game text"
 description: "Every string the game prints is a byte string in one custom encoding: ASCII-ordered digits and letters, a few punctuation marks in odd slots, and low bytes as control codes for the message window."
 ---
 
-Every string the game prints is a byte string in one custom encoding: digits and letters in ASCII order, a few punctuation marks in odd slots, the space at `0xFF`, and low bytes as control codes that drive the message window. This page covers the encoding, the control codes, the containers that hold strings and the ways that code and data refer to a string. Dialogue lives in the area message banks ([Game records](../records/#archive-index) says which archive holds what). The message window itself belongs to the [field](../field/) and [battle](../battle/) screens.
+Every string the game prints is a byte string in one custom encoding: digits and letters in ASCII order, a few punctuation marks in odd slots, the space at `0xFF`, and low bytes as control codes that drive the message window. This page covers the encoding, the control codes, the containers that hold strings and the ways that code and data refer to a string. Dialogue lives in the area message tables ([Game records](../records/#archive-index) says which archive holds what). The message window itself belongs to the [field](../field/) and [battle](../battle/) screens.
 
 ## Byte classes
 
@@ -124,22 +124,22 @@ operand `1` selects. It stops early at an `{END}` byte, then reading resumes aft
 
 Strings live in three kinds of container. The kind decides how the bytes are found.
 
-### Message bank
+### Message table
 
 A payload that opens with a little-endian `u16` offset table describes itself. The first entry,
 `offset[0]`, is the end of the table, so the table holds `offset[0] / 2` slots. Each slot points at a
 record that runs to the next larger slot offset, and the last record runs to the end of the payload.
 Several slots may share one record.
 
-Take a bank whose table is `0008 000F 000F 0014`. The table is 8 bytes, so it has four slots.
+Take a message table whose offset table is `0008 000F 000F 0014`. The table is 8 bytes, so it has four slots.
 Slots 1 and 2 share the record at `0x0F`. Slot 0 is the 7 bytes from `0x08` to `0x0F`, and that record
 ends with a `{END}`. Slot 3 starts at `0x14` and runs to the end of the payload.
 
-A payload is a message bank when `offset[0]` is even, at least 4 and no larger than the payload, every slot is at least `offset[0]` and no larger than the payload, and the slots never decrease. A bank is a text bank when at least half of its first 64 distinct records read as text. A record reads as text when, after its trailing zeros, it has at least 3 bytes and either 4 letters that make up 40 percent or more of it, or 3 letters and a `0xFF` space.
+A payload is a message table when `offset[0]` is even, at least 4 and no larger than the payload, every slot is at least `offset[0]` and no larger than the payload, and the slots never decrease. A table is a text table when at least half of its first 64 distinct records read as text. A record reads as text when, after its trailing zeros, it has at least 3 bytes and either 4 letters that make up 40 percent or more of it, or 3 letters and a `0xFF` space.
 
-The 200 entries that load at `0x80010000` hold 152 distinct payloads. 197 entries are banks. The three fishing entries (`AREA030`, `AREA089` and `AREA129`, entry 18) are one identical 4,293-byte payload whose slots do not ascend, so they hold other data in that slot. 165 of the 197 banks are text banks: 162 at entry 11, 2 at entry 7 and 1 at entry 12, and 33, 33, 29, 30 and 40 in WORLD00 to WORLD04. The other 32 banks (31 of 1,022 bytes and one of 512 bytes) hold only short or empty records. The 165 text banks hold 10,510 messages, a message being one distinct slot value below the payload size. 10,494 of them are proven strings: they do not start with a zero byte and have at least 3 bytes before their terminator. All 197 banks hold 11,006 messages, and the three other payloads add 330, which makes 11,336 for the 200 entries. The engine resolves a message as
+The 200 entries that load at `0x80010000` hold 152 distinct payloads. 197 entries are tables. The three fishing entries (`AREA030`, `AREA089` and `AREA129`, entry 18) are one identical 4,293-byte payload whose slots do not ascend, so they hold other data in that slot. 165 of the 197 tables are text tables: 162 at entry 11, 2 at entry 7 and 1 at entry 12, and 33, 33, 29, 30 and 40 in WORLD00 to WORLD04. The other 32 tables (31 of 1,022 bytes and one of 512 bytes) hold only short or empty records. The 165 text tables hold 10,510 messages, a message being one distinct slot value below the payload size. 10,494 of them are proven strings: they do not start with a zero byte and have at least 3 bytes before their terminator. All 197 tables hold 11,006 messages, and the three other payloads add 330, which makes 11,336 for the 200 entries. The engine resolves a message as
 `u16[0x80010000 + 2 * g_MessageRequest] + 0x80010000`, and the loader descriptor table at
-`0x8014677C` stages the payload. The largest bank is 21,547 bytes.
+`0x8014677C` stages the payload. The largest table is 21,547 bytes.
 
 ### Fixed-width name tables
 
@@ -166,12 +166,12 @@ text.
 Code and data reach a string in four ways. The table lists each kind, how wide the reference is,
 where it sits and what it reaches.
 
-| Kind           | Width | Where                                               | Reaches                                            |
-| -------------- | ----- | --------------------------------------------------- | -------------------------------------------------- |
-| `bank-index`   | `u16` | the bank's offset table, at `payload + slot * 2`    | the record that the slot selects                   |
-| `text-id`      | `u16` | a record of a name table                            | a string through the resource id space (see below) |
-| `absolute-u32` | `u32` | code or data of any payload                         | the string's runtime address                       |
-| `resource-id`  | `u16` | the group table of a payload loaded at `0x8001A000` | the string that the id resolves to                 |
+| Kind           | Width | Where                                                | Reaches                                            |
+| -------------- | ----- | ---------------------------------------------------- | -------------------------------------------------- |
+| `table-index`  | `u16` | the message table's offsets, at `payload + slot * 2` | the record that the slot selects                   |
+| `text-id`      | `u16` | a record of a name table                             | a string through the resource id space (see below) |
+| `absolute-u32` | `u32` | code or data of any payload                          | the string's runtime address                       |
+| `resource-id`  | `u16` | the group table of a payload loaded at `0x8001A000`  | the string that the id resolves to                 |
 
 `Message_GetText (exe/slus_004_22@0x801502D0)` turns a resource id into a runtime address. It
 works on the payload loaded at `0x8001A000`.
@@ -198,13 +198,13 @@ entry 8 of `BOSS` (5 times) and entry 0 of `ETC/AFLDKWA` (1). The ids are local 
 
 ## Sources and confidence
 
-- **Confidence:** medium. The encoding, the control codes and the containers are read in the code and checked on every bank, but the payload behind a `text-id` and the effect of two control codes are not established.
-- **Evidence:** `UI_DrawTextGlyphs`, `UI_DrawTextString`, `UI_DrawGlyphString`, `UI_DrawMessageScript` and `Message_GetText`, for the glyph atlas, the control cases and the references, and a check of every message bank and name table on the disc.
+- **Confidence:** medium. The encoding, the control codes and the containers are read in the code and checked on every table, but the payload behind a `text-id` and the effect of two control codes are not established.
+- **Evidence:** `UI_DrawTextGlyphs`, `UI_DrawTextString`, `UI_DrawGlyphString`, `UI_DrawMessageScript` and `Message_GetText`, for the glyph atlas, the control cases and the references, and a check of every message table and name table on the disc.
 
 ## Related
 
 - [Game records](../records/): the fixed tables whose rows hold names and text ids.
 - [UI and text drawing](../../systems/ui/): how the message window runs these codes.
-- [Asset kinds](../../formats/assets/): where message banks sit among the disc content.
+- [Asset kinds](../../formats/assets/): where message tables sit among the disc content.
 - [Edit text and dialogue](../../guides/text/): the steps to change a string.
-- [Glossary](../../appendix/glossary/): bank, record, slot and text id.
+- [Glossary](../../appendix/glossary/): table, record, slot and text id.

@@ -381,7 +381,7 @@ Four values occur with no established meaning: `0x00` (the empty row), `0x06`, `
 
 ### Drops
 
-A drop row's rate is an index into the eight-byte chance table `g_BattleDropChances (emi/battle/battle/03@0x801D0CB8)`. The roll passes when `chance[rate] >= rand() & 0xFF`, so the probability is `(chance + 1) / 256`. Rate 0 and item 0 never drop. The roll is in `func_801E531C (emi/battle/battle/03@0x801E531C)`. The drop row's layout is in [battle records](../battle/#drops).
+A drop row's rate is an index into the eight-byte chance table `g_BattleDropChances (emi/battle/battle/03@0x801D0CB8)`. The roll passes when `chance[rate] >= rand() & 0xFF`, so the probability is `(chance + 1) / 256`. Rate 0 and item 0 never drop. The roll is in `Battle_RollEnemyDrops (emi/battle/battle/03@0x801E531C)`. The drop row's layout is in [battle records](../battle/#drops).
 
 | Rate        |     0 |     1 |     2 |     3 |     4 |      5 |       6 |      7 |
 | ----------- | ----: | ----: | ----: | ----: | ----: | -----: | ------: | -----: |

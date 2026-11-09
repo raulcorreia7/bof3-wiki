@@ -71,8 +71,8 @@ Because the walk goes from slot 0 to slot 3, a callback in slot 0 that registers
 Only the executable and the title overlay `emi/etc/game/01` call `CallbackRegister`. Every other overlay changes a slot through `CallbackReplace`. The sites in the exported assembly are:
 
 - `Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` and `Menu_StartNewGame (emi/etc/start/08@0x801E2584)` install `Game_UpdateMain`.
-- `Battle_UpdateGameOver (emi/battle/batl_ovr/00@0x801EF0A8)` installs `SYS_StartFrontend`. So do `func_801FC1D8` in `emi/scenario/scena15/00`, and `func_801F967C` and `func_801F87D0` in `emi/scenario/scena17/00`.
-- `func_801F8844` in `scena17` installs `func_801F9490`.
+- `Battle_UpdateGameOver (emi/battle/batl_ovr/00@0x801EF0A8)` installs `SYS_StartFrontend`. So do `func_801FC1D8` in `emi/scenario/scena15/00`, and `Scene_ExitToTitle` and `func_801F87D0` in `emi/scenario/scena17/00`.
+- `func_801F8844` in `scena17` installs `Scene_RunSaveMenu`.
 
 These sites run on the slot that is current, which is slot 0 for the main loop. `[inferred]`
 
@@ -88,7 +88,7 @@ Almost every mode loop has one shape: loop, read a state byte, call `table[state
 | `UI_DispatchLocalMode`                                  | `g_UiLocalMode`                                 | `g_UiLocalModeFuncs (exe/slus_004_22@0x801499AC)`  |      21 |
 | `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)` | `g_BattleMode (exe/slus_004_22@0x801462E0)`     | `g_BattlePhases (emi/battle/battle/03@0x801D0C04)` |       6 |
 
-The two game loops differ in order. `Game_UpdateMain` calls the handler, then `func_80198CAC` (the play clock and timers), then `CallbackWait(1)`. `Game_UpdateCampMenu` waits first, then calls the handler, then `Menu_UpdatePanelTasks`. Both zero `g_GameEntryState` and `g_GameEntrySubstate` when they start, and call `Menu_ResetPanelTasks`. The meaning of each entry state is in [game phases](../../systems/phases/).
+The two game loops differ in order. `Game_UpdateMain` calls the handler, then `Game_UpdateClock` (the play clock and timers), then `CallbackWait(1)`. `Game_UpdateCampMenu` waits first, then calls the handler, then `Menu_UpdatePanelTasks`. Both zero `g_GameEntryState` and `g_GameEntrySubstate` when they start, and call `Menu_ResetPanelTasks`. The meaning of each entry state is in [game phases](../../systems/phases/).
 
 Overlays also index the handler table by a byte of a work record instead of a global byte. The pointer cell `g_SpadWork (exe/slus_004_22@0x1F800044)` in the scratchpad points at the record that the running handler steps. Its type depends on the overlay: a party battler in battle, an actor in the field, a band effect in a scenario. Handlers read its step bytes at offsets `+0x01`, `+0x02` and `+0x04`.
 
