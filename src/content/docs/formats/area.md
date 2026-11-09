@@ -9,7 +9,7 @@ An area is a town, dungeon, world map or battlefield. The table lists the blocks
 
 | Address      |   Entry size | Role                                 |
 | ------------ | -----------: | ------------------------------------ |
-| `0x80010000` |   145-21,547 | area message bank (text)             |
+| `0x80010000` |   145-21,547 | area message table (text)            |
 | `0x80032000` |        5,000 | packed 4-bit cell grid               |
 | `0x80033800` |          512 | palette arena offset 0               |
 | `0x80033A00` |          512 | CLUT bank, arena `+0x200`            |
@@ -25,9 +25,9 @@ An area is a town, dungeon, world map or battlefield. The table lists the blocks
 
 `0x800F0800` is the battle script bank, which holds 3,692 bytes in 42 BATTLE and BOSS archives and has the same format as the area script bank. `0x801F2C00` is code, not a data format. Two areas load their program elsewhere: `world00/area030/04` at `0x801D0C00` (75,285 bytes) and `world00/area030/05` at `0x800F5000` (8,784 bytes).
 
-## `0x80010000`: area message bank
+## `0x80010000`: area message table
 
-The message bank holds the area's dialogue. It starts with a little-endian `u16` slot array, followed by the records.
+The message table holds the area's dialogue. It starts with a little-endian `u16` slot array, followed by the records.
 
 ```text
 +0x0000 u16 slot[0]      ; byte size of the array = offset of the first record
@@ -35,7 +35,7 @@ The message bank holds the area's dialogue. It starts with a little-endian `u16`
 +slot[0] .. end          ; records, delimited by consecutive distinct slots
 ```
 
-A message is addressed by its slot index. Two slots may share one record, and unused slots point at the end of the payload. 185 of the 200 payloads have at least one such slot, and 182 have two or more. All 200 area entries load at this address. 197 are message banks and 165 of those are text banks, the ones this page and the [text kinds](../assets/#message-banks) describe; 162 are at entry 11, 2 at entry 7 and 1 at entry 12. The other 35 payloads are the 32 non-text banks at entry 11 and the 3 fishing payloads at entry 18, which are not banks. [Game text](../../data/text/#message-bank) defines both terms.
+A message is addressed by its slot index. Two slots may share one record, and unused slots point at the end of the payload. 185 of the 200 payloads have at least one such slot, and 182 have two or more. All 200 area entries load at this address. 197 are message tables and 165 of those are text tables, the ones this page and the [text kinds](../assets/#message-tables) describe; 162 are at entry 11, 2 at entry 7 and 1 at entry 12. The other 35 payloads are the 32 non-text tables at entry 11 and the 3 fishing payloads at entry 18, which are not tables. [Game text](../../data/text/#message-table) defines both terms.
 
 The engine finds the active message itself. The code at `@0x801514D0` forms `D_80010000[g_MessageRequest] + 0x80010000`, and `@0x8014F800` is the text draw entry. The bytes of a record and the control codes are described in [game text](../../data/text/).
 
@@ -495,5 +495,5 @@ Nineteen payloads hold no `addiu $sp` and no `jr $ra` at any word offset, so the
 - [EMI container](../emi/): the entry types and the archive shapes that hold the blocks.
 - [Graphics formats](../graphics/): the color word, the CLUT and the texture-to-palette join.
 - [Game records](../../data/records/): the encounter and enemy record fields by group.
-- [Game text](../../data/text/): the message bank and its control codes.
+- [Game text](../../data/text/): the message table and its control codes.
 - [Edit maps and scripts](../../guides/maps/): what can change in a map or script.

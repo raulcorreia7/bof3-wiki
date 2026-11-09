@@ -33,7 +33,7 @@ The area archive feeds these rows. The diagram shows the entries of `WORLDnn/ARE
 ```mermaid
 flowchart TD
     A["WORLDnn/AREAnnn.EMI<br/>entries of type 0"] -->|"slot 13"| B["0x801F2C00<br/>area program"]
-    A -->|"slots 10, 12, 11"| X["0x800E4000 encounters<br/>0x80104000 map bundle<br/>0x80010000 message bank"]
+    A -->|"slots 10, 12, 11"| X["0x800E4000 encounters<br/>0x80104000 map bundle<br/>0x80010000 message table"]
     B --> F["area overlay code"]
     F --> G["0x80146888<br/>actor rows"]
     F --> H["0x80143FC8<br/>field slots"]

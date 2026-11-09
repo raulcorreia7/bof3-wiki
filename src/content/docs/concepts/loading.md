@@ -54,7 +54,7 @@ The first area, `AREA001`, is the archive for slot `0x2AB + 1`. Its table of con
 | 3, 4    |       0 | `0x800E3800`, `0x800D3800`                             | copy the scene table and the script bank                                     |
 | 5, 7    |       3 | `0x0E001000`, `0x0A081000`                             | upload two graphics blocks to VRAM                                           |
 | 6, 8    |       0 | `0x80035800`, `0x80033E00`                             | copy two palette slices to the palette arena                                 |
-| 9 to 12 |       0 | `0x80032000`, `0x800E4000`, `0x80010000`, `0x80104000` | copy the area table, encounter table, text bank and map bundle               |
+| 9 to 12 |       0 | `0x80032000`, `0x800E4000`, `0x80010000`, `0x80104000` | copy the area table, encounter table, text table and map bundle              |
 | 13      |       0 | `0x801F2C00`                                           | copy the area program, last                                                  |
 
 The area program is last, so the stream is ready only once the program is in place. `[inferred]` The type-3 load arguments are packed: for `0x0E001000` the top byte holds the start column (14), the next byte the row (0) and the third byte the number of columns before the upload wraps (16). Each column is 32 pixels wide, so this block starts at VRAM x = 448.

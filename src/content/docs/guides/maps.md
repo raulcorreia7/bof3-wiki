@@ -11,7 +11,7 @@ Every area archive uses the same load addresses, so the address names the block.
 
 | Block                  | Load address | What you change there                                                                     |
 | ---------------------- | ------------ | ----------------------------------------------------------------------------------------- |
-| Message bank           | `0x80010000` | dialogue ([text](../text/))                                                               |
+| Message table          | `0x80010000` | dialogue ([text](../text/))                                                               |
 | Cell grid              | `0x80032000` | 4-bit cell values ([cell grid](../../formats/area/#0x80032000-packed-4-bit-cell-grid))    |
 | Script bank            | `0x800D3800` | sprite animation scripts ([script bank](../../formats/area/#0x800d3800-area-script-bank)) |
 | Scene table            | `0x800E3800` | the actors of the area ([scene table](../../formats/area/#0x800e3800-scenestep-table))    |
@@ -35,12 +35,12 @@ The textures, the palettes and the sound bank of the area are further entries of
 
 Each block must fit its window. The table gives the largest entry of each block over all 200 areas.
 
-| Block        | Window (bytes) | Largest entry (bytes) | Headroom | Where        |
-| ------------ | -------------: | --------------------: | -------: | ------------ |
-| Script bank  |         65,536 |                65,236 |      300 | `AREA197#4`  |
-| Area program |         16,384 |                16,324 |       60 | `AREA135#14` |
-| Scene table  |          2,048 |                   412 |    1,636 | `AREA089#9`  |
-| Message bank |         40,960 |                21,547 |   19,413 | `AREA153#11` |
+| Block         | Window (bytes) | Largest entry (bytes) | Headroom | Where        |
+| ------------- | -------------: | --------------------: | -------: | ------------ |
+| Script bank   |         65,536 |                65,236 |      300 | `AREA197#4`  |
+| Area program  |         16,384 |                16,324 |       60 | `AREA135#14` |
+| Scene table   |          2,048 |                   412 |    1,636 | `AREA089#9`  |
+| Message table |         40,960 |                21,547 |   19,413 | `AREA153#11` |
 
 - **Script growth.** The largest script bank leaves 300 bytes of headroom, so a longer script there must come from a shorter one in the same bank.
 - **The area program** is code. Changing it needs a code change that keeps the entry within 16,384 bytes.
@@ -58,5 +58,5 @@ Enter the area. A map edit shows in the terrain and the tiles, an encounter edit
 - [Areas and the field](../../systems/areas/): how the game loads an area and runs its scripts.
 - [Memory map](../../concepts/memory/): the windows that bound each block.
 - [Edit characters and enemies](../characters/): the encounter block.
-- [Edit text and dialogue](../text/): the message bank.
+- [Edit text and dialogue](../text/): the message table.
 - [Edit the game](../): the editing cycle and the limits that apply to every edit.

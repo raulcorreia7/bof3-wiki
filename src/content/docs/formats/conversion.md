@@ -42,7 +42,7 @@ One record has one layout. The table links each record to the page that owns its
 | cue records                                     | [cue records](../audio/#emi-type-8-cue-records)                                  |
 | VAB bank                                        | [VAB bank](../audio/#vab-bank)                                                   |
 | character bank                                  | [character bank](../character/)                                                  |
-| message banks, strings                          | [game text](../../data/text/)                                                    |
+| message tables, strings                         | [game text](../../data/text/)                                                    |
 
 ## Rebuilding an EMI archive
 

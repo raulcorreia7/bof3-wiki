@@ -10,25 +10,25 @@ offsets, citations and evidence tags.
 
 ## Disc and containers
 
-| Term           | Meaning                                                                                                                                                                                             |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EMI            | the game's archive format (`.EMI` files): a sector-aligned table of contents and typed entries ([EMI container](../../formats/emi/))                                                                |
-| entry          | one item in an EMI archive, written `ARCHIVE#n` or `archive/n`. Its type (0 to 10) says how the loader treats it                                                                                    |
-| payload        | the bytes of an entry after its table-of-contents record                                                                                                                                            |
-| load argument  | a type-dependent 32-bit value in an entry's table record: a RAM address for code and data, a VRAM position for textures                                                                             |
-| kind           | a name this wiki gives to a class of disc content, such as `area-map`, `texture` or `audio-bank` ([asset kinds](../../formats/assets/))                                                             |
-| record, row    | one fixed-size element of a table, such as a character, an enemy or a drop; or one string in a message bank                                                                                         |
-| stride         | the byte distance between two consecutive records of a table                                                                                                                                        |
-| slot           | an index. An archive slot id is the archive's index in the disc file list. A text slot is an index in a message bank's offset table. A battler slot is a position in a battle. Each page says which |
-| message bank   | a payload that opens with a little-endian `u16` offset table. Each slot of the table points at a record of text; several slots can share one record ([text](../../data/text/#message-bank))         |
-| text bank      | a message bank that holds game text                                                                                                                                                                 |
-| name table     | an array of fixed-stride records that each hold a name field ([text](../../data/text/#fixed-width-name-tables))                                                                                     |
-| fixed tables   | the eight tables in `GAME.EMI` entry 0: items, vital items, weapons, armor, accessories, shops, abilities and level growth ([records](../../data/records/#gameemi-fixed-tables))                    |
-| bundle         | the payload of one entry that packs several tables behind a header, such as an area's map bundle ([area](../../formats/area/#0x80104000-map-bundle))                                                |
-| LBA            | logical block address: a sector number on the disc                                                                                                                                                  |
-| Form 1, Form 2 | the two CD-ROM XA sector layouts. Form 1 has error correction and 2,048 data bytes. Form 2 has 2,324 data bytes and no correction                                                                   |
-| STR, XA        | the game's streamed video and interleaved audio sectors ([STR and XA](../../formats/str/))                                                                                                          |
-| CDDA           | CD audio tracks on the disc, outside the data track                                                                                                                                                 |
+| Term           | Meaning                                                                                                                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EMI            | the game's archive format (`.EMI` files): a sector-aligned table of contents and typed entries ([EMI container](../../formats/emi/))                                                                 |
+| entry          | one item in an EMI archive, written `ARCHIVE#n` or `archive/n`. Its type (0 to 10) says how the loader treats it                                                                                     |
+| payload        | the bytes of an entry after its table-of-contents record                                                                                                                                             |
+| load argument  | a type-dependent 32-bit value in an entry's table record: a RAM address for code and data, a VRAM position for textures                                                                              |
+| kind           | a name this wiki gives to a class of disc content, such as `area-map`, `texture` or `audio-bank` ([asset kinds](../../formats/assets/))                                                              |
+| record, row    | one fixed-size element of a table, such as a character, an enemy or a drop; or one string in a message table                                                                                         |
+| stride         | the byte distance between two consecutive records of a table                                                                                                                                         |
+| slot           | an index. An archive slot id is the archive's index in the disc file list. A text slot is an index in a message table's offset table. A battler slot is a position in a battle. Each page says which |
+| message table  | a payload that opens with a little-endian `u16` offset table. Each slot of the table points at a record of text; several slots can share one record ([text](../../data/text/#message-table))         |
+| text table     | a message table that holds game text                                                                                                                                                                 |
+| name table     | an array of fixed-stride records that each hold a name field ([text](../../data/text/#fixed-width-name-tables))                                                                                      |
+| fixed tables   | the eight tables in `GAME.EMI` entry 0: items, vital items, weapons, armor, accessories, shops, abilities and level growth ([records](../../data/records/#gameemi-fixed-tables))                     |
+| bundle         | the payload of one entry that packs several tables behind a header, such as an area's map bundle ([area](../../formats/area/#0x80104000-map-bundle))                                                 |
+| LBA            | logical block address: a sector number on the disc                                                                                                                                                   |
+| Form 1, Form 2 | the two CD-ROM XA sector layouts. Form 1 has error correction and 2,048 data bytes. Form 2 has 2,324 data bytes and no correction                                                                    |
+| STR, XA        | the game's streamed video and interleaved audio sectors ([STR and XA](../../formats/str/))                                                                                                           |
+| CDDA           | CD audio tracks on the disc, outside the data track                                                                                                                                                  |
 
 ## Game runtime
 

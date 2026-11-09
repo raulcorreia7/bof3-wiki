@@ -28,7 +28,7 @@ Addresses ascend. "Up to" is the largest entry over every archive on the disc; o
 | Address                  | Size          | Owner                              | Content                                                                                                                        |
 | ------------------------ | ------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `0x1F800000`             | 1,024         | scratchpad                         | `g_SpadWork` pointer cell at `0x1F800044`; the LZ77 decoder window                                                             |
-| `0x80010000`             | up to 21,547  | area archive                       | per-area text bank                                                                                                             |
+| `0x80010000`             | up to 21,547  | area archive                       | per-area text table                                                                                                            |
 | `0x8001A000`             | up to 16,872  | `FIRST`, `BATTLE`, `BOSS` archives | text resource table                                                                                                            |
 | `0x80020000..0x80032000` | 73,728        | `SYS_PrepareFrame`                 | two primitive banks of 36,864 bytes, picked by the buffer index                                                                |
 | `0x80032000`             | 5,000         | area archive                       | area table, read as nibbles by `func_801C6FD4`                                                                                 |
@@ -64,7 +64,7 @@ Addresses ascend. "Up to" is the largest entry over every archive on the disc; o
 | `0x801FF000`             | -             | `SYS_StartLogo`                    | stack for the `Exec` of `LOGO.EXE`                                                                                             |
 | `0x801FF400..0x801FFC00` | 2,048         | `CallbackInitThreads`              | four 512-byte callback thread stacks                                                                                           |
 
-The area band is the busiest. A typical area archive writes, in order: the sound bank and cue table, the scene table, the script bank, graphics, three palette slices, the area table, the encounter table, the text bank, the map bundle and last the area program at `0x801F2C00`. [Loading](../loading/#area) walks through this.
+The area band is the busiest. A typical area archive writes, in order: the sound bank and cue table, the scene table, the script bank, graphics, three palette slices, the area table, the encounter table, the text table, the map bundle and last the area program at `0x801F2C00`. [Loading](../loading/#area) walks through this.
 
 ## Overlay windows
 
