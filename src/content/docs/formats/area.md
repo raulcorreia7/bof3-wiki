@@ -43,7 +43,7 @@ The engine finds the active message itself. The code at `@0x801514D0` forms `D_8
 
 The grid has 5,000 bytes, 10,000 cells of 4 bits. 100 by 100 is the buffer capacity and not a per-area shape. The logical extent is `width x height` from the [map bundle](#0x80104000-map-bundle) header, and the unused part is zero. Nine of the 200 entries are all zero and classify as `reserve`. The other 191 carry data. Observed nibble values in the used region are 0 to 13, mostly 0 (free).
 
-The only reader found is `emi/etc/game/00@0x801C6FD4`:
+The only known reader is `emi/etc/game/00@0x801C6FD4`:
 
 ```text
 index  = x + width * y
@@ -440,7 +440,7 @@ The bundle decodes to a terrain mesh (Wavefront OBJ, glTF 2.0 or similar) with t
 - Corners: the mesh builder `exe/slus_004_22@0x801530D0` places corner `k` at the step `(0,0)`, `(1,0)`, `(0,1)` and `(1,1)` from the cell's near corner, and corner `k` takes record byte `k` (loads at `0x801535A8` to `0x80153640`). The GTE vertex holds `-(byte << 4)`. A mesh uses `y = byte * 16`, so a larger byte is higher. A face walks the perimeter (corners 0, 2, 3, 1), because the stored order would cross, and that walk gives an upward normal.
 - Height table: 13 of the 200 payloads ship the height-byte table, one signed byte per cell. The mesh builder never reads it. The height query `@0x8015477C` does. A mesh built from the corners does not use it.
 - Not applied: the CLUT index and the color need runtime palette and color words. The object list is not part of a mesh.
-- Textures: the materials carry no texture. A tile's page and palette come from the texture association in [graphics](../graphics/#texture-to-palette-join). The replay of a scene's loads proves it for all 200 bundles: each bundle's terrain sheet joins at 8bpp, the 11 world-map areas included.
+- Textures: the materials carry no texture. A tile's page and palette come from the texture association in [graphics](../graphics/#texture-to-palette-join). All 200 bundles pair their terrain sheet with a palette at 8bpp, the 11 world-map areas included.
 - Editing: each corner's height is its `y` divided by 16, and each corner must stay at its cell. A mesh does not carry the tiles, objects or height table, so the stored bundle must supply them. On the retail disc all 200 bundles return their stored bytes from a glTF mesh, from an OBJ mesh and from their byte-code, object and height lists.
 
 Over the 200 retail bundles there are 1,263,531 cells, and 688,714 (54.5 percent) have a non-empty tile. Corner heights run from -2048 to 2032 in 244 distinct values. The cells use `bank0` in 22,890 runs, `bank1` in 17,204, `bank2` in 9,032 and `bank3` in 33.

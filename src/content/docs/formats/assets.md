@@ -38,7 +38,7 @@ The `reserve` kind is zero fill with no consumer: 44 character-bank fillers of 1
 The dialogue is in message banks, the `0x80010000` payloads of the area archives. A bank decodes to text and encodes back to its own bytes. [Game text](../../data/text/#message-bank) owns the bank layout, the test for a bank and for a text bank, and the counts on the disc.
 
 - **Slots.** A slot is its message's index, or none for the end of the bank. A message runs to the next distinct offset, and the slots past the last message point at the end of the bank. The bank is the table, then the messages in offset order.
-- **Text.** Control codes are `{TAG}`. A code with one operand byte is `{TAG:hh}`. A byte with no proven meaning is `{RAW:hh}`. Letters and digits are ASCII. The fullwidth `，` and `：` are the high slots `0x8D` and `0x8F`. The codes and their evidence are in [text control codes](../../data/text/#control-codes).
+- **Text.** Control codes are `{TAG}`. A code with one operand byte is `{TAG:hh}`. A byte with no established meaning is `{RAW:hh}`. Letters and digits are ASCII. The fullwidth `，` and `：` are the high slots `0x8D` and `0x8F`. The codes and their evidence are in [text control codes](../../data/text/#control-codes).
 - **Name fields.** A name field uses the same codes, with `{END}` as the only single-byte code. The C strings of an executable use plain ASCII with `{TAB}`, `{NEWLINE}` and `{CR}`.
 - **Not text.** A payload that is not a bank has no message form. An unknown tag, an operand that is not one byte, a character the encoding lacks and an empty message have no encoding.
 
