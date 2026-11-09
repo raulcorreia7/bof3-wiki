@@ -91,30 +91,30 @@ Pages: [battle engine](../../systems/battle/#open-questions), [battle records](.
 | Readers of battle state bit `0x0008`                                                                                                              | Search the battle overlays for tests of the bit.                             |
 | The roles of the unnamed cells in the actor rows and field slots ([field](../../data/field/#open-questions))                                      | A write trace per cell.                                                      |
 | The widths of the lure float-rate groups ([field](../../data/field/#open-questions))                                                              | Read the lure tables once their addresses are known.                         |
-| The rod and lure table addresses: the strides are read, but `0x801E2748` lies in the panel-icon array ([field](../../data/field/#open-questions)) | A read breakpoint on `func_801DDE2C`.                                        |
+| The rod and lure table addresses: the strides are read, but `0x801E2748` lies in the panel-icon array ([field](../../data/field/#open-questions)) | A read breakpoint on `Fishing_SelectGear`.                                   |
 
 ## Screens and interface
 
 Pages: [screens](../../systems/screens/#open-questions), [UI](../../systems/ui/#open-questions).
 
-| Question                                                                  | What would settle it                                                                                                                                |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The button that writes request code 1 (menu open)                         | Read the callers of the actor step table `D_801CD110`.                                                                                              |
-| Names of the 9 STATUS steps and the 10 SHOP screens                       | Read each step function after `D_801EC35C` and `D_801E5144`.                                                                                        |
-| What the BATE tally counts                                                | Find the writers of `0x801FE4E8`, `0x801FE4EF` and `0x801FE4F0` in the `scena06` image.                                                             |
-| Which prize each SHISU rank gives                                         | Find the readers of `D_80144E5E`, and of `g_ScriptVars[3]` after code 8.                                                                            |
-| Which script selects scene event 4 (master) and the events for COMMU01-05 | Search the area setup streams and scenarios for `D_801448EB` stores.                                                                                |
-| The caller of fishing substate 3 (`func_801E0C20`)                        | Search `area030` for stores to `g_GameEntrySubstate`. Only `func_801DDC54` stores 3.                                                                |
-| Which addresses hold the fishing rod and lure tables                      | The strides are read from `func_801DDE2C`, but both addresses lie in the `D_801E2424` panel-icon array ([field](../../data/field/#open-questions)). |
-| Ending and credits screens                                                | `scena17` loads `ENDKANJI` at `0x801F8554`. Read `scena17` to `scena19` `[inferred]`.                                                               |
-| `D_8014869C` and `D_8014869D`, set by the menu overlay                    | Find their writers in `emi/etc/start/08`.                                                                                                           |
-| Per-step roles of message states 4, 5 and 7                               | Read the 8, 6 and 2 step functions and the shop and start-menu callers.                                                                             |
-| Source of `D_80144950` (message speed) and the row count of `D_8017F5B4`  | Search writers of `D_80144950` in the options menu.                                                                                                 |
-| Who writes `g_UiWindowEffectBusy`                                         | Read `func_801D74D4`, `Game_LoadAbilityMenu`, `func_801985C8`.                                                                                      |
-| Overlay owners of six panel handlers of `g_MenuPanelHandlers`             | Map each address to its overlay window and archive.                                                                                                 |
-| Panel fill drawing and the pass-order meaning of modes 0, 1, 2            | Read `func_80158FE0`, `func_801598F4`, `func_80159A20`.                                                                                             |
-| The separate path of battle messages (`g_BattleMessageState`)             | Read the `emi/battle/battle/03` message functions.                                                                                                  |
-| Camera-spin effects (modes 10 to 20)                                      | Read `func_8014EF80`, `func_8014F024`, `func_8014F24C`, `func_8014F2F0`, `func_8014F460`.                                                           |
+| Question                                                                  | What would settle it                                                                                                                                     |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The button that writes request code 1 (menu open)                         | Read the callers of the actor step table `D_801CD110`.                                                                                                   |
+| Names of the 9 STATUS steps and the 10 SHOP screens                       | Read each step function after `D_801EC35C` and `D_801E5144`.                                                                                             |
+| What the BATE tally counts                                                | Find the writers of `0x801FE4E8`, `0x801FE4EF` and `0x801FE4F0` in the `scena06` image.                                                                  |
+| Which prize each SHISU rank gives                                         | Find the readers of `D_80144E5E`, and of `g_ScriptVars[3]` after code 8.                                                                                 |
+| Which script selects scene event 4 (master) and the events for COMMU01-05 | Search the area setup streams and scenarios for `D_801448EB` stores.                                                                                     |
+| The caller of fishing substate 3 (`func_801E0C20`)                        | Search `area030` for stores to `g_GameEntrySubstate`. Only `func_801DDC54` stores 3.                                                                     |
+| Which addresses hold the fishing rod and lure tables                      | The strides are read from `Fishing_SelectGear`, but both addresses lie in the `D_801E2424` panel-icon array ([field](../../data/field/#open-questions)). |
+| Ending and credits screens                                                | `scena17` loads `ENDKANJI` at `0x801F8554`. Read `scena17` to `scena19` `[inferred]`.                                                                    |
+| `D_8014869C` and `D_8014869D`, set by the menu overlay                    | Find their writers in `emi/etc/start/08`.                                                                                                                |
+| Per-step roles of message states 4, 5 and 7                               | Read the 8, 6 and 2 step functions and the shop and start-menu callers.                                                                                  |
+| Source of `D_80144950` (message speed) and the row count of `D_8017F5B4`  | Search writers of `D_80144950` in the options menu.                                                                                                      |
+| Who writes `g_UiWindowEffectBusy`                                         | Read `func_801D74D4`, `Game_LoadAbilityMenu`, `func_801985C8`.                                                                                           |
+| Overlay owners of six panel handlers of `g_MenuPanelHandlers`             | Map each address to its overlay window and archive.                                                                                                      |
+| Panel fill drawing and the pass-order meaning of modes 0, 1, 2            | Read `func_80158FE0`, `func_801598F4`, `func_80159A20`.                                                                                                  |
+| The separate path of battle messages (`g_BattleMessageState`)             | Read the `emi/battle/battle/03` message functions.                                                                                                       |
+| Camera-spin effects (modes 10 to 20)                                      | Read `func_8014EF80`, `func_8014F024`, `func_8014F24C`, `func_8014F2F0`, `func_8014F460`.                                                                |
 
 ## Rendering and graphics
 
@@ -143,7 +143,7 @@ Pages: [audio runtime](../../systems/audio/#open-questions), [audio formats](../
 | Writers of `D_80144954` (duck gate) and `g_SndMono` (mono)                                  | Search overlays and `emi/etc/start/08` for stores to the two addresses.             |
 | Meaning of the cue volume ladders `D_80182290` to `D_80182308`                              | Find readers of those tables beyond `SND_QueueCueVolume`.                           |
 | XA group sizes, group 2 callers, and the content of each table entry                        | Read the three tables against the XA file sector map.                               |
-| The seven bank readers' per-bank differences                                                | Read `func_8015E994` to `func_80160E38`.                                            |
+| The seven bank readers' per-bank differences                                                | Read `SND_ReadCueBank0` to `SND_ReadCueBank6`.                                      |
 | Opcode `0xBD` (`func_8015D820`) in event scripts                                            | Read `func_8015D820`.                                                               |
 | Role of type-8 cue byte 0 bits 3 to 7 and byte 2 bits 0 to 3                                | The voice-state consumer of the compared nibble.                                    |
 | Consumer of the BGM cue tables in BGM004, BGM108 and BGM117                                 | The sound-request code that indexes bank cue tables.                                |
@@ -172,30 +172,30 @@ Pages: [saving](../../systems/saving/#open-questions), [state](../../systems/sta
 
 ## Data formats
 
-Pages: [EMI](../../formats/emi/#open-questions), [LZ77](../../formats/lz77/#open-questions), [character banks](../../formats/character/#open-questions), [area data](../../formats/area/#open-questions).
+Pages: [EMI](../../formats/emi/#open-questions), [LZ77](../../formats/lz77/#open-questions), [character sprites](../../formats/character/#open-questions), [area data](../../formats/area/#open-questions).
 
-| Question                                                                                                                                                  | What would settle it                                                                           |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Readers of the `BPLCHAR` section addresses `0x8005680C`, `0x8007180C` and `0x8007A80C`                                                                    | A battle overlay that reads them. A search must fold `ori` pairs as well as `addiu`.           |
-| Whether the BPLCHAR section addresses are section positions or party-slot buffers                                                                         | The code that selects a slot for a character.                                                  |
-| Purpose of the 44 `BPLCHAR` fillers (16 KiB of zeros at `0x8003B800`)                                                                                     | A reader, or proof that nothing reads it.                                                      |
-| The node pixel and script formats of a character bank, and who uploads the pixels                                                                         | A reader of node fields in battle or field code, and a trace of the node bytes to a primitive. |
-| Type-0 slots with no named reader: BATTLE script bank beyond `Actor_BeginScript`, BMAGIC blocks at `0x80036C00` and `0x800C3800`, modules at `0x80117000` | Readers of those addresses.                                                                    |
-| The reader of the 16-entry offset table in the LZ77 payload                                                                                               | A reader of the table in the loader or an overlay.                                             |
-| Whether any code reads byte 0 of an area script record, the frame count                                                                                   | A reader of that byte.                                                                         |
-| Bits 4 to 6 of a frame part's `size` byte                                                                                                                 | A reader of those bits.                                                                        |
-| Names behind byte-code values, and the operands of the `+0x20` and `+0x22` record lists                                                                   | The dispatch tables `D_8017F8F0` and `D_8017F8FC` and their handlers.                          |
-| The map bundle header field `scroll` (`+0x1E`)                                                                                                            | The reader of that field, or a map that uses it.                                               |
-| Which battle background upload a battle draws, and its palette                                                                                            | The battle code that selects a `BATL_*` upload.                                                |
-| The loader and palette of the world-map uploads in `AREA000` and the 11 world-map areas                                                                   | The code that reads entries 5 and 7.                                                           |
-| The reason for the 150-sector offset in the XA cue end bound                                                                                              | The code that stores the end bound ([STR and XA](../../formats/str/#xa-cue-tables)).           |
+| Question                                                                                                                                                   | What would settle it                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Readers of the `BPLCHAR` section addresses `0x8005680C`, `0x8007180C` and `0x8007A80C`                                                                     | A battle overlay that reads them. A search must fold `ori` pairs as well as `addiu`.           |
+| Whether the BPLCHAR section addresses are section positions or party-slot buffers                                                                          | The code that selects a slot for a character.                                                  |
+| Purpose of the 44 `BPLCHAR` fillers (16 KiB of zeros at `0x8003B800`)                                                                                      | A reader, or proof that nothing reads it.                                                      |
+| The node pixel and script formats of a character-sprites container, and who uploads the pixels                                                             | A reader of node fields in battle or field code, and a trace of the node bytes to a primitive. |
+| Type-0 slots with no named reader: BATTLE script table beyond `Actor_BeginScript`, BMAGIC blocks at `0x80036C00` and `0x800C3800`, modules at `0x80117000` | Readers of those addresses.                                                                    |
+| The reader of the 16-entry offset table in the LZ77 payload                                                                                                | A reader of the table in the loader or an overlay.                                             |
+| Whether any code reads byte 0 of an area script record, the frame count                                                                                    | A reader of that byte.                                                                         |
+| Bits 4 to 6 of a frame part's `size` byte                                                                                                                  | A reader of those bits.                                                                        |
+| Names behind byte-code values, and the operands of the `+0x20` and `+0x22` record lists                                                                    | The dispatch tables `D_8017F8F0` and `D_8017F8FC` and their handlers.                          |
+| The map bundle header field `scroll` (`+0x1E`)                                                                                                             | The reader of that field, or a map that uses it.                                               |
+| Which battle background upload a battle draws, and its palette                                                                                             | The battle code that selects a `BATL_*` upload.                                                |
+| The loader and palette of the world-map uploads in `AREA000` and the 11 world-map areas                                                                    | The code that reads entries 5 and 7.                                                           |
+| The reason for the 150-sector offset in the XA cue end bound                                                                                               | The code that stores the end bound ([STR and XA](../../formats/str/#xa-cue-tables)).           |
 
 ## Strings
 
-Pages: [text guide](../../guides/text/), [game text](../../data/text/#open-questions), [asset kinds](../../formats/assets/#message-banks).
+Pages: [text guide](../../guides/text/), [game text](../../data/text/#open-questions), [asset kinds](../../formats/assets/#message-tables).
 
-| Question                                                                                                           | What would settle it                           |
-| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
-| The 165 text banks hold 10,510 messages, and 10,494 are strings. The other 16 are short or start with a zero byte. | Read the 16 messages.                          |
-| Which payload sits at `0x8001A000` when a `text-id` resolves ([text](../../data/text/#open-questions))             | A trace of the resolver call.                  |
-| The effect of `{SKIP12}` and `{SKIP13}` beyond advancing one byte                                                  | Read the text drawer's handling of both codes. |
+| Question                                                                                                            | What would settle it                           |
+| ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| The 165 text tables hold 10,510 messages, and 10,494 are strings. The other 16 are short or start with a zero byte. | Read the 16 messages.                          |
+| Which payload sits at `0x8001A000` when a `text-id` resolves ([text](../../data/text/#open-questions))              | A trace of the resolver call.                  |
+| The effect of `{SKIP12}` and `{SKIP13}` beyond advancing one byte                                                   | Read the text drawer's handling of both codes. |

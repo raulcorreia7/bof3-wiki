@@ -10,25 +10,25 @@ offsets, citations and evidence tags.
 
 ## Disc and containers
 
-| Term           | Meaning                                                                                                                                                                                             |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EMI            | the game's archive format (`.EMI` files): a sector-aligned table of contents and typed entries ([EMI container](../../formats/emi/))                                                                |
-| entry          | one item in an EMI archive, written `ARCHIVE#n` or `archive/n`. Its type (0 to 10) says how the loader treats it                                                                                    |
-| payload        | the bytes of an entry after its table-of-contents record                                                                                                                                            |
-| load argument  | a type-dependent 32-bit value in an entry's table record: a RAM address for code and data, a VRAM position for textures                                                                             |
-| kind           | a name this wiki gives to a class of disc content, such as `area-map`, `texture` or `audio-bank` ([asset kinds](../../formats/assets/))                                                             |
-| record, row    | one fixed-size element of a table, such as a character, an enemy or a drop; or one string in a message bank                                                                                         |
-| stride         | the byte distance between two consecutive records of a table                                                                                                                                        |
-| slot           | an index. An archive slot id is the archive's index in the disc file list. A text slot is an index in a message bank's offset table. A battler slot is a position in a battle. Each page says which |
-| message bank   | a payload that opens with a little-endian `u16` offset table. Each slot of the table points at a record of text; several slots can share one record ([text](../../data/text/#message-bank))         |
-| text bank      | a message bank that holds game text                                                                                                                                                                 |
-| name table     | an array of fixed-stride records that each hold a name field ([text](../../data/text/#fixed-width-name-tables))                                                                                     |
-| fixed tables   | the eight tables in `GAME.EMI` entry 0: items, vital items, weapons, armor, accessories, shops, abilities and level growth ([records](../../data/records/#gameemi-fixed-tables))                    |
-| bundle         | the payload of one entry that packs several tables behind a header, such as an area's map bundle ([area](../../formats/area/#0x80104000-map-bundle))                                                |
-| LBA            | logical block address: a sector number on the disc                                                                                                                                                  |
-| Form 1, Form 2 | the two CD-ROM XA sector layouts. Form 1 has error correction and 2,048 data bytes. Form 2 has 2,324 data bytes and no correction                                                                   |
-| STR, XA        | the game's streamed video and interleaved audio sectors ([STR and XA](../../formats/str/))                                                                                                          |
-| CDDA           | CD audio tracks on the disc, outside the data track                                                                                                                                                 |
+| Term           | Meaning                                                                                                                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EMI            | the game's archive format (`.EMI` files): a sector-aligned table of contents and typed entries ([EMI container](../../formats/emi/))                                                                 |
+| entry          | one item in an EMI archive, written `ARCHIVE#n` or `archive/n`. Its type (0 to 10) says how the loader treats it                                                                                     |
+| payload        | the bytes of an entry after its table-of-contents record                                                                                                                                             |
+| load argument  | a type-dependent 32-bit value in an entry's table record: a RAM address for code and data, a VRAM position for textures                                                                              |
+| kind           | a name this wiki gives to a class of disc content, such as `area-map`, `texture` or `audio-bank` ([asset kinds](../../formats/assets/))                                                              |
+| record, row    | one fixed-size element of a table, such as a character, an enemy or a drop; or one string in a message table                                                                                         |
+| stride         | the byte distance between two consecutive records of a table                                                                                                                                         |
+| slot           | an index. An archive slot id is the archive's index in the disc file list. A text slot is an index in a message table's offset table. A battler slot is a position in a battle. Each page says which |
+| message table  | a payload that opens with a little-endian `u16` offset table. Each slot of the table points at a record of text; several slots can share one record ([text](../../data/text/#message-table))         |
+| text table     | a message table that holds game text                                                                                                                                                                 |
+| name table     | an array of fixed-stride records that each hold a name field ([text](../../data/text/#fixed-width-name-tables))                                                                                      |
+| fixed tables   | the eight tables in `GAME.EMI` entry 0: items, vital items, weapons, armor, accessories, shops, abilities and level growth ([records](../../data/records/#gameemi-fixed-tables))                     |
+| bundle         | the payload of one entry that packs several tables behind a header, such as an area's map bundle ([area](../../formats/area/#0x80104000-map-bundle))                                                 |
+| LBA            | logical block address: a sector number on the disc                                                                                                                                                   |
+| Form 1, Form 2 | the two CD-ROM XA sector layouts. Form 1 has error correction and 2,048 data bytes. Form 2 has 2,324 data bytes and no correction                                                                    |
+| STR, XA        | the game's streamed video and interleaved audio sectors ([STR and XA](../../formats/str/))                                                                                                           |
+| CDDA           | CD audio tracks on the disc, outside the data track                                                                                                                                                  |
 
 ## Game runtime
 
@@ -63,22 +63,24 @@ offsets, citations and evidence tags.
 
 ## PlayStation hardware and formats
 
-| Term            | Meaning                                                                                                                      |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| VRAM            | the GPU's 1 MiB video memory, 1,024 by 512 16-bit words                                                                      |
-| CLUT            | color lookup table: a row of palette words in VRAM that an indexed (4 or 8 bit) texture uses                                 |
-| TPage           | texture page: the VRAM region and color depth a primitive samples                                                            |
-| palette pairing | the CLUT and color depth that a draw call uses with a texture ([graphics](../../formats/graphics/#texture-to-palette-join))  |
-| STP             | the semi-transparency bit of a 16-bit color word                                                                             |
-| GPU             | the graphics processor; it draws primitives into VRAM                                                                        |
-| ordering table  | the GPU's linked list of primitives drawn in depth order                                                                     |
-| primitive       | one GPU draw command (sprite, textured quad, line)                                                                           |
-| GTE             | the geometry transformation engine: the coprocessor that rotates and projects vertices                                       |
-| SPU             | the sound processing unit; it plays ADPCM samples with an envelope                                                           |
-| ADPCM           | the 4-bit sample compression the SPU and XA audio use                                                                        |
-| VAB             | a sound bank: a header of programs and tones plus a body of samples (`.vh` header, `.vb` body)                               |
-| VAG             | one sample inside a VAB body                                                                                                 |
-| SEP             | a music sequence package; each sequence plays through a VAB                                                                  |
-| MDEC            | the motion decoder that turns STR frames into pictures                                                                       |
-| PS-X header     | the 2 KiB header of a PlayStation executable; it holds the load address (`t_addr`), size and start address                   |
-| PsyQ            | Sony's PlayStation SDK, which the game links; its library names (`ResetGraph`, `LoadImage`, `CdControl`) appear in the pages |
+| Term            | Meaning                                                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| VRAM            | the GPU's 1 MiB video memory, 1,024 by 512 16-bit words                                                                                                                                                      |
+| CLUT            | color lookup table: a row of palette words in VRAM that an indexed (4 or 8 bit) texture uses                                                                                                                 |
+| TPage           | texture page: the VRAM region and color depth a primitive samples                                                                                                                                            |
+| palette pairing | a texture page plus a CLUT row: the palette and color depth that a draw call uses with a texture ([graphics](../../formats/graphics/#texture-to-palette-pairing))                                            |
+| STP             | the semi-transparency bit of a 16-bit color word                                                                                                                                                             |
+| GPU             | the graphics processor; it draws primitives into VRAM                                                                                                                                                        |
+| ordering table  | the GPU's linked list of primitives drawn in depth order                                                                                                                                                     |
+| primitive       | one GPU draw command (sprite, textured quad, line)                                                                                                                                                           |
+| GTE             | the geometry transformation engine: the coprocessor that rotates and projects vertices                                                                                                                       |
+| SPU             | the sound processing unit; it plays ADPCM samples with an envelope                                                                                                                                           |
+| ADPCM           | the 4-bit sample compression the SPU and XA audio use                                                                                                                                                        |
+| VAB             | a sound bank: a header of programs and tones plus a body of samples (`.vh` header, `.vb` body)                                                                                                               |
+| sound bank      | a VAB as the audio code loads it, one per SPU bank slot; the kind `audio-bank`, the `bank:ARCHIVE` ids and the libsnd names (`SND_SetBankLayout`, `SsSepPlay`) keep the word. No other format here is a bank |
+| CLUT block      | a type-0 entry of raw color words, a whole number of 4bpp rows, that loads into the palette arena ([graphics](../../formats/graphics/#palettes))                                                             |
+| VAG             | one sample inside a VAB body                                                                                                                                                                                 |
+| SEP             | a music sequence package; each sequence plays through a VAB                                                                                                                                                  |
+| MDEC            | the motion decoder that turns STR frames into pictures                                                                                                                                                       |
+| PS-X header     | the 2 KiB header of a PlayStation executable; it holds the load address (`t_addr`), size and start address                                                                                                   |
+| PsyQ            | Sony's PlayStation SDK, which the game links; its library names (`ResetGraph`, `LoadImage`, `CdControl`) appear in the pages                                                                                 |

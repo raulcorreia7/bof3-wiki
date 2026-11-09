@@ -9,25 +9,25 @@ An area is a town, dungeon, world map or battlefield. The table lists the blocks
 
 | Address      |   Entry size | Role                                 |
 | ------------ | -----------: | ------------------------------------ |
-| `0x80010000` |   145-21,547 | area message bank (text)             |
+| `0x80010000` |   145-21,547 | area message table (text)            |
 | `0x80032000` |        5,000 | packed 4-bit cell grid               |
 | `0x80033800` |          512 | palette arena offset 0               |
-| `0x80033A00` |          512 | CLUT bank, arena `+0x200`            |
-| `0x80033C00` |          512 | CLUT bank, arena `+0x400`            |
-| `0x80033E00` |    512-6,144 | CLUT bank, arena `+0x600`            |
-| `0x80035800` |  1,024-3,584 | CLUT bank, arena `+0x2000`           |
-| `0x800D3800` | 1,236-65,236 | area script bank                     |
+| `0x80033A00` |          512 | CLUT block, arena `+0x200`           |
+| `0x80033C00` |          512 | CLUT block, arena `+0x400`           |
+| `0x80033E00` |    512-6,144 | CLUT block, arena `+0x600`           |
+| `0x80035800` |  1,024-3,584 | CLUT block, arena `+0x2000`          |
+| `0x800D3800` | 1,236-65,236 | area script table                    |
 | `0x800E3800` |       36-412 | scene/step table                     |
 | `0x800E4000` |        1,160 | encounters plus enemy records        |
 | `0x80104000` | 6,872-84,584 | map bundle                           |
 | `0x80117000` |  1,444-5,964 | auxiliary module window (9 archives) |
 | `0x801F2C00` |    92-16,324 | area program code arena              |
 
-`0x800F0800` is the battle script bank, which holds 3,692 bytes in 42 BATTLE and BOSS archives and has the same format as the area script bank. `0x801F2C00` is code, not a data format. Two areas load their program elsewhere: `world00/area030/04` at `0x801D0C00` (75,285 bytes) and `world00/area030/05` at `0x800F5000` (8,784 bytes).
+`0x800F0800` is the battle script table, which holds 3,692 bytes in 42 BATTLE and BOSS archives and has the same format as the area script table. `0x801F2C00` is code, not a data format. Two areas load their program elsewhere: `world00/area030/04` at `0x801D0C00` (75,285 bytes) and `world00/area030/05` at `0x800F5000` (8,784 bytes).
 
-## `0x80010000`: area message bank
+## `0x80010000`: area message table
 
-The message bank holds the area's dialogue. It starts with a little-endian `u16` slot array, followed by the records.
+The message table holds the area's dialogue. It starts with a little-endian `u16` slot array, followed by the records.
 
 ```text
 +0x0000 u16 slot[0]      ; byte size of the array = offset of the first record
@@ -35,7 +35,7 @@ The message bank holds the area's dialogue. It starts with a little-endian `u16`
 +slot[0] .. end          ; records, delimited by consecutive distinct slots
 ```
 
-A message is addressed by its slot index. Two slots may share one record, and unused slots point at the end of the payload. 185 of the 200 payloads have at least one such slot, and 182 have two or more. All 200 area entries load at this address. 197 are message banks and 165 of those are text banks, the ones this page and the [text kinds](../assets/#message-banks) describe; 162 are at entry 11, 2 at entry 7 and 1 at entry 12. The other 35 payloads are the 32 non-text banks at entry 11 and the 3 fishing payloads at entry 18, which are not banks. [Game text](../../data/text/#message-bank) defines both terms.
+A message is addressed by its slot index. Two slots may share one record, and unused slots point at the end of the payload. 185 of the 200 payloads have at least one such slot, and 182 have two or more. All 200 area entries load at this address. 197 are message tables and 165 of those are text tables, the ones this page and the [text kinds](../assets/#message-tables) describe; 162 are at entry 11, 2 at entry 7 and 1 at entry 12. The other 35 payloads are the 32 non-text tables at entry 11 and the 3 fishing payloads at entry 18, which are not tables. [Game text](../../data/text/#message-table) defines both terms.
 
 The engine finds the active message itself. The code at `@0x801514D0` forms `D_80010000[g_MessageRequest] + 0x80010000`, and `@0x8014F800` is the text draw entry. The bytes of a record and the control codes are described in [game text](../../data/text/).
 
@@ -53,39 +53,39 @@ nibble = (index & 1) ? low 4 bits : high 4 bits
 
 The nibble order follows the parity of the linear index, not the parity of `x`. A read outside the header's width and height returns 0. No store to the grid exists in any extracted payload, so it is archive data. For example, with `width = 7`, the cell `(x = 2, y = 1)` has index 9 and is the low nibble of byte 4.
 
-## `0x800D3800`: area script bank
+## `0x800D3800`: area script table
 
-The script bank holds the sprite animation scripts of the area's actors. It is a two-level index. A directory of section offsets starts the block. Each section opens with a table of record offsets, and each record is one animation script with its frames inside it ([script record](#script-record)). All 200 payloads fit the two-level index.
+The script table holds the sprite animation scripts of the area's actors. It is a two-level index. A directory of section offsets starts the block. Each section opens with a table of record offsets, and each record is one animation script with its frames inside it ([script record](#script-record)). All 200 payloads fit the two-level index.
 
 ```text
-bank
+table
   +0x00 u32 dir_bytes          ; == 4*L, the directory's own size
   +0x04 u32 section_off[L-1]   ; block-relative, strictly increasing
-section (bank + section_off[i])
+section (table + section_off[i])
   +0x00 u16 table_bytes        ; == 2*M; also record_off[0]
   +0x02 u16 record_off[M-1]    ; remaining offsets, relative to the section base
 record
   one animation script (byte-addressed, no fixed stride)
 ```
 
-`dir_bytes` is the size of the directory, not an entry count: `L = dir_bytes / 4`. Reading it as a count overruns the payload (`WORLD00/AREA016` slot 4 has `u32[0] = 28` and `u32[29] = 0x240018` in 2,708 bytes). `dir_bytes == 4*L` and the entries are strictly increasing and inside the payload in 200 of 200 banks. `L` ranges from 4 to 36, so the 200 banks hold 2,380 sections. The last section runs to the end of the block.
+`dir_bytes` is the size of the directory, not an entry count: `L = dir_bytes / 4`. Reading it as a count overruns the payload (`WORLD00/AREA016` slot 4 has `u32[0] = 28` and `u32[29] = 0x240018` in 2,708 bytes). `dir_bytes == 4*L` and the entries are strictly increasing and inside the payload in 200 of 200 tables. `L` ranges from 4 to 36, so the 200 tables hold 2,380 sections. The last section runs to the end of the block.
 
-Worked example. Take a bank with `dir_bytes = 0x10`, so `L = 4` and the directory is the four words `0x10`, `0x80`, `0x120` and `0x1A0`. Section 2 starts at bank offset `0x120`. If its first halfword is `0x08`, its table is 8 bytes long (`M = 4` offsets), and record 0 starts at section offset `0x08`. If its table entry 3 is `0x40`, record 3 starts at section offset `0x40`, that is bank offset `0x160`.
+Worked example. Take a table with `dir_bytes = 0x10`, so `L = 4` and the directory is the four words `0x10`, `0x80`, `0x120` and `0x1A0`. Section 2 starts at table offset `0x120`. If its first halfword is `0x08`, its table is 8 bytes long (`M = 4` offsets), and record 0 starts at section offset `0x08`. If its table entry 3 is `0x40`, record 3 starts at section offset `0x40`, that is table offset `0x160`.
 
 `Actor_BeginScript (exe/slus_004_22@0x8014D6DC)` resolves a record through the pointer `g_ScriptBank`:
 
 ```text
-section = u32[bank + 4 * lhu(work + 0x2C)]
-record  = bank + section + u16[bank + section + 2 * lbu(work + 0x4B)]
+section = u32[table + 4 * lhu(work + 0x2C)]
+record  = table + section + u16[table + section + 2 * lbu(work + 0x4B)]
 ```
 
-`SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` sets the pointer to `0x800D3800`. The battle handlers swap in `0x800F0800` around each handler call and restore `0x800D3800` afterwards (`func_801E6724 (emi/battle/battle/03@0x801E6724)`, `func_801E6C84 (emi/battle/battle/03@0x801E6C84)`). When bit 0 of work `+0x24` is set, `Actor_BeginScript` takes the record from the actor's character bank (work `+0x4C`) through `Actor_SelectScriptBank (exe/slus_004_22@0x8014DC08)` instead, and the same step code reads it. No record stores its length, so the table offsets are the only stored record boundaries. `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)` does not read this bank. It selects a record through `Actor_SelectScriptBank` and copies a byte count that its caller passes: `0xA00` from `func_801BEE5C (emi/etc/game/00@0x801BEE5C)` and `0x1800` from `Battle_ReloadPartyBank (emi/battle/battle/03@0x801D6F28)` and `func_801DEFE4 (emi/battle/battle/03@0x801DEFE4)`.
+`SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` sets the pointer to `0x800D3800`. The battle handlers swap in `0x800F0800` around each handler call and restore `0x800D3800` afterwards (`func_801E6724 (emi/battle/battle/03@0x801E6724)`, `func_801E6C84 (emi/battle/battle/03@0x801E6C84)`). When bit 0 of work `+0x24` is set, `Actor_BeginScript` takes the record from the actor's character table (work `+0x4C`) through `Actor_SelectScriptBank (exe/slus_004_22@0x8014DC08)` instead, and the same step code reads it. No record stores its length, so the table offsets are the only stored record boundaries. `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)` does not read this table. It selects a record through `Actor_SelectScriptBank` and copies a byte count that its caller passes: `0xA00` from `Battle_LoadPartyScripts (emi/etc/game/00@0x801BEE5C)` and `0x1800` from `Battle_ReloadPartyBank (emi/battle/battle/03@0x801D6F28)` and `func_801DEFE4 (emi/battle/battle/03@0x801DEFE4)`.
 
 Every section describes itself, because `u16[0]` is both the table size and record 0's offset. In all 2,380 sections the distinct offsets of a table increase strictly, and the spans between them tile the section from the table end to its end. 308 of the 2,380 tables contain a descent (51 byte-identical tables, the most used 23 times, across 88 archives), and 225 more contain only equal words. A table entry may therefore repeat an earlier offset, and then it shares that record with the earlier entry.
 
 ### Script record
 
-A record is one animation script. `Actor_SeekScript (exe/slus_004_22@0x8014D910)` reads byte 1 as the step count, moves the cursor (work `+0x50`) past the two count bytes and points the frame table (work `+0x54`) at `cursor + 2 * steps`. `func_8014DB98 (exe/slus_004_22@0x8014DB98)` loads one step: it stores the hold byte to work `+0x4A` and the frame-table entry that the frame byte selects to work `+0x5A`.
+A record is one animation script. `Actor_SeekScript (exe/slus_004_22@0x8014D910)` reads byte 1 as the step count, moves the cursor (work `+0x50`) past the two count bytes and points the frame table (work `+0x54`) at `cursor + 2 * steps`. `Actor_StageAnimStep (exe/slus_004_22@0x8014DB98)` loads one step: it stores the hold byte to work `+0x4A` and the frame-table entry that the frame byte selects to work `+0x5A`.
 
 |             Offset |         Size | Type           | Meaning                                                                                     |
 | -----------------: | -----------: | -------------- | ------------------------------------------------------------------------------------------- |
@@ -97,11 +97,11 @@ A record is one animation script. `Actor_SeekScript (exe/slus_004_22@0x8014D910)
 
 A step is a pair of bytes: a hold and a frame index. A step function counts the hold down by one on each call and loads the next step at zero. A hold of `0x80` or more makes the pair a jump: the step function moves to the step whose index is the pair's second byte, loads it at once and reports 1. Three step functions differ only at the end of the list.
 
-| Step function                                | After the last step                                                                                 |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `func_8014D978 (exe/slus_004_22@0x8014D978)` | starts again at step 0 and reports 1                                                                |
-| `func_8014DAEC (exe/slus_004_22@0x8014DAEC)` | keeps the last frame and reports 1 on each later call                                               |
-| `func_8014DA24 (exe/slus_004_22@0x8014DA24)` | walks the steps backward without jumps; after step 0 it starts again at the last step and reports 1 |
+| Step function                                        | After the last step                                                                                 |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `Actor_StepAnimLoop (exe/slus_004_22@0x8014D978)`    | starts again at step 0 and reports 1                                                                |
+| `Actor_StepAnimOnce (exe/slus_004_22@0x8014DAEC)`    | keeps the last frame and reports 1 on each later call                                               |
+| `Actor_StepAnimReverse (exe/slus_004_22@0x8014DA24)` | walks the steps backward without jumps; after step 0 it starts again at the last step and reports 1 |
 
 ### Frame parts
 
@@ -133,14 +133,14 @@ The scene table lists the actors of the area: for each one, an id to match and a
 
 A record has these fields.
 
-| Offset | Size | Type  | Meaning                                                                 |
-| -----: | ---: | ----- | ----------------------------------------------------------------------- |
-| `0x00` |    2 | `u16` | id; the match key in `@0x8014DD3C` and `@0x80167E00`                    |
-| `0x02` |    2 | `u16` | low byte stored to `work+0x27`; the `u16` is `work+0x2C`                |
-| `0x04` |    1 | `u8`  | stored to `work+0x25` (4 values)                                        |
-| `0x05` |    1 | `u8`  | stored to `work+0x26` (31 values)                                       |
-| `0x06` |    1 | `u8`  | stored to `work+0x28`; read by the CLUT and texture code                |
-| `0x07` |    1 | `u8`  | stored to `work+0x2C`; the scene's section in the archive's script bank |
+| Offset | Size | Type  | Meaning                                                                  |
+| -----: | ---: | ----- | ------------------------------------------------------------------------ |
+| `0x00` |    2 | `u16` | id; the match key in `@0x8014DD3C` and `@0x80167E00`                     |
+| `0x02` |    2 | `u16` | low byte stored to `work+0x27`; the `u16` is `work+0x2C`                 |
+| `0x04` |    1 | `u8`  | stored to `work+0x25` (4 values)                                         |
+| `0x05` |    1 | `u8`  | stored to `work+0x26` (31 values)                                        |
+| `0x06` |    1 | `u8`  | stored to `work+0x28`; read by the CLUT and texture code                 |
+| `0x07` |    1 | `u8`  | stored to `work+0x2C`; the scene's section in the archive's script table |
 
 ```c
 typedef struct AreaActorDef {
@@ -155,7 +155,7 @@ typedef struct AreaActorDef {
 
 Source: [`include/world/area.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/world/area.h)
 
-`+0x7` is a section index, not a record ordinal. With `L = u32[script_bank] / 4`, `max(+0x7) < L` in 200 of 200 payloads and the values cover `0` to `L-1` in 200 of 200. The "9 and 10 special" cases are not this byte. They belong to the actor member `+0x06` ([actor members](../../data/field/)), which `func_80167E00` reads: 9 gates the draw mode and 10 calls `func_8015A944`.
+`+0x7` is a section index, not a record ordinal. With `L = u32[script_table] / 4`, `max(+0x7) < L` in 200 of 200 payloads and the values cover `0` to `L-1` in 200 of 200. The "9 and 10 special" cases are not this byte. They belong to the actor member `+0x06` ([actor members](../../data/field/)), which `func_80167E00` reads: 9 gates the draw mode and 10 calls `func_8015A944`.
 
 ## `0x800E4000`: encounters and enemy records
 
@@ -235,7 +235,7 @@ Source: [`include/game/enemy.h`](https://github.com/raulcorreia7/bof3-decomp/blo
 
 An action block is 16 bytes: a condition byte, seven AI parameters and eight ability indexes. Condition `0x63` marks an unused block. [Game records](../../data/records/#area-data) lists the same fields by group.
 
-HP `0xFFFF` appears in 10 of the 448 non-empty enemy records: Worker (two blocks), Operator, Miner, Engineer, Foreman, Gary, Mogu, Nina and Garr (`enemy_id` 1108, the party-member variant that [records](../../data/records/) lists). It is a sentinel, not a large HP value. The battle setup `func_800AC218 (emi/battle/battle/15@0x800AC218)` loads the halfword at `0x800E4068 + index x 0x88` (`@0x800AC448`) and stores it at battler `+0xC0` and in the `D_801EB6C4` row (`@0x800AC450` and `@0x800AC45C`) without a check. The damage step `Battle_ApplyDamage (emi/battle/battle/03@0x801DBB78)` then skips the whole enemy HP change when the battler's HP at `+0x94` is `0xFFFF`, so the battler takes no damage. Two boss handlers also test it: `func_800C1A00 (emi/boss/boss002/16@0x800C1A00)` and `func_800C1CDC (emi/boss/boss033/16@0x800C1CDC)` set the action type to 3 when the current enemy's HP is `0xFFFF`. The other `0xFFFF` immediates in the battle overlays are the default-element argument of `Battle_CalcDamage (emi/battle/battle/03@0x801DC044)`. The script that ends these fights is `[unknown]`.
+HP `0xFFFF` appears in 10 of the 448 non-empty enemy records: Worker (two blocks), Operator, Miner, Engineer, Foreman, Gary, Mogu, Nina and Garr (`enemy_id` 1108, the party-member variant that [records](../../data/records/) lists). It is a sentinel, not a large HP value. The battle setup `Battle_LoadEnemyBattler (emi/battle/battle/15@0x800AC218)` loads the halfword at `0x800E4068 + index x 0x88` (`@0x800AC448`) and stores it at battler `+0xC0` and in the `D_801EB6C4` row (`@0x800AC450` and `@0x800AC45C`) without a check. The damage step `Battle_ApplyDamage (emi/battle/battle/03@0x801DBB78)` then skips the whole enemy HP change when the battler's HP at `+0x94` is `0xFFFF`, so the battler takes no damage. Two boss handlers also test it: `func_800C1A00 (emi/boss/boss002/16@0x800C1A00)` and `func_800C1CDC (emi/boss/boss033/16@0x800C1CDC)` set the action type to 3 when the current enemy's HP is `0xFFFF`. The other `0xFFFF` immediates in the battle overlays are the default-element argument of `Battle_CalcDamage (emi/battle/battle/03@0x801DC044)`. The script that ends these fights is `[unknown]`.
 
 ## Neighboring buffers
 
@@ -342,12 +342,12 @@ The area's CLUT entries do not own their addresses. They fill slices of one 16 K
 
 `GFX_CopyPalette (exe/slus_004_22@0x8014E3A0)` copies one arena row into the same working row. `battle/battle/03`, `battle/battle/15`, `battle/batl_ovr/00`, `bmagic/magic057/03`, `etc/game/00` and `scenario/scena17/00` call it. Battle code moves single rows this way:
 
-- `battle/battle/03` `@0x801D1228` copies rows 26 and 27, so the `+0x3600` battle bank (`BATTLE/BATL_RE2.EMI#1`) reaches VRAM row 507.
+- `battle/battle/03` `@0x801D1228` copies rows 26 and 27, so the `+0x3600` battle CLUT block (`BATTLE/BATL_RE2.EMI#1`) reaches VRAM row 507.
 - `battle/battle/15` `@0x800AFC54` copies arena row 2 (`0x80033C00`) into working row 2, and `@0x800AFB48` copies CLUT runs inside the working copy into row 2.
 
 Readers take the arena base and index it in 64-byte units. `0x80035800` has no literal reader.
 
-The `+0x200` bank (`ETC/BATE.EMI#3` and its copies) is also read on the CPU. `battle/battle/03` (`@0x801D8AE4`, `@0x801D8DF8`, `@0x801D9AB4` and `@0x801D9C80`) and `etc/game/00` (`@0x801AEBA0`) take word 4 of the 16-color CLUT `D_80144952 * 2 + shade`, at `0x80033A08 + ((D_80144952 * 2 + shade) << 5)`, as the RGB of a flat panel primitive.
+The `+0x200` CLUT block (`ETC/BATE.EMI#3` and its copies) is also read on the CPU. `battle/battle/03` (`@0x801D8AE4`, `@0x801D8DF8`, `@0x801D9AB4` and `@0x801D9C80`) and `etc/game/00` (`@0x801AEBA0`) take word 4 of the 16-color CLUT `D_80144952 * 2 + shade`, at `0x80033A08 + ((D_80144952 * 2 + shade) << 5)`, as the RGB of a flat panel primitive.
 
 ## `0x80104000`: map bundle
 
@@ -355,30 +355,30 @@ The map bundle is the terrain and layout of the area: a grid of cells, with a he
 
 The header has `u8` width and height at bytes 0 and 1. Every other field is a `u16` at the byte offset shown, and its value is an offset in 4-byte units from the start of the bundle: `(payload byte address - 0x80104000) / 4`.
 
-|         Offset | Type        | Name                 | Meaning                                                                                                                                              |
-| -------------: | ----------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-|         `0x00` | `u8`        | `width`              | width in cells                                                                                                                                       |
-|         `0x01` | `u8`        | `height`             | height in cells                                                                                                                                      |
-|         `0x02` | `u16`       | `grid_off4`          | cell grid; `(0x30 + W*H*4 + align4(W*H)) / 4`                                                                                                        |
-|    `0x04-0x13` | `u16[4][2]` | `bank_offsets[4][2]` | eight offsets: bank A rectangles and bank B quads, per selector                                                                                      |
-|         `0x14` | `u16`       | `byte_code_off4`     | per-cell byte codes; equals `W*H + 12` in 200 of 200                                                                                                 |
-| `0x16`, `0x18` | `u16`       | `zero_16`, `zero_18` | zero in 200 of 200, no reader                                                                                                                        |
-|         `0x1A` | `u16[2]`    | `color[2]`           | runtime color words; written by `@0x801583BC`                                                                                                        |
-|         `0x1E` | `u16`       | `scroll`             | nonzero in 76 of 200 and 0 in the rest; meaning unknown. One measurement gives the range `0xEC00`-`0xFFA0` and another `0xF300`-`0xFA90`; unresolved |
-|         `0x20` | `u16`       | `list_base_20`       | record list, opcode byte `& 0x3F`                                                                                                                    |
-|         `0x22` | `u16`       | `list_base_22`       | record list, opcode byte `& 0x7F`                                                                                                                    |
-|         `0x24` | `u16`       | `record_region_24`   | record cells, ids in `g_AreaCellGrid`                                                                                                                |
-|         `0x26` | `u16`       | `zero_26`            | zero in 200 of 200, no reader                                                                                                                        |
-|         `0x28` | `u16`       | `object_list`        | object list, tag plus body size                                                                                                                      |
-|         `0x2A` | `u16`       | `height_off4`        | height bytes; `u16[+0x2A]*4 == size` in 187 bundles and `size - W*H` in 13                                                                           |
-| `0x2C`, `0x2E` | `u16`       | `zero_2C`, `zero_2E` | zero in 200 of 200, no reader                                                                                                                        |
+|         Offset | Type        | Name                       | Meaning                                                                                                                                              |
+| -------------: | ----------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+|         `0x00` | `u8`        | `width`                    | width in cells                                                                                                                                       |
+|         `0x01` | `u8`        | `height`                   | height in cells                                                                                                                                      |
+|         `0x02` | `u16`       | `grid_off4`                | cell grid; `(0x30 + W*H*4 + align4(W*H)) / 4`                                                                                                        |
+|    `0x04-0x13` | `u16[4][2]` | `tile_table_offsets[4][2]` | eight offsets: table A rectangles and table B quads, per selector                                                                                    |
+|         `0x14` | `u16`       | `byte_code_off4`           | per-cell byte codes; equals `W*H + 12` in 200 of 200                                                                                                 |
+| `0x16`, `0x18` | `u16`       | `zero_16`, `zero_18`       | zero in 200 of 200, no reader                                                                                                                        |
+|         `0x1A` | `u16[2]`    | `color[2]`                 | runtime color words; written by `@0x801583BC`                                                                                                        |
+|         `0x1E` | `u16`       | `scroll`                   | nonzero in 76 of 200 and 0 in the rest; meaning unknown. One measurement gives the range `0xEC00`-`0xFFA0` and another `0xF300`-`0xFA90`; unresolved |
+|         `0x20` | `u16`       | `list_base_20`             | record list, opcode byte `& 0x3F`                                                                                                                    |
+|         `0x22` | `u16`       | `list_base_22`             | record list, opcode byte `& 0x7F`                                                                                                                    |
+|         `0x24` | `u16`       | `record_region_24`         | record cells, ids in `g_AreaCellGrid`                                                                                                                |
+|         `0x26` | `u16`       | `zero_26`                  | zero in 200 of 200, no reader                                                                                                                        |
+|         `0x28` | `u16`       | `object_list`              | object list, tag plus body size                                                                                                                      |
+|         `0x2A` | `u16`       | `height_off4`              | height bytes; `u16[+0x2A]*4 == size` in 187 bundles and `size - W*H` in 13                                                                           |
+| `0x2C`, `0x2E` | `u16`       | `zero_2C`, `zero_2E`       | zero in 200 of 200, no reader                                                                                                                        |
 
 ```c
 typedef struct AreaMapBundle {
     u8  width_00;              /* 0x00 */
     u8  height_01;             /* 0x01 */
     u16 grid_off4_02;          /* 0x02 */
-    u16 bank_offsets_04[4][2]; /* 0x04 */
+    u16 tile_table_offsets_04[4][2]; /* 0x04 */
     u16 byte_code_off4_14;     /* 0x14 */
     u16 zero_16;               /* 0x16 */
     u16 zero_18;               /* 0x18 */
@@ -403,8 +403,8 @@ The sections follow the header in this order:
 +0x0030             W*H*4       per-cell records (four s8 corner heights)
 +byte_code_off4*4   align4(W*H) per-cell byte codes
 +grid_off4*4        2*W*H       cell grid (one u16 per cell; 0 is empty)
-(next)              n*4         tile descriptors: one 4-byte word each, up to the first bank
-+bank_offsets[0]*4  n*4         bank A rectangles, then the other tile banks
+(next)              n*4         tile descriptors: one 4-byte word each, up to the first tile table
++tile_table_offsets[0]*4  n*4  table A rectangles, then the other tile tables
 +list_base_20*4     n*4         record list, opcode & 0x3F
 +list_base_22*4     n*4         record list, opcode & 0x7F
 +object_list*4      n*4         object list
@@ -412,7 +412,7 @@ The sections follow the header in this order:
 +height_off4*4      W*H or 0    height bytes
 ```
 
-These identities hold in all 200 bundles: `u16[+0x14] == W*H + 12`; `u16[+0x02]*4 == 0x30 + W*H*4 + align4(W*H)`; every offset from the first bank offset to `height_off4` is in region order. The tile descriptor table sits between the cell grid and the first bank. A grid value indexes it, and the largest grid value is below the descriptor count in all 200 bundles. Descriptor 0 is empty.
+These identities hold in all 200 bundles: `u16[+0x14] == W*H + 12`; `u16[+0x02]*4 == 0x30 + W*H*4 + align4(W*H)`; every offset from the first tile table offset to `height_off4` is in region order. The tile descriptor table sits between the cell grid and the first tile table. A grid value indexes it, and the largest grid value is below the descriptor count in all 200 bundles. Descriptor 0 is empty.
 
 ### Tile descriptor
 
@@ -421,33 +421,33 @@ A tile descriptor is a 4-byte word. `func_80155560 (exe/slus_004_22@0x80155560)`
 | Bits     | Meaning                                                                                        |
 | -------- | ---------------------------------------------------------------------------------------------- |
 | 31       | depth: 0 is 8bpp, 1 is 4bpp                                                                    |
-| 28 to 29 | bank selector (material `bank0` to `bank3`)                                                    |
+| 28 to 29 | page selector (material `page0` to `page3`)                                                    |
 | 24 to 27 | CLUT index                                                                                     |
 | 19 to 23 | color (byte 2 masked with `0xF8`)                                                              |
 | 16 to 18 | corner-order flags: bit 18 turns the corners a quarter, bit 16 flips across x, bit 17 across z |
 | 8 to 11  | mode                                                                                           |
-| 11       | with a nonzero mode: 1 picks bank B (quad), 0 picks bank A (rectangle)                         |
-| 0 to 7   | index of a 16x16 block (mode 0), or of a bank A rectangle                                      |
+| 11       | with a nonzero mode: 1 picks table B (quad), 0 picks table A (rectangle)                       |
+| 0 to 7   | index of a 16x16 block (mode 0), or of a table A rectangle                                     |
 
-Bit 15 is also read, and its meaning is `[unknown]`. Mode 0 names a 16x16 block from the low byte: the block's near corner is `u = (b & 0x0F) * 16`, `v = b & 0xF0`, and its far texels are 15 from the near corner. Otherwise bit 11 picks rectangle bank A (index `& 0xFF`, entry `{dv, du, v, u}`) or quad bank B (index `& 0x7FF`, four UV pairs). A bank B quad stores its pairs as `(v, u)` at bytes 2-3, 0-1, 6-7 and 4-5, which read as corners 0 to 3. The function builds four UV pairs in corner order, then applies the corner flags in this order: bit 18 turns the corners (order 2, 0, 3, 1), bit 16 flips them across x (1, 0, 3, 2) and bit 17 flips them across z (2, 3, 0, 1).
+Bit 15 is also read, and its meaning is `[unknown]`. Mode 0 names a 16x16 block from the low byte: the block's near corner is `u = (b & 0x0F) * 16`, `v = b & 0xF0`, and its far texels are 15 from the near corner. Otherwise bit 11 picks rectangle table A (index `& 0xFF`, entry `{dv, du, v, u}`) or quad table B (index `& 0x7FF`, four UV pairs). A table B quad stores its pairs as `(v, u)` at bytes 2-3, 0-1, 6-7 and 4-5, which read as corners 0 to 3. The function builds four UV pairs in corner order, then applies the corner flags in this order: bit 18 turns the corners (order 2, 0, 3, 1), bit 16 flips them across x (1, 0, 3, 2) and bit 17 flips them across z (2, 3, 0, 1).
 
-Worked example. The synthetic descriptor `0x20000112` has bit 31 clear, so the tile is 8bpp. The bank selector is 2, the CLUT index is 0, no corner flag is set, and the mode is 1 with bit 11 clear, so it picks rectangle bank A, entry `0x12`. By the terrain rule in [graphics](../graphics/#texture-to-palette-join) it uses page `(320 + 128 * 2, 256) = (576, 256)` and CLUT row `(0, 483)`.
+Worked example. The synthetic descriptor `0x20000112` has bit 31 clear, so the tile is 8bpp. The page selector is 2, the CLUT index is 0, no corner flag is set, and the mode is 1 with bit 11 clear, so it picks rectangle table A, entry `0x12`. By the terrain rule in [graphics](../graphics/#texture-to-palette-pairing) it uses page `(320 + 128 * 2, 256) = (576, 256)` and CLUT row `(0, 483)`.
 
 ### Terrain mesh
 
-The bundle decodes to a terrain mesh (Wavefront OBJ, glTF 2.0 or similar) with the same corners and one primitive per tile-bank material. Each cell is a quad on a unit grid, with `x` the column and `z` the row.
+The bundle decodes to a terrain mesh (Wavefront OBJ, glTF 2.0 or similar) with the same corners and one primitive per page material. Each cell is a quad on a unit grid, with `x` the column and `z` the row.
 
 - Corners: the mesh builder `exe/slus_004_22@0x801530D0` places corner `k` at the step `(0,0)`, `(1,0)`, `(0,1)` and `(1,1)` from the cell's near corner, and corner `k` takes record byte `k` (loads at `0x801535A8` to `0x80153640`). The GTE vertex holds `-(byte << 4)`. A mesh uses `y = byte * 16`, so a larger byte is higher. A face walks the perimeter (corners 0, 2, 3, 1), because the stored order would cross, and that walk gives an upward normal.
 - Height table: 13 of the 200 payloads ship the height-byte table, one signed byte per cell. The mesh builder never reads it. The height query `@0x8015477C` does. A mesh built from the corners does not use it.
 - Not applied: the CLUT index and the color need runtime palette and color words. The object list is not part of a mesh.
-- Textures: the materials carry no texture. A tile's page and palette come from the texture association in [graphics](../graphics/#texture-to-palette-join). All 200 bundles pair their terrain sheet with a palette at 8bpp, the 11 world-map areas included.
+- Textures: the materials carry no texture. A tile's page and palette come from the texture association in [graphics](../graphics/#texture-to-palette-pairing). All 200 bundles pair their terrain sheet with a palette at 8bpp, the 11 world-map areas included.
 - Editing: each corner's height is its `y` divided by 16, and each corner must stay at its cell. A mesh does not carry the tiles, objects or height table, so the stored bundle must supply them. On the retail disc all 200 bundles return their stored bytes from a glTF mesh, from an OBJ mesh and from their byte-code, object and height lists.
 
-Over the 200 retail bundles there are 1,263,531 cells, and 688,714 (54.5 percent) have a non-empty tile. Corner heights run from -2048 to 2032 in 244 distinct values. The cells use `bank0` in 22,890 runs, `bank1` in 17,204, `bank2` in 9,032 and `bank3` in 33.
+Over the 200 retail bundles there are 1,263,531 cells, and 688,714 (54.5 percent) have a non-empty tile. Corner heights run from -2048 to 2032 in 244 distinct values. The cells use `page0` in 22,890 runs, `page1` in 17,204, `page2` in 9,032 and `page3` in 33.
 
 ### Readers
 
-The code that reads the bundle: `@0x80153DE8` (area init, publishes `g_AreaCellCodes`), `@0x80166CB0` (byte code), `@0x8015477C` (height query, 538 direct call sites: 7 in the executable and 531 across the overlay images), `@0x801530D0`, `@0x8015684C` and `@0x80157CE4` (mesh), `@0x80154438` and `@0x80158400` (grid), `@0x801576FC`, `@0x80157F98`, `@0x801580A4` and `@0x80158B24` (record lists), `@0x80155560` (tile banks) and `@0x80156ED4` (inline colors). `emi/etc/game/00` reads the grid at `@0x8019C4F0`, `@0x8019C794` and `@0x8019EC20`, and writes the byte code at `@0x801A4BC0`. Writers are limited to the byte-code table, the height table, the runtime color words and the record fields. No loader fixup exists.
+The code that reads the bundle: `@0x80153DE8` (area init, publishes `g_AreaCellCodes`), `@0x80166CB0` (byte code), `@0x8015477C` (height query, 538 direct call sites: 7 in the executable and 531 across the overlay images), `@0x801530D0`, `@0x8015684C` and `@0x80157CE4` (mesh), `@0x80154438` and `@0x80158400` (grid), `@0x801576FC`, `@0x80157F98`, `@0x801580A4` and `@0x80158B24` (record lists), `@0x80155560` (tile tables) and `@0x80156ED4` (inline colors). `emi/etc/game/00` reads the grid at `@0x8019C4F0`, `@0x8019C794` and `@0x8019EC20`, and writes the byte code at `@0x801A4BC0`. Writers are limited to the byte-code table, the height table, the runtime color words and the record fields. No loader fixup exists.
 
 The `+0x20` and `+0x22` lists use a header word whose byte 3 is the dispatcher opcode and byte 2 the size in words. The dispatch tables are `D_8017F8F0` (mask `0x3F`) and `D_8017F8FC` (mask `0x7F`). The `+0x24` cells start with `{y, x, size}`, and the `+0x28` objects start with `{tag, body_words}`.
 
@@ -486,14 +486,14 @@ Nineteen payloads hold no `addiu $sp` and no `jr $ra` at any word offset, so the
 
 ## Sources and confidence
 
-- **Confidence:** medium. The block formats, the script bank and the map bundle header are read and checked on all 200 archives, and the script record grammar is read in the step and draw code, but the byte-code names, the `scroll` field and the battle and world-map graphics are not decoded.
-- **Evidence:** the 200 area archives, the loader and the area, field and battle functions named above. The script record grammar comes from `Actor_BeginScript`, `Actor_SeekScript`, `func_8014DB98`, the three step functions and `Area_DrawObjectSprite`. The frame count at record byte 0 is `[inferred]` from the layout, because no step function reads it. The script bank holds no opcodes, so the event-script opcodes that the community [bof3-script-editor](https://github.com/glitch-in-the-herring/bof3-script-editor) (MIT) lists do not describe it ([sources](../../appendix/sources/)).
+- **Confidence:** medium. The block formats, the script table and the map bundle header are read and checked on all 200 archives, and the script record grammar is read in the step and draw code, but the byte-code names, the `scroll` field and the battle and world-map graphics are not decoded.
+- **Evidence:** the 200 area archives, the loader and the area, field and battle functions named above. The script record grammar comes from `Actor_BeginScript`, `Actor_SeekScript`, `Actor_StageAnimStep`, the three step functions and `Area_DrawObjectSprite`. The frame count at record byte 0 is `[inferred]` from the layout, because no step function reads it. The script table holds no opcodes, so the event-script opcodes that the community [bof3-script-editor](https://github.com/glitch-in-the-herring/bof3-script-editor) (MIT) lists do not describe it ([sources](../../appendix/sources/)).
 
 ## Related
 
 - [Areas and the field](../../systems/areas/): how the engine loads and runs these blocks.
 - [EMI container](../emi/): the entry types and the archive shapes that hold the blocks.
-- [Graphics formats](../graphics/): the color word, the CLUT and the texture-to-palette join.
+- [Graphics formats](../graphics/): the color word, the CLUT and the texture-to-palette pairing.
 - [Game records](../../data/records/): the encounter and enemy record fields by group.
-- [Game text](../../data/text/): the message bank and its control codes.
+- [Game text](../../data/text/): the message table and its control codes.
 - [Edit maps and scripts](../../guides/maps/): what can change in a map or script.

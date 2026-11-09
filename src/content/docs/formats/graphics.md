@@ -3,7 +3,7 @@ title: "Graphics formats"
 description: "A texture on the disc is a headerless block of raw VRAM words (EMI type 3), and its palette is a separate block of color words (a type-0 entry)."
 ---
 
-A texture on the disc is a headerless block of raw VRAM words (EMI type 3), and its palette is a separate block of color words (a type-0 entry). Nothing in either block says which palette goes with which texture: the drawing code holds that link, because it names a texture page and a palette row for each primitive. This page covers how both blocks are stored and loaded, how the VRAM words are encoded and which texture-to-palette pairings (joins) are established. The map-tile descriptor is in [area formats](../area/#tile-descriptor).
+A texture on the disc is a headerless block of raw VRAM words (EMI type 3), and its palette is a separate block of color words (a type-0 entry). Nothing in either block says which palette goes with which texture: the drawing code holds that link, because it names a texture page and a palette row for each primitive. This page covers how both blocks are stored and loaded, how the VRAM words are encoded and which texture-to-palette pairings are established. The map-tile descriptor is in [area formats](../area/#tile-descriptor).
 
 ## Primitives
 
@@ -47,14 +47,14 @@ STP     blue   green red
 
 STP is the semi-transparency bit. A texel of `0x0000` is never drawn. With any other value, STP set marks the texel as semi-transparent when the primitive's blend mode is on. A desktop viewer expands each 5-bit channel to 8 bits.
 
-A 4bpp texture uses a row of 16 colors and an 8bpp texture a row of 256. A CLUT bank is a whole number of 4bpp rows, so its payload is a multiple of 32 bytes. A bank whose word count is also a multiple of 256 is a whole number of 8bpp rows.
+A 4bpp texture uses a row of 16 colors and an 8bpp texture a row of 256. A CLUT block is a whole number of 4bpp rows, so its payload is a multiple of 32 bytes. A block whose word count is also a multiple of 256 is a whole number of 8bpp rows.
 
 | Mode | Colors | Row size |
 | ---- | -----: | -------: |
 | 4bpp |     16 |       32 |
 | 8bpp |    256 |      512 |
 
-Nothing in a bank names its depth, geometry or owner. Palette banks are type-0 entries that load into `0x80033800` to `0x80036E00` and the engine uploads them to VRAM rows 480 to 511 ([palette arena](../area/#palette-arena)). The disc holds 620 such entries: 32 to 6,144 bytes each, 1,121,696 bytes in all, and every size is a multiple of 32. 577 carry 64 bytes or more, and 43 are a single 16-color row. The arena of one area is a single type-0 entry, and its load argument is `0x80033E00` in most areas.
+Nothing in a CLUT block names its depth, geometry or owner. CLUT blocks are type-0 entries that load into `0x80033800` to `0x80036E00` and the engine uploads them to VRAM rows 480 to 511 ([palette arena](../area/#palette-arena)). The disc holds 620 such entries: 32 to 6,144 bytes each, 1,121,696 bytes in all, and every size is a multiple of 32. 577 carry 64 bytes or more, and 43 are a single 16-color row. The arena of one area is a single type-0 entry, and its load argument is `0x80033E00` in most areas.
 
 ## VRAM coordinates
 
@@ -122,7 +122,7 @@ The cell map has one byte per cell, and `0xFF` is empty. `GFX_StepPaletteAnimati
 
 ```mermaid
 flowchart TD
-    B["type-0 CLUT bank"] -->|"EMI_LoadToRam"| A["arena 0x80033800"]
+    B["type-0 CLUT block"] -->|"EMI_LoadToRam"| A["arena 0x80033800"]
     A -->|"GFX_ResetPalette"| W["working copy 0x80037800"]
     W -->|"LoadImage rect(0,0x1E0,0x100,0x20)"| V["VRAM rows 480-511"]
     V --> P["POLY_FT4 clut/tpage"]
@@ -138,12 +138,12 @@ The arena base holds 256 units of 64 bytes (32 rows of 512). [Rendering](../../s
 | Asset                         | Route                                                                                                                                                                                                                           |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | texture page, type 3          | `EMI_LoadToVram` uploads it with `LoadImage`, one 32x32 rectangle at a time ([chunk layout](#chunk-layout))                                                                                                                     |
-| CLUT bank, type 0             | `EMI_LoadToRam (exe/slus_004_22@0x801625E4)` copies it into the palette arena at its load address; the engine uploads the arena's working copy to VRAM rows 480 to 511 ([area](../area/#palette-arena))                         |
+| CLUT block, type 0            | `EMI_LoadToRam (exe/slus_004_22@0x801625E4)` copies it into the palette arena at its load address; the engine uploads the arena's working copy to VRAM rows 480 to 511 ([area](../area/#palette-arena))                         |
 | `etc/start/09` save-icon TIMs | never uploaded: `SAVE_BuildFileHeader (emi/etc/start/09@0x801EF27C)` copies icon 0's CLUT colors and each icon's pixels into the memory card save frame at `0x800C1800`; nothing reads the TIM headers ([save](../save/#icons)) |
 
-## Texture-to-palette join
+## Texture-to-palette pairing
 
-A join pairs a texture with the palette it is drawn with. The pairing comes from the scene that draws the texture, never from the texture payload. A draw site names a texture page and a CLUT row, and the VRAM those names address holds whatever the scene's loads left there. A join is therefore read from a replay of the scene's loads, not from the archive alone.
+A palette pairing ties a texture to the palette it is drawn with ([glossary](../../appendix/glossary/#playstation-hardware-and-formats)). The pairing comes from the scene that draws the texture, never from the texture payload. A draw site names a texture page and a CLUT row, and the VRAM those names address holds whatever the scene's loads left there. A palette pairing is therefore read from a replay of the scene's loads, not from the archive alone.
 
 ### Replay
 
@@ -152,20 +152,20 @@ A scene is the ordered loads that build its screen. Each starts from the frame b
 - `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` for each archive the scene streams. A type-3 entry is uploaded one 32x32 rectangle at a time by `EMI_UploadSectorImage (exe/slus_004_22@0x80163378)`, skipped when the rectangle's left edge is at column 1001 or beyond or its top edge at row 501 or beyond. A type-0 entry that lands in the palette arena changes arena RAM, not VRAM.
 - `GFX_ResetPalette (exe/slus_004_22@0x8014E284)` and `GFX_CopyPalette (exe/slus_004_22@0x8014E3A0)`, which copy arena rows to the working copy, then `GFX_UploadPalette (exe/slus_004_22@0x8014E22C)`, which writes the working copy to VRAM rows 480 to 511.
 
-Every VRAM word keeps the archive entry that wrote it, and a palette word keeps the entry that wrote its arena word. Later writes replace earlier ones, so a bank from another archive serves a row only when it is the one the scene left there. The scenes are the frontend, the title, each walked area and each world-map area, the menu overlays, the Fairy Village events, the battle archives and the spell and summon effects in battle. Palettes that actors load at run time with `GFX_LoadPalette (exe/slus_004_22@0x80166C48)` and palette fades are not replayed.
+Every VRAM word keeps the archive entry that wrote it, and a palette word keeps the entry that wrote its arena word. Later writes replace earlier ones, so a CLUT block from another archive serves a row only when it is the one the scene left there. The scenes are the frontend, the title, each walked area and each world-map area, the menu overlays, the Fairy Village events, the battle archives and the spell and summon effects in battle. Palettes that actors load at run time with `GFX_LoadPalette (exe/slus_004_22@0x80166C48)` and palette fades are not replayed.
 
-### Join
+### Pairing
 
-A rule names a page and a CLUT row, and the replay says what wrote them. The texture is the upload that wrote the page's first word. The palette is the one entry that wrote the whole row, 16 words at 4bpp and 256 at 8bpp. A row with words from two entries, or none, does not join, and no palette is guessed. Two kinds of rule name a page and a row:
+A rule names a page and a CLUT row, and the replay says what wrote them. The texture is the upload that wrote the page's first word. The palette is the one entry that wrote the whole row, 16 words at 4bpp and 256 at 8bpp. A row with words from two entries, or none, is not paired, and no palette is guessed. Two kinds of rule name a page and a row:
 
 - A draw site with a literal page and CLUT in one function. `WORLD00/AREA024.EMI#14` writes the page `0x003B` and the CLUT `0x78CA`; in the `AREA024` scene the page is written by entry 7 and the row `(160, 483)` by entry 8.
-- The tile descriptor word read by `func_80155560 (exe/slus_004_22@0x80155560)`, which every area map bundle uses, walked area and world map alike. Bit 31 selects the depth, bits 24 to 27 the CLUT index and bits 28 to 29 the page bank. An 8bpp descriptor (`bit 31 = 0`) reads CLUT row `(0, 483 + index)`. A 4bpp descriptor reads `(16 * index, 483)`. Both use page `(320 + 128 * bank, 256)`. Empty descriptors name nothing. [Area](../area/#terrain-mesh) describes the descriptor.
+- The tile descriptor word read by `func_80155560 (exe/slus_004_22@0x80155560)`, which every area map bundle uses, walked area and world map alike. Bit 31 selects the depth, bits 24 to 27 the CLUT index and bits 28 to 29 the page selector. An 8bpp descriptor (`bit 31 = 0`) reads CLUT row `(0, 483 + index)`. A 4bpp descriptor reads `(16 * index, 483)`. Both use page `(320 + 128 * page, 256)`. Empty descriptors name nothing. [Area](../area/#terrain-mesh) describes the descriptor.
 
 A site whose page or CLUT depends on runtime state (a caller argument, a branch or a table) names no row. A `GetGraphType()` test is different: it chooses between two encodings of one page, so it does not change which page the site names. Several sites write the page twice, once per graph-type encoding. Decoding each pair (`0x229` with the type 1 and 2 form and `0x99` with the type 0 form, and so on) gives the same page in all eight pairs, so the table lists one decoded page.
 
 ### Sites
 
-Each row states that the function writes this page and CLUT. "Family" means that the CLUT column is a function of a caller argument. A row yields a join only when the scene that runs it holds a texture at the page and a palette at the row.
+Each row states that the function writes this page and CLUT. "Family" means that the CLUT column is a function of a caller argument. A row yields a pairing only when the scene that runs it holds a texture at the page and a palette at the row.
 
 | Overlay and function                                                                                                                                    | tpage (decoded)                                            | clut (decoded)                                          | Note                                                                               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -192,9 +192,9 @@ Each row states that the function writes this page and CLUT. "Family" means that
 
 ### Coverage
 
-The two rules together join 202 of the 593 type-3 textures to 882 distinct (texture, depth, CLUT row) pairs. Those textures hold 52,510,720 of the 112,312,320 bytes of type-3 payload. The tile descriptors join 200 textures (865 rows, all 8bpp): one terrain sheet in each of the 200 area bundles, the 11 world-map areas among them. Thirteen of those sheets also match a literal site (17 rows in all with the two below). Two textures join through a site alone: `WORLD00/AREA030.EMI#19` and `BMAGIC/MAGIC218.EMI#4`. Every terrain row is at 8bpp, so no retail descriptor that names a joined page has bit 31 set.
+The two rules together pair 202 of the 593 type-3 textures to 882 distinct (texture, depth, CLUT row) pairs. Those textures hold 52,510,720 of the 112,312,320 bytes of type-3 payload. The tile descriptors pair 200 textures (865 rows, all 8bpp): one terrain sheet in each of the 200 area bundles, the 11 world-map areas among them. Thirteen of those sheets also match a literal site (17 rows in all with the two below). Two textures pair through a site alone: `WORLD00/AREA030.EMI#19` and `BMAGIC/MAGIC218.EMI#4`. Every terrain row is at 8bpp, so no retail descriptor that names a joined page has bit 31 set.
 
-| Folder     | Textures | Joined |
+| Folder     | Textures | Paired |
 | ---------- | -------: | -----: |
 | `WORLD00`  |       80 |     39 |
 | `WORLD01`  |       76 |     38 |
@@ -207,31 +207,31 @@ The two rules together join 202 of the 593 type-3 textures to 882 distinct (text
 | `BATTLE`   |       10 |      0 |
 | `SCENARIO` |        2 |      0 |
 
-### Unjoined textures
+### Unpaired textures
 
-The other 391 textures have no established depth or palette. A scoring heuristic can rank a depth and CLUT rows from the texture's words and the scene's palette rows. Its ranking is a suggestion, not a join.
+The other 391 textures have no established depth or palette. A scoring heuristic can rank a depth and CLUT rows from the texture's words and the scene's palette rows. Its ranking is a suggestion, not a pairing.
 
 - Depth. Each of 4bpp, 8bpp and 16bpp reads the words as an image. A drawn image repeats a texel next to itself far more often than chance, and the wrong depth loses that. The score is the agreement of each texel with its right and lower neighbours, corrected for the agreement the texel histogram gives by chance (Cohen's kappa).
 - CLUT. A candidate is a row of the palette band that one entry wrote: column 0 of each row at 8bpp, each 16-word column at 4bpp. Neighbouring texels with different indices should get close colours, so the score is one minus their mean colour distance, less the share of texels that land on the transparent word `0x0000`, plus a bonus of 0.25 when the texture's own archive wrote the row.
 
-Measured on the 202 joined textures with the join hidden: the top-ranked depth is right for 196 (97 percent), while a fixed guess of 8bpp is right for 201, because the joined set is nearly all terrain. The best depth and row together match the join for 146 (72 percent), the best five rows include it for 195, and the first row that the texture's own archive wrote matches for 2. The heuristic is validated only on terrain-heavy data, so it says little about sprite and effect sheets.
+Measured on the 202 paired textures with the pairing hidden: the top-ranked depth is right for 196 (97 percent), while a fixed guess of 8bpp is right for 201, because the paired set is nearly all terrain. The best depth and row together match the pairing for 146 (72 percent), the best five rows include it for 195, and the first row that the texture's own archive wrote matches for 2. The heuristic is validated only on terrain-heavy data, so it says little about sprite and effect sheets.
 
-A reading of a texture without a join is limited. Read as 16bpp, each VRAM word is one pixel, and 4bpp and 8bpp textures look like noise. A texture and one CLUT row are what a Sony TIM file holds (Sony's *File Formats* manual, chapter 3), but the game stores no TIM of its own for textures. The six TIM records on the disc are the memory card icons ([save](../save/#icons)).
+A reading of a texture without a pairing is limited. Read as 16bpp, each VRAM word is one pixel, and 4bpp and 8bpp textures look like noise. A texture and one CLUT row are what a Sony TIM file holds (Sony's *File Formats* manual, chapter 3), but the game stores no TIM of its own for textures. The six TIM records on the disc are the memory card icons ([save](../save/#icons)).
 
 ## Open questions
 
 These are ranked by the textures they leave unexplained.
 
-1. The 391 unjoined textures: 207 sheets in the area archives that are not the terrain sheet (`WORLD00` to `WORLD04`), 96 in `BMAGIC`, 40 in `BOSS`, 36 in `ETC`, 10 in `BATTLE` and 2 in `SCENARIO`. No site in the table joins them in a replayed scene. The sites that could name some of them (battle, `SCENARIO`, `ETC`, and the family and table rows above) take the page or the CLUT from a table or a caller argument, so they need the callers' arguments.
+1. The 391 unpaired textures: 207 sheets in the area archives that are not the terrain sheet (`WORLD00` to `WORLD04`), 96 in `BMAGIC`, 40 in `BOSS`, 36 in `ETC`, 10 in `BATTLE` and 2 in `SCENARIO`. No site in the table pairs them in a replayed scene. The sites that could name some of them (battle, `SCENARIO`, `ETC`, and the family and table rows above) take the page or the CLUT from a table or a caller argument, so they need the callers' arguments.
 2. `ENDKANJI` and `SCENA17` (4 uploads) have no default scene: the loaders that stream them are not read, so their VRAM is not replayed.
 3. `FIRST` entry 4 does not appear in the replayed VRAM, because entry 12 covers all of its words. `FIRST` entries 3 to 7 and 12 stay unjoined.
-4. Texel depth without a site. A depth of 4bpp, 8bpp or 15bpp is known only for the sites in the table and for a joined terrain descriptor.
+4. Texel depth without a site. A depth of 4bpp, 8bpp or 15bpp is known only for the sites in the table and for a paired terrain descriptor.
 5. Scene state the replay does not hold: palette fades, cycling and the palettes actors load with `GFX_LoadPalette`, and the leftovers of an earlier screen, which depend on the route the player took.
 
 ## Sources and confidence
 
-- **Confidence:** medium. The upload, the color words and the replayed joins are read and checked on every payload, but 391 of 593 textures have no established depth or palette.
-- **Evidence:** all 593 type-3 payloads and 620 palette banks, the loader and drawing functions named above (including `GFX_CopyPaletteAnimationColors`, which copies colors inside the working copy), the archive load order of each scene, and every CLUT and TPage write in the game code. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) (texture and palette notes) only confirms. The runtime primitives are PsyQ 3.7 ([sources](../../appendix/sources/)).
+- **Confidence:** medium. The upload, the color words and the replayed pairings are read and checked on every payload, but 391 of 593 textures have no established depth or palette.
+- **Evidence:** all 593 type-3 payloads and 620 CLUT blocks, the loader and drawing functions named above (including `GFX_CopyPaletteAnimationColors`, which copies colors inside the working copy), the archive load order of each scene, and every CLUT and TPage write in the game code. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) (texture and palette notes) only confirms. The runtime primitives are PsyQ 3.7 ([sources](../../appendix/sources/)).
 
 ## Related
 

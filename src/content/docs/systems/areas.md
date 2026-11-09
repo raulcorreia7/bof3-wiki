@@ -125,7 +125,7 @@ Roles of the states are in [phases](../phases/).
 |     2 | `func_8015A7E8`               | Publish the current actor pointer (`0x80146884`) `[inferred]`.                                 |
 |     3 | `func_80199440`               | Camera and scroll target `[unknown]`.                                                          |
 |     4 | `func_801A06D8`               | Run the 30 entity rows (`g_Actors`).                                                           |
-|     5 | `func_801527E4`               | Calls `func_801F2C04` when the area id is `0xBD` (see the [area format](../../formats/area/)). |
+|     5 | `Area_UpdateCamera`           | Calls `func_801F2C04` when the area id is `0xBD` (see the [area format](../../formats/area/)). |
 |     6 | `Area_UpdateParty`            | Step the party rows `[inferred]`.                                                              |
 |     7 | `func_801BDAB8`               | Party follow and formation `[unknown]`.                                                        |
 |     8 | `func_801A0514`               | Stamp draw mode on the entity rows and run per-row draw helpers.                               |
