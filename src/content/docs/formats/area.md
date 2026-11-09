@@ -355,30 +355,30 @@ The map bundle is the terrain and layout of the area: a grid of cells, with a he
 
 The header has `u8` width and height at bytes 0 and 1. Every other field is a `u16` at the byte offset shown, and its value is an offset in 4-byte units from the start of the bundle: `(payload byte address - 0x80104000) / 4`.
 
-|         Offset | Type        | Name                 | Meaning                                                                                                                                              |
-| -------------: | ----------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-|         `0x00` | `u8`        | `width`              | width in cells                                                                                                                                       |
-|         `0x01` | `u8`        | `height`             | height in cells                                                                                                                                      |
-|         `0x02` | `u16`       | `grid_off4`          | cell grid; `(0x30 + W*H*4 + align4(W*H)) / 4`                                                                                                        |
-|    `0x04-0x13` | `u16[4][2]` | `bank_offsets[4][2]` | eight offsets: bank A rectangles and bank B quads, per selector                                                                                      |
-|         `0x14` | `u16`       | `byte_code_off4`     | per-cell byte codes; equals `W*H + 12` in 200 of 200                                                                                                 |
-| `0x16`, `0x18` | `u16`       | `zero_16`, `zero_18` | zero in 200 of 200, no reader                                                                                                                        |
-|         `0x1A` | `u16[2]`    | `color[2]`           | runtime color words; written by `@0x801583BC`                                                                                                        |
-|         `0x1E` | `u16`       | `scroll`             | nonzero in 76 of 200 and 0 in the rest; meaning unknown. One measurement gives the range `0xEC00`-`0xFFA0` and another `0xF300`-`0xFA90`; unresolved |
-|         `0x20` | `u16`       | `list_base_20`       | record list, opcode byte `& 0x3F`                                                                                                                    |
-|         `0x22` | `u16`       | `list_base_22`       | record list, opcode byte `& 0x7F`                                                                                                                    |
-|         `0x24` | `u16`       | `record_region_24`   | record cells, ids in `g_AreaCellGrid`                                                                                                                |
-|         `0x26` | `u16`       | `zero_26`            | zero in 200 of 200, no reader                                                                                                                        |
-|         `0x28` | `u16`       | `object_list`        | object list, tag plus body size                                                                                                                      |
-|         `0x2A` | `u16`       | `height_off4`        | height bytes; `u16[+0x2A]*4 == size` in 187 bundles and `size - W*H` in 13                                                                           |
-| `0x2C`, `0x2E` | `u16`       | `zero_2C`, `zero_2E` | zero in 200 of 200, no reader                                                                                                                        |
+|         Offset | Type        | Name                       | Meaning                                                                                                                                              |
+| -------------: | ----------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+|         `0x00` | `u8`        | `width`                    | width in cells                                                                                                                                       |
+|         `0x01` | `u8`        | `height`                   | height in cells                                                                                                                                      |
+|         `0x02` | `u16`       | `grid_off4`                | cell grid; `(0x30 + W*H*4 + align4(W*H)) / 4`                                                                                                        |
+|    `0x04-0x13` | `u16[4][2]` | `tile_table_offsets[4][2]` | eight offsets: table A rectangles and table B quads, per selector                                                                                    |
+|         `0x14` | `u16`       | `byte_code_off4`           | per-cell byte codes; equals `W*H + 12` in 200 of 200                                                                                                 |
+| `0x16`, `0x18` | `u16`       | `zero_16`, `zero_18`       | zero in 200 of 200, no reader                                                                                                                        |
+|         `0x1A` | `u16[2]`    | `color[2]`                 | runtime color words; written by `@0x801583BC`                                                                                                        |
+|         `0x1E` | `u16`       | `scroll`                   | nonzero in 76 of 200 and 0 in the rest; meaning unknown. One measurement gives the range `0xEC00`-`0xFFA0` and another `0xF300`-`0xFA90`; unresolved |
+|         `0x20` | `u16`       | `list_base_20`             | record list, opcode byte `& 0x3F`                                                                                                                    |
+|         `0x22` | `u16`       | `list_base_22`             | record list, opcode byte `& 0x7F`                                                                                                                    |
+|         `0x24` | `u16`       | `record_region_24`         | record cells, ids in `g_AreaCellGrid`                                                                                                                |
+|         `0x26` | `u16`       | `zero_26`                  | zero in 200 of 200, no reader                                                                                                                        |
+|         `0x28` | `u16`       | `object_list`              | object list, tag plus body size                                                                                                                      |
+|         `0x2A` | `u16`       | `height_off4`              | height bytes; `u16[+0x2A]*4 == size` in 187 bundles and `size - W*H` in 13                                                                           |
+| `0x2C`, `0x2E` | `u16`       | `zero_2C`, `zero_2E`       | zero in 200 of 200, no reader                                                                                                                        |
 
 ```c
 typedef struct AreaMapBundle {
     u8  width_00;              /* 0x00 */
     u8  height_01;             /* 0x01 */
     u16 grid_off4_02;          /* 0x02 */
-    u16 bank_offsets_04[4][2]; /* 0x04 */
+    u16 tile_table_offsets_04[4][2]; /* 0x04 */
     u16 byte_code_off4_14;     /* 0x14 */
     u16 zero_16;               /* 0x16 */
     u16 zero_18;               /* 0x18 */
@@ -403,8 +403,8 @@ The sections follow the header in this order:
 +0x0030             W*H*4       per-cell records (four s8 corner heights)
 +byte_code_off4*4   align4(W*H) per-cell byte codes
 +grid_off4*4        2*W*H       cell grid (one u16 per cell; 0 is empty)
-(next)              n*4         tile descriptors: one 4-byte word each, up to the first bank
-+bank_offsets[0]*4  n*4         bank A rectangles, then the other tile banks
+(next)              n*4         tile descriptors: one 4-byte word each, up to the first tile table
++tile_table_offsets[0]*4  n*4  table A rectangles, then the other tile tables
 +list_base_20*4     n*4         record list, opcode & 0x3F
 +list_base_22*4     n*4         record list, opcode & 0x7F
 +object_list*4      n*4         object list
@@ -412,7 +412,7 @@ The sections follow the header in this order:
 +height_off4*4      W*H or 0    height bytes
 ```
 
-These identities hold in all 200 bundles: `u16[+0x14] == W*H + 12`; `u16[+0x02]*4 == 0x30 + W*H*4 + align4(W*H)`; every offset from the first bank offset to `height_off4` is in region order. The tile descriptor table sits between the cell grid and the first bank. A grid value indexes it, and the largest grid value is below the descriptor count in all 200 bundles. Descriptor 0 is empty.
+These identities hold in all 200 bundles: `u16[+0x14] == W*H + 12`; `u16[+0x02]*4 == 0x30 + W*H*4 + align4(W*H)`; every offset from the first tile table offset to `height_off4` is in region order. The tile descriptor table sits between the cell grid and the first tile table. A grid value indexes it, and the largest grid value is below the descriptor count in all 200 bundles. Descriptor 0 is empty.
 
 ### Tile descriptor
 
@@ -426,12 +426,12 @@ A tile descriptor is a 4-byte word. `func_80155560 (exe/slus_004_22@0x80155560)`
 | 19 to 23 | color (byte 2 masked with `0xF8`)                                                              |
 | 16 to 18 | corner-order flags: bit 18 turns the corners a quarter, bit 16 flips across x, bit 17 across z |
 | 8 to 11  | mode                                                                                           |
-| 11       | with a nonzero mode: 1 picks bank B (quad), 0 picks bank A (rectangle)                         |
-| 0 to 7   | index of a 16x16 block (mode 0), or of a bank A rectangle                                      |
+| 11       | with a nonzero mode: 1 picks table B (quad), 0 picks table A (rectangle)                       |
+| 0 to 7   | index of a 16x16 block (mode 0), or of a table A rectangle                                     |
 
-Bit 15 is also read, and its meaning is `[unknown]`. Mode 0 names a 16x16 block from the low byte: the block's near corner is `u = (b & 0x0F) * 16`, `v = b & 0xF0`, and its far texels are 15 from the near corner. Otherwise bit 11 picks rectangle bank A (index `& 0xFF`, entry `{dv, du, v, u}`) or quad bank B (index `& 0x7FF`, four UV pairs). A bank B quad stores its pairs as `(v, u)` at bytes 2-3, 0-1, 6-7 and 4-5, which read as corners 0 to 3. The function builds four UV pairs in corner order, then applies the corner flags in this order: bit 18 turns the corners (order 2, 0, 3, 1), bit 16 flips them across x (1, 0, 3, 2) and bit 17 flips them across z (2, 3, 0, 1).
+Bit 15 is also read, and its meaning is `[unknown]`. Mode 0 names a 16x16 block from the low byte: the block's near corner is `u = (b & 0x0F) * 16`, `v = b & 0xF0`, and its far texels are 15 from the near corner. Otherwise bit 11 picks rectangle table A (index `& 0xFF`, entry `{dv, du, v, u}`) or quad table B (index `& 0x7FF`, four UV pairs). A table B quad stores its pairs as `(v, u)` at bytes 2-3, 0-1, 6-7 and 4-5, which read as corners 0 to 3. The function builds four UV pairs in corner order, then applies the corner flags in this order: bit 18 turns the corners (order 2, 0, 3, 1), bit 16 flips them across x (1, 0, 3, 2) and bit 17 flips them across z (2, 3, 0, 1).
 
-Worked example. The synthetic descriptor `0x20000112` has bit 31 clear, so the tile is 8bpp. The page selector is 2, the CLUT index is 0, no corner flag is set, and the mode is 1 with bit 11 clear, so it picks rectangle bank A, entry `0x12`. By the terrain rule in [graphics](../graphics/#texture-to-palette-join) it uses page `(320 + 128 * 2, 256) = (576, 256)` and CLUT row `(0, 483)`.
+Worked example. The synthetic descriptor `0x20000112` has bit 31 clear, so the tile is 8bpp. The page selector is 2, the CLUT index is 0, no corner flag is set, and the mode is 1 with bit 11 clear, so it picks rectangle table A, entry `0x12`. By the terrain rule in [graphics](../graphics/#texture-to-palette-join) it uses page `(320 + 128 * 2, 256) = (576, 256)` and CLUT row `(0, 483)`.
 
 ### Terrain mesh
 
@@ -447,7 +447,7 @@ Over the 200 retail bundles there are 1,263,531 cells, and 688,714 (54.5 percent
 
 ### Readers
 
-The code that reads the bundle: `@0x80153DE8` (area init, publishes `g_AreaCellCodes`), `@0x80166CB0` (byte code), `@0x8015477C` (height query, 538 direct call sites: 7 in the executable and 531 across the overlay images), `@0x801530D0`, `@0x8015684C` and `@0x80157CE4` (mesh), `@0x80154438` and `@0x80158400` (grid), `@0x801576FC`, `@0x80157F98`, `@0x801580A4` and `@0x80158B24` (record lists), `@0x80155560` (tile banks) and `@0x80156ED4` (inline colors). `emi/etc/game/00` reads the grid at `@0x8019C4F0`, `@0x8019C794` and `@0x8019EC20`, and writes the byte code at `@0x801A4BC0`. Writers are limited to the byte-code table, the height table, the runtime color words and the record fields. No loader fixup exists.
+The code that reads the bundle: `@0x80153DE8` (area init, publishes `g_AreaCellCodes`), `@0x80166CB0` (byte code), `@0x8015477C` (height query, 538 direct call sites: 7 in the executable and 531 across the overlay images), `@0x801530D0`, `@0x8015684C` and `@0x80157CE4` (mesh), `@0x80154438` and `@0x80158400` (grid), `@0x801576FC`, `@0x80157F98`, `@0x801580A4` and `@0x80158B24` (record lists), `@0x80155560` (tile tables) and `@0x80156ED4` (inline colors). `emi/etc/game/00` reads the grid at `@0x8019C4F0`, `@0x8019C794` and `@0x8019EC20`, and writes the byte code at `@0x801A4BC0`. Writers are limited to the byte-code table, the height table, the runtime color words and the record fields. No loader fixup exists.
 
 The `+0x20` and `+0x22` lists use a header word whose byte 3 is the dispatcher opcode and byte 2 the size in words. The dispatch tables are `D_8017F8F0` (mask `0x3F`) and `D_8017F8FC` (mask `0x7F`). The `+0x24` cells start with `{y, x, size}`, and the `+0x28` objects start with `{tag, body_words}`.
 
