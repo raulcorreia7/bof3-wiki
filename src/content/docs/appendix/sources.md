@@ -43,6 +43,6 @@ Sony proprietary; none of it is redistributed here.
 
 ## How a fact cites its source
 
-- A layout or name proven by the game's data cites a function as `Name (image@0xADDR)` ([conventions](../../concepts/notation/#images-and-citations)). An external source, if any, confirms it.
+- A layout or name read from the game's data cites a function as `Name (image@0xADDR)` ([conventions](../../concepts/notation/#images-and-citations)). An external source, if any, confirms it.
 - A page that rests on a community source names it in the `Evidence` bullet of its "Sources and confidence" section and links this page.
 - A fact that only a community source states is a lead, tagged `[inferred]` ([conventions](../../concepts/notation/#evidence-tags)), until a read of the game's own code or data confirms it.
