@@ -183,12 +183,11 @@ old URL keeps working. When you rename a heading, search for links to its old sl
 
 ## Build and check
 
-You need Node.js 22.23.4 or later, [dprint](https://dprint.dev/) and Python 3.11 or later. The
-dependencies are pinned in `package-lock.json`. CI runs the same commands. A pull request that
-changes only docs still builds the site, because the build checks the content.
+Install the tools and set up the repository as the [README](README.md#requirements) describes. CI runs
+the same commands. A pull request that changes only docs still builds the site, because the build
+checks the content.
 
 ```sh
-npm ci
 dprint check                    # Markdown format; dprint fmt fixes it
 python3 tools/check_pages.py    # page template, titles, orphan pages
 npm run build                   # builds dist/ and validates internal links and anchors
@@ -201,9 +200,9 @@ page for every URL in `redirects.json`. CI then checks internal links and anchor
 [lychee](https://github.com/lycheeverse/lychee) 0.24.2. To run it, download that release, then:
 
 ```sh
-mkdir -p /tmp/site && ln -sfn "$PWD/dist" /tmp/site/bof3-wiki
+site=$(mktemp -d) && ln -sfn "$PWD/dist" "$site/bof3-wiki"
 lychee --offline --include-fragments --index-files index.html \
-  --root-dir /tmp/site --exclude-path 404.html /tmp/site/bof3-wiki
+  --root-dir "$site" --exclude-path 404.html "$site/bof3-wiki"
 ```
 
 Check the result in a browser at phone width and at desktop width, in the light and the dark theme.
