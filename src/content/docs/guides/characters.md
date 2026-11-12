@@ -30,7 +30,7 @@ A playable character is one record of 164 bytes, and an enemy is one record of 1
 - **New games only.** The game copies the starting table into its live state when a new game starts. A save holds its own copy of the characters, so an edit to the table does not change an existing save ([saves](../saves/)).
 - **Signed fields.** The master bonuses and the level-up modifiers are signed bytes, so write a negative value as its two's-complement byte ([masters](../../data/records/#masters)).
 - **Drop rates.** A drop rate is an index 0 to 7 into a chance table, not a percentage ([drops](../../data/records/#drops)).
-- **Enemy graphics.** The `BENEMY` archives hold enemy audio only, and the enemy sprites are not located, so an enemy keeps its look ([character sprites](../graphics/#character-sprites)).
+- **Enemy graphics.** The `BENEMY` archives hold enemy audio only, and the enemy sprites are not located, so an enemy keeps its look ([character sprites](../graphics/#edit-character-sprites)).
 - **Unnamed bytes.** The unnamed spans of the character and enemy records are `[unknown]`.
 
 ## Check in the game

@@ -37,7 +37,7 @@ A name field has a fixed width, and a name may fill all of it with no terminator
 
 - **Table size.** A message table must end below `0x8001A000`, where the resource table loads, so it holds at most 40,960 bytes. The largest shipped table is 21,547 bytes (`AREA153.EMI#11`).
 - **Resource ids.** A resource id is local to the payload loaded at `0x8001A000`. The same id can name different strings under different payloads, so edit the string in the payload that you mean.
-- **Glyphs.** One byte is one glyph, and the byte-to-cell formula is code. A byte with no glyph (`unresolved` in the [byte classes](../../data/text/#byte-classes)) draws nothing known. A new glyph needs a free cell in the [font sheet](../graphics/#the-font-sheet).
+- **Glyphs.** One byte is one glyph, and the byte-to-cell formula is code. A byte with no glyph (`unresolved` in the [byte classes](../../data/text/#byte-classes)) draws nothing known. A new glyph needs a free cell in the [font sheet](../graphics/#edit-the-font-sheet).
 - **Byte-exact round trips.** Two punctuation marks have two bytes each. A tool that must reproduce a table exactly keeps which byte the original used.
 - **Windows.** Window rectangles and menu rows are not data: they are arguments in overlay code. A box takes a style operand (`{BOX:nn}`), but the style table behind it is `[unknown]`, and so are the units of the window arguments. Moving a window means patching code.
 

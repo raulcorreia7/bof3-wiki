@@ -23,7 +23,7 @@ Two things live elsewhere:
 What the common fields do:
 
 - **Equipment** rows carry an equipability mask with one bit per character ([masks](../../data/records/#masks-and-value-ranges)) and a weight. Weapons and armor also carry a power.
-- **Weapons** carry a `sound` byte that indexes the cue table, so a new value must name an existing cue ([sound effects](../sound/#sound-effects)).
+- **Weapons** carry a `sound` byte that indexes the cue table, so a new value must name an existing cue ([sound effects](../sound/#edit-sound-effects)).
 - **Abilities** carry a type, a cost, a power, an element and targeting flags ([ability targeting](../../data/records/#ability-targeting)).
 - **A shop row** holds an item count and eleven two-byte references, each an item type and an item index. Only the first `count` references are valid.
 

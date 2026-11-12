@@ -5,42 +5,51 @@ description: "The game keeps pictures in three forms: textures that the loader u
 
 The game keeps pictures in three forms: textures that the loader uploads to VRAM, palettes that sit in a palette arena, and character sprites that hold sprites with their own palettes. This guide shows how to change each one. The formats are in [graphics formats](../../formats/graphics/) and [character sprites](../../formats/character/).
 
-## Textures
+## Where the data is
 
-**Where.** The disc holds 593 type-3 entries. A type-3 payload is a run of 2,048-byte chunks, and each chunk is a 32 by 32 rectangle of 16-bit VRAM words. The load argument gives the first VRAM column, the first VRAM row and the number of rectangles per row ([type-3 load argument](../../formats/graphics/#type-3-load-argument)).
+| Task       | Where                                                                                                                                                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Textures   | 593 type-3 entries; each payload is a run of 2,048-byte chunks, and each chunk is a 32 by 32 rectangle of 16-bit VRAM words ([type-3 load argument](../../formats/graphics/#type-3-load-argument))                                                      |
+| Palettes   | 620 type-0 entries, from 32 to 6,144 bytes each; they load into the palette arena at `0x80033800` and reach VRAM rows 480 to 511 ([palette arena](../../formats/area/#palette-arena))                                                                   |
+| Font sheet | `ETC/FIRST.EMI#3` and `ETC/ENDKANJI.EMI#0`: two identical 32,768-byte type-3 entries with load argument `0x1E000200`, VRAM column 30 (x = 960), row 0, 2 rectangles per row                                                                             |
+| Sprites    | `PLCHAR` (19 LZ77 containers), `BPLCHAR` (45 LZ77 containers, 1 raw container and 75 standalone sections) and `BMAGIC` (3 blocks), 144 entries in all; each container loads at `0x8003B800` ([load arguments](../../formats/character/#load-arguments)) |
 
-**What to change.** Edit the words of a chunk. Read the payload as 16-bit words if the depth is unknown. For a texture whose depth and palette are known, edit it as indexed pixels, and for a direct-color texture edit the color words.
+## What to change
 
-**Limits.**
+### Edit textures
+
+Edit the words of a chunk. Read the payload as 16-bit words if the depth is unknown. For a texture whose depth and palette are known, edit it as indexed pixels, and for a direct-color texture edit the color words.
+
+### Edit palettes
+
+A palette is a run of 16-bit color words, `STP | blue | green | red` with 5 bits per channel ([palettes](../../formats/graphics/#palettes)). Edit a word to change a color. A word of `0x0000` is never drawn, so keep it for transparent texels.
+
+### Edit the font sheet
+
+Edit the sheet as 4-bit pixels. A byte of text selects one 8 by 12 pixel cell of a 31-column atlas ([glyph atlas](../../data/text/#glyph-atlas)). The text drawer selects the texture page at column 15 of 64-word pages, which is the same x = 960, in 4-bit mode. That these entries are the font sheet is `[inferred]` from the shared target. The text colors are 16 palette rows at `(16 * n, 480)`.
+
+### Edit character sprites
+
+Edit the palette tables only. A container has one palette layer per section, and each palette is 32 color words ([palette layer](../../formats/character/#palette-layer)). Decode the container, change the palette, and write the table back over the decoded container. Every other byte stays the same.
+
+## Limits and pitfalls
+
+### Texture limits
 
 - The payload size stays a multiple of 2,048 and matches the rectangle count in the load argument. A rectangle uploads only if its whole extent lies inside the 1,024 by 512 word VRAM.
 - Several sheets can cover the same VRAM words, for example slots 5 and 7 of `AREA024`. Which one is resident depends on the stream order.
 - Depth and palette are known for 202 of the 593 textures ([texture-to-palette pairing](../../formats/graphics/#texture-to-palette-pairing)). The other 391 are `[unknown]`: a draw rule that names the texture's page and palette, replayed in the scene that loads it, is the only evidence, and no rule pairs them. Edit those as raw 16-bit words only.
 - An indexed edit keeps the palette that the texture uses.
 
-## Palettes
+### Palette limits
 
-**Where.** The disc holds 620 palette entries (type 0), from 32 to 6,144 bytes each. They load into the palette arena at `0x80033800` and reach VRAM rows 480 to 511 ([palette arena](../../formats/area/#palette-arena)).
+A CLUT block is a multiple of 32 bytes (one 16-color row), and a 256-color row is 512 bytes. Each block has a fixed slot in the arena, so keep its size and its position.
 
-**What to change.** A palette is a run of 16-bit color words, `STP | blue | green | red` with 5 bits per channel ([palettes](../../formats/graphics/#palettes)). Edit a word to change a color. A word of `0x0000` is never drawn, so keep it for transparent texels.
+### Font-sheet limits
 
-**Limits.** A CLUT block is a multiple of 32 bytes (one 16-color row), and a 256-color row is 512 bytes. Each block has a fixed slot in the arena, so keep its size and its position.
+The byte-to-cell formula is code in the executable. A new glyph needs a free cell in the grid, and a change to the grid needs a code change that keeps `SLUS_004.22` within its size. Change both entries together. Which entry the game uses on screen is `[unknown]`.
 
-## The font sheet
-
-**Where.** `ETC/FIRST.EMI#3` and `ETC/ENDKANJI.EMI#0` are two identical type-3 entries of 32,768 bytes with the load argument `0x1E000200`: VRAM column 30 (x = 960), row 0, 2 rectangles per row. The text drawer selects the texture page at column 15 of 64-word pages, which is the same x = 960, in 4-bit mode. That these entries are the font sheet is `[inferred]` from the shared target. The text colors are 16 palette rows at `(16 * n, 480)`.
-
-**What to change.** Edit the sheet as 4-bit pixels. A byte of text selects one 8 by 12 pixel cell of a 31-column atlas ([glyph atlas](../../data/text/#glyph-atlas)).
-
-**Limits.** The byte-to-cell formula is code in the executable. A new glyph needs a free cell in the grid, and a change to the grid needs a code change that keeps `SLUS_004.22` within its size. Change both entries together. Which entry the game uses on screen is `[unknown]`.
-
-## Character sprites
-
-**Where.** Character sprites sit in `PLCHAR` (19 LZ77 containers), `BPLCHAR` (45 LZ77 containers, 1 raw container and 75 standalone sections) and `BMAGIC` (3 blocks), 144 entries in all. Each container loads at `0x8003B800` ([load arguments](../../formats/character/#load-arguments)).
-
-**What to change.** Edit the palette tables only. A container has one palette layer per section, and each palette is 32 color words ([palette layer](../../formats/character/#palette-layer)). Decode the container, change the palette, and write the table back over the decoded container. Every other byte stays the same.
-
-**Limits.**
+### Character-sprite limits
 
 - The 3 `BMAGIC` blocks have no palette layer, so 141 of the 144 entries have palettes.
 - The pixel format and the animation script inside a node are `[unknown]`. Treat them as read-only.
