@@ -37,20 +37,39 @@ A container is a three-word header followed by three sections.
 | `0x00` |   12 | `u32[3]` | `section_offset` | offsets of sections 0 to 2; `section_offset[0]` is always `0x0C` |
 | `0x0C` |    - | -        | `sections`       | section 0, then section 1, then section 2                        |
 
+```c
+typedef struct CharacterSprites {
+    /* 0x00 */ u32 section_offset[CHARACTER_SPRITES_SECTION_COUNT];
+} CharacterSprites;                 /* 0x0C bytes */
+```
+
+Source: [`include/game/character.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/character.h)
+
 Section *n* runs to the start of section *n+1*, and section 2 runs to the end of the body. This holds for all 65 decoded type-1 payloads and `BPLU349`, a raw container: `header[0] == 0x0C` in 66 of 66, and the three offsets tile the body exactly. `BPLU349`, a raw container, has a 331,788-byte payload: the offsets `0x0C`, `0x1B00C` and `0x3600C`, then 3 x 110,592 bytes.
 
 Section sizes depend on the family. The packed-only containers (`PLCHAR` 19, `ETC/START` 1) use per-character sizes (75,724, 73,708, 120,724, 59,252, 82,728 and so on). `BPLCHAR` containers use slot sizes of 110,592 (`0x1B000`) or 147,456 (`0x24000`) bytes in 136 of their 138 sections, and two `DRG*` sections are smaller (11,796 and 17,400). The fixed slot size lets a `BPLCHAR` archive ship one section at a fixed address.
 
 ## Section
 
-A section opens with a node table.
+A section starts with a count and the offset of its palette table.
 
-| Offset | Size | Type      | Name          | Meaning                                                            |
-| -----: | ---: | --------- | ------------- | ------------------------------------------------------------------ |
-| `0x00` |    4 | `u32`     | `node_count`  | 16 in all 198 container sections and in the 75 standalone sections |
-| `0x04` |   64 | `u32[16]` | `node_offset` | byte offsets within the section, not sorted                        |
+| Offset | Size | Type  | Name             | Meaning                                                                                |
+| -----: | ---: | ----- | ---------------- | -------------------------------------------------------------------------------------- |
+| `0x00` |    4 | `u32` | `unk_00`         | 16 in all 198 container sections and in the 75 standalone sections; no reader names it |
+| `0x04` |    4 | `u32` | `palette_offset` | section-relative byte offset of the palette table                                      |
 
-The offsets are not ascending. In `BPLD012` section 0 the table holds `0x976C 0x97B0 0xACD8 0x3C 0x378 ...  0x7B28`, which is the sorted order rotated by 13. In the 198 container sections, 3,070 of 3,168 table values fall inside their section (at least `0x30` and below the section size), and 187 sections hold 16 distinct values. The remaining 98 values are small numbers or values with a high 16-bit field (`0x100080`, `0x200080`, `0x500080`, `0x28000000`), so a table entry may be a `flags | offset` pair. The flag bits are not decoded.
+```c
+typedef struct CharacterSpritesSection {
+    /* 0x00 */ u32 unk_00;
+    /* 0x04 */ u32 palette_offset;
+} CharacterSpritesSection;          /* 8 bytes */
+```
+
+Source: [`include/game/character.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/character.h)
+
+## Node table
+
+No reader names the word that locates the 16 node offsets, and the `+0x04` word is the palette table offset, not the node table. The offsets below are read from the section data. The offsets are not ascending. In `BPLD012` section 0 the table holds `0x976C 0x97B0 0xACD8 0x3C 0x378 ...  0x7B28`, which is the sorted order rotated by 13. In the 198 container sections, 3,070 of 3,168 table values fall inside their section (at least `0x30` and below the section size), and 187 sections hold 16 distinct values. The remaining 98 values are small numbers or values with a high 16-bit field (`0x100080`, `0x200080`, `0x500080`, `0x28000000`), so a table entry may be a `flags | offset` pair. The flag bits are not decoded.
 
 ## Node
 

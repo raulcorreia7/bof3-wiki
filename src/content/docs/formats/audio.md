@@ -174,12 +174,12 @@ A type-8 entry is one bank's cue table for sound effects. It is a list of 4-byte
 | `0x03` | 0 to 4 | `u8` | `voice`          | first SPU voice 0 to 23, mostly 16, 18, 20 and 22; values of 24 or more wrap modulo 24 when `layers > 0`                                       |
 
 ```c
-typedef struct EmiCue {
+typedef struct EMICue {
     u8 alias_bank; /* 0x00 bits 0 to 2 */
     u8 program;    /* 0x01 bit 7 use_cue_volume, bits 0 to 6 program */
     u8 tone;       /* 0x02 bits 4 to 7 tone slot, bits 0 to 3 retrigger compare */
     u8 voice;      /* 0x03 bits 0 to 4 voice, bits 5 to 6 layers */
-} EmiCue;
+} EMICue;
 ```
 
 Source: [`include/audio/cue.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/audio/cue.h)
@@ -215,7 +215,7 @@ The file header is 6 bytes: the magic `70 51 45 53` (`pQES` in file order, `SEQp
 
 ```c
 typedef struct SepFileHeader {
-    u8 magic[4];   /* 0x00 */
+    u8 magic[SEP_MAGIC_SIZE]; /* 0x00 */
     u8 version[2]; /* 0x04 u16, big-endian */
 } SepFileHeader;
 
