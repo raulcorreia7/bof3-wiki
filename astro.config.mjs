@@ -6,6 +6,7 @@ import mermaid from 'astro-mermaid';
 import nav from './nav.json' with { type: 'json' };
 import redirects from './redirects.json' with { type: 'json' };
 import redirectStubs from './integrations/redirect-stubs.mjs';
+import llmsLinks from './integrations/llms-links.mjs';
 
 const site = 'https://raulcorreia7.github.io';
 const base = '/bof3-wiki';
@@ -63,5 +64,6 @@ export default defineConfig({
         }),
       ],
     }),
+    llmsLinks({ site, base }),
   ],
 });
