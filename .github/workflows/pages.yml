@@ -11,7 +11,34 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  # The site build is the slow part; a PR that touches only workflow or policy files skips it.
+  # This job always runs, so the required `build` check still reports.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      site: ${{ steps.files.outputs.site }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" != pull_request ]; then
+            echo "site=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          paths="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/${{ github.event.pull_request.number }}/files?per_page=100" --jq '.[].filename')"
+          if [ -n "$paths" ] && ! grep -vqE '^(\.github/|LICENSE|CODE_OF_CONDUCT\.md|SECURITY\.md)' <<< "$paths"; then
+            echo "site=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "site=true" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -21,26 +48,44 @@ jobs:
       - uses: dprint/check@7dc032d8874778fc024f6f9b4a7e6d896782c330 # v2.5
       - name: Check the page template
         run: python3 tools/check_pages.py
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - if: needs.changes.outputs.site == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - if: needs.changes.outputs.site == 'true'
+        run: npm ci
       - name: Build the site and validate links
+        if: needs.changes.outputs.site == 'true'
         run: npm run build
       - name: Check that diagrams are readable
+        if: needs.changes.outputs.site == 'true'
         run: npm run check:diagrams
-      - name: Check internal links and anchors offline
+      - name: Cache lychee
+        if: needs.changes.outputs.site == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/bin/lychee
+          key: lychee-0.24.2-${{ runner.os }}
+      - name: Install lychee
+        if: needs.changes.outputs.site == 'true'
         run: |
-          curl -fsSL -o lychee.tar.gz https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz
-          echo "1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a  lychee.tar.gz" | sha256sum -c -
-          tar -xzf lychee.tar.gz --strip-components=1 lychee-x86_64-unknown-linux-gnu/lychee
+          [ -x ~/.local/bin/lychee ] || {
+            curl -fsSL -o lychee.tar.gz https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz
+            echo "1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a  lychee.tar.gz" | sha256sum -c -
+            tar -xzf lychee.tar.gz --strip-components=1 lychee-x86_64-unknown-linux-gnu/lychee
+            mkdir -p ~/.local/bin
+            mv lychee ~/.local/bin/lychee
+          }
+      - name: Check internal links and anchors offline
+        if: needs.changes.outputs.site == 'true'
+        run: |
           # Serve dist under the site's base path so that root-relative links resolve.
           mkdir -p "$RUNNER_TEMP/site"
           ln -s "$PWD/dist" "$RUNNER_TEMP/site/bof3-wiki"
-          ./lychee --offline --include-fragments --index-files index.html --no-progress \
+          ~/.local/bin/lychee --offline --include-fragments --index-files index.html --no-progress \
             --root-dir "$RUNNER_TEMP/site" --exclude-path 404.html "$RUNNER_TEMP/site/bof3-wiki"
-      - if: github.event_name != 'pull_request'
+      - if: github.event_name != 'pull_request' && needs.changes.outputs.site == 'true'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
