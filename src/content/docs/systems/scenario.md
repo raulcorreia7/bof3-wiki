@@ -191,3 +191,5 @@ A rebuilt or relocated scenario keeps these limits.
 - [Persistent state](../state/): the block that holds the flag words and `g_SceneState`.
 - [Loading](../../concepts/loading/): how the scenario slots stream into the window.
 - [Edit maps and scripts](../../guides/maps/): what to keep when you change a scenario.
+- [Area formats](../../formats/area/): the script and scene tables a scenario reads.
+- [EMI container](../../formats/emi/): the archive and entry types that carry a scenario.
