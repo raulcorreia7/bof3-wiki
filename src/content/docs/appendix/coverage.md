@@ -1,6 +1,6 @@
 ---
 title: "Documentation coverage"
-description: "Of the 385,249,350 bytes in the 887 files of the disc, the wiki documents 190,552,199 fully and 116,883,435 partly. 61,550,578 bytes are unknown, and 16,263,138 bytes are code."
+description: "Of the 385,249,350 bytes in the 887 files of the disc, the wiki documents 190,552,199 fully and 116,883,435 partly, while 61,550,578 bytes are unknown and 16,263,138 bytes are code."
 ---
 
 Of the 385,249,350 bytes in the 887 files of the disc, the wiki documents 190,552,199 fully and 116,883,435 partly. 61,550,578 bytes are unknown, and 16,263,138 bytes are code. The unit is the ISO9660 file size (`size` in the directory record), which counts every Form 2 sector as 2,048 bytes. The tables count each file kind, a name that the wiki gives to a class of disc content ([glossary](../glossary/#disc-and-containers)), and add up to the total.

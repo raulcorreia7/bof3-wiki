@@ -3,7 +3,7 @@ title: "Character sprites"
 description: "Character sprites are one container that the game loads to 0x8003B800."
 ---
 
-Character sprites are one container that the game loads to `0x8003B800`. It holds three sections, and each section is a table of nodes that carry the pixel data and palettes. Battle archives (`BPLCHAR`), field archives (`PLCHAR`) and `ETC/START.EMI` carry containers, raw (entry type 0) or [LZ77](../lz77/)-compressed (type 1). The loader path and the palette layer are specified. The meaning of the node contents is not established, because no code that was read consumes them.
+Character sprites are one container that the game loads to `0x8003B800`. It holds three sections, and each section is a table of nodes that carry the pixel data and palettes. Battle archives (`BPLCHAR`), field archives (`PLCHAR`) and `ETC/START.EMI` carry containers, raw (entry type 0) or [LZ77](../lz77/)-compressed (type 1). The loader path and the palette layer are specified; the meaning of the node contents is not established, because no code that was read consumes them.
 
 ## Load arguments
 

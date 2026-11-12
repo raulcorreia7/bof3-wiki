@@ -3,7 +3,7 @@ title: "STR and XA playback"
 description: "The disc stores one movie and three banks of streamed audio as CD-ROM XA sectors outside the ISO9660 data."
 ---
 
-The disc stores one movie and three banks of streamed audio as CD-ROM XA sectors outside the ISO9660 data. `LOGO/CAPCOM30.STR` is the Capcom logo movie: MDEC-compressed video interleaved with stereo XA audio. The three `.STR` files under `BIN/` are not movies but audio banks of many short sounds, which the game plays by sector range. This page covers the sector layout, the table that maps a sound request to a sector range, and the logo movie. The ADPCM data format is in [Audio formats](../audio/#xa-adpcm).
+The disc stores one movie and three banks of streamed audio as CD-ROM XA sectors outside the ISO9660 data. `LOGO/CAPCOM30.STR` is the Capcom logo movie: MDEC-compressed video interleaved with stereo XA audio. The three `.STR` files under `BIN/` are not movies but audio banks of many short sounds, which the game plays by sector range. This page covers the sector layout, the table that maps a sound request to a sector range, and the logo movie; the ADPCM data format is in [Audio formats](../audio/#xa-adpcm).
 
 ## Sector layout
 

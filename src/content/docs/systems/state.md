@@ -3,7 +3,7 @@ title: "Persistent state"
 description: "The party, the inventory, the zenny, the story flags, the play clock and the player's place in the world live in one 4,272-byte block of RAM at 0x801448D8 that no overlay covers."
 ---
 
-The party, inventory, zenny, story flags, play clock and the player's place in the world live in one 4,272-byte block of RAM at `0x801448D8` that no overlay covers. The block persists across area changes, battles, menus and the save screen. A save copies it to the memory card; a load copies it back and rebuilds all other state from it. This page maps the block, the state kept outside it and the code that writes it. The record field layouts and the save and load flow are on other pages.
+The party, inventory, zenny, story flags, play clock and the player's place in the world live in one 4,272-byte block of RAM at `0x801448D8` that no overlay covers. The block persists across area changes, battles, menus and the save screen. A save copies it to the memory card; a load copies it back and rebuilds all other state from it. This page maps the block, the state kept outside it and the code that writes it; the record field layouts and the save and load flow are on other pages.
 
 ## One persistent block
 

@@ -3,7 +3,7 @@ title: "Loading"
 description: "The game streams almost everything it runs or draws from the disc during play: overlay code, area maps, battle data, character graphics, sound banks and story scenes."
 ---
 
-The game streams nearly all code and data from the disc during play: overlays, area maps, battle data, character graphics, sound banks and story scenes. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_LoadArchive` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each kind of data. The archive layout is in the [EMI container](../../formats/emi/).
+The game streams nearly all code and data from the disc during play: overlays, area maps, battle data, character graphics, sound banks and story scenes. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_LoadArchive` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each kind of data; the archive layout is in the [EMI container](../../formats/emi/).
 
 ## Load request flow
 
@@ -359,7 +359,7 @@ Also read in the code: `BOSS` (`0x1B3` to `0x1DA`) is requested through `g_BossA
 
 ## Sources and confidence
 
-- **Confidence:** medium to high. The request flow, the entry types and every call site of `EMI_LoadArchive`, `EMI_GetArchiveId`, `EMI_LoadPartyArchives`, `SND_RequestBGM`, `SND_StartBGM`, `SND_SetBankLayout`, `SND_StartXAStream` and `SYS_LoadExec` are read in the code. The guards against a window overwrite, the party search in `EMI_FindPartyArchive` (unmatched) and the runtime callers of the loaded overlays are `[inferred]` or `[unknown]`.
+- **Confidence:** medium. The request flow, the entry types and every call site of `EMI_LoadArchive`, `EMI_GetArchiveId`, `EMI_LoadPartyArchives`, `SND_RequestBGM`, `SND_StartBGM`, `SND_SetBankLayout`, `SND_StartXAStream` and `SYS_LoadExec` are read in the code. The guards against a window overwrite, the party search in `EMI_FindPartyArchive` (unmatched) and the runtime callers of the loaded overlays are `[inferred]` or `[unknown]`.
 - **Evidence:** the code of `EMI_LoadArchive`, `EMI_CdOnReady`, `EMI_UpdateStream`, the entry handlers in `g_EmiEntryHandlers`, `SND_UpdateXA` and `SYS_LoadExec`; the table of contents of `AREA001`; the table of contents of every archive that a constant slot names; the call sites of the request functions in the executable and the overlays; the party combination table and its readers `Party_LoadMemberSprite` and `Actor_BeginScript`.
 
 ## Related
