@@ -212,3 +212,4 @@ Each row gives a limit, its source in the code and what an asset must stay withi
 - [Loading](../../concepts/loading/): how the loader fills VRAM and the palette arena.
 - [Graphics formats](../../formats/graphics/): the texture, palette and sheet payloads.
 - [Memory map](../../concepts/memory/): the RAM blocks for the arena and the palette copies.
+- [Character sprites](../../formats/character/): the container and palette layers that the sheet queue uploads.

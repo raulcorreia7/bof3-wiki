@@ -233,3 +233,4 @@ Limits for an edited audio asset:
 - [Battle flow](../battle/): the entry and exit states around the battle music.
 - [Areas and the field](../areas/): arrival music and the zone list.
 - [Edit sound and music](../../guides/sound/): how to change tracks and banks within these limits.
+- [STR and XA playback](../../formats/str/): the sector layouts and cue tables that the XA path reads.

@@ -25,7 +25,7 @@ Pages: [boot](../../systems/boot/#open-questions), [frame loop](../../concepts/f
 
 ## Memory and loading
 
-Pages: [memory](../../concepts/memory/#open-questions), [loading](../../concepts/loading/#open-questions), [EMI slot ids](../../formats/emi/#open-questions).
+Pages: [memory](../../concepts/memory/#open-questions), [loading](../../concepts/loading/#open-questions), [EMI slot ids](../../formats/emi/#open-questions), [image map](../../data/code-map/#open-questions), [programs](../../data/programs/#open-questions).
 
 | Question                                                                                          | What would settle it                                                                                      |
 | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
