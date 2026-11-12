@@ -58,74 +58,73 @@ entities.
 
 The code reads some offsets at several widths and signs: `+0x5D`, for example, is read as a signed and as an unsigned byte. The table lists the width of the most frequent reader.
 
-| Offset | Type          | Meaning                                                                                                                                                    | Evidence                                                                                                                                                                                                                |
-| -----: | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0x00` | `u8`          | row state; bits in the flag table below                                                                                                                    | `Area_DrawObjectSprite (exe/slus_004_22@0x8014C4D4)`; `func_801A06D8`                                                                                                                                                   |
-| `0x01` | `u8`          | per-kind dispatch index; the communication minigame calls it the task mode                                                                                 | `func_801A06D8` indexes `D_801C83D8`                                                                                                                                                                                    |
-| `0x02` | `u8`          | task state                                                                                                                                                 | `func_801D11C0 (emi/world00/area030/04@0x801D11C0)`                                                                                                                                                                     |
-| `0x05` | `u8`          | region or scene index; scales the script copy's staging offset; cleared at scene init                                                                      | `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)`; `Area_InitScene (exe/slus_004_22@0x801673AC)`                                                                                                                     |
-| `0x06` | `u8`          | live flag; 9 gates the draw-mode stamp, 10 calls `func_8015A944`                                                                                           | `func_80167E00 (exe/slus_004_22@0x80167E00)`; `func_8015A944 (exe/slus_004_22@0x8015A944)`                                                                                                                              |
-| `0x07` | `u8`          | spawn options; bits in the flag table below                                                                                                                | `func_801A06D8`                                                                                                                                                                                                         |
-| `0x08` | `u8`          | facing direction 0-7; selects the velocity row and the script                                                                                              | `func_801A06D8`                                                                                                                                                                                                         |
-| `0x09` | `u8`          | holds the row out of the script path while set                                                                                                             | `func_801A06D8`                                                                                                                                                                                                         |
-| `0x0C` | `s32`         | area 032 adds it to x as the x step                                                                                                                        | `emi/world00/area032/13`                                                                                                                                                                                                |
-| `0x14` | `s32`         | signed vertical speed                                                                                                                                      | none found                                                                                                                                                                                                              |
-| `0x20` | `s32`         | gravity, added to the vertical speed each step                                                                                                             | none found                                                                                                                                                                                                              |
-| `0x24` | `u8`          | bit 6 marks the record active                                                                                                                              | `func_8014DE78 (exe/slus_004_22@0x8014DE78)`                                                                                                                                                                            |
-| `0x2E` | `s16`         | screen x, signed; the draw culls outside `-0x40` to `0x180`                                                                                                | `Area_DrawObjectSprite`                                                                                                                                                                                                 |
-| `0x30` | `s16`         | screen y                                                                                                                                                   | `Area_DrawObjectSprite`                                                                                                                                                                                                 |
-| `0x34` | `s32` (16.16) | world x                                                                                                                                                    | `func_8014DE78`; `Char_SpawnActor (emi/plchar/plp012/00@0x801CEF14)`                                                                                                                                                    |
-| `0x38` | `s32` (16.16) | world y                                                                                                                                                    | `func_8014DE78`; `Char_SpawnActor`                                                                                                                                                                                      |
-| `0x3C` | `s32` (16.16) | elevation; readers use the high half `+0x3E` as the ground height                                                                                          | `func_8014DE78`; `Char_SpawnActor`                                                                                                                                                                                      |
-| `0x4B` | `u8`          | script-table record index                                                                                                                                  | `Actor_BeginScript (exe/slus_004_22@0x8014D6DC)` reads `work + 0x4B` ([area](../../formats/area/#0x800d3800-area-script-table))                                                                                         |
-| `0x50` | `u8*`         | cursor into the area script stream                                                                                                                         | `Actor_CopyScriptEntry`; `Actor_SeekScript (exe/slus_004_22@0x8014D910)`; `Actor_StepAnimOnce (exe/slus_004_22@0x8014DAEC)`                                                                                             |
-| `0x54` | `ActorRange`  | range record pointer, also read as an integer; byte 2 is the reach, byte 3 bit `0x10` blocks                                                               | `func_8014DE78`                                                                                                                                                                                                         |
-| `0x5C` | `u8[4]`       | a flags byte, then three tint bytes (`+0x5D` to `+0x5F`); read whole as a packed tint, as unsigned bytes and as the signed steps a fade adds toward `0xC0` | `func_801F3728 (emi/world00/area032/13@0x801F3728)`; `func_801F3920 (emi/world00/area032/13@0x801F3920)`                                                                                                                |
-| `0x70` | `u8`          | low byte of a state word: the scene flag-table byte; packed voice numbers sit above it                                                                     | written by `Area_FindSceneRecord (exe/slus_004_22@0x8014DD3C)`; voice numbers OR'd above it by `SND_QueueSelectionFx (exe/slus_004_22@0x8015D71C)`; read as an argument by `func_801B8A9C (emi/etc/game/00@0x801B8A9C)` |
-| `0x74` | `u8`          | interaction state; bits in the flag table below                                                                                                            | `func_801A06D8`                                                                                                                                                                                                         |
-| `0x7A` | `u8`          | scenario callback table index; `0xFF` is none                                                                                                              | `func_801F8358 (emi/scenario/scena16/00@0x801F8358)`; `Scene_DispatchActor (emi/scenario/scena00/00@0x801FC7D0)` and the other scenario overlays index their table                                                      |
-| `0x8C` | `s16`         | fishing gauge maximum                                                                                                                                      | `Fishing_FishStaminaAdd (emi/world00/area030/04@0x801E026C)`                                                                                                                                                            |
-| `0x8E` | `u16`         | fishing gauge; a signed delta is added and the result is clamped into `[0, gauge maximum]`                                                                 | `Fishing_FishStaminaAdd`                                                                                                                                                                                                |
-| `0x90` | `u16`         | compared with `0x1F` by the update: the idle path runs when it is `>= 0x1F` and `+0x09` is 0                                                               | `func_801A06D8`                                                                                                                                                                                                         |
-| `0x92` | `u8`          | the fishing code writes `rand() & 3` into it; it is a lane or position selector, not a turn                                                                | `Fishing_FishAppear (emi/world00/area030/04@0x801DE5EC)`                                                                                                                                                                |
+| Offset | Type             | Meaning                                                                                                                                                    | Evidence                                                                                                                                                                                                                |
+| -----: | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0x00` | `u8`             | `header.flags`, the row state; bits in the flag table below                                                                                                | `Area_DrawObjectSprite (exe/slus_004_22@0x8014C4D4)`; `func_801A06D8`                                                                                                                                                   |
+| `0x01` | `u8`             | `header.mode`, the per-kind dispatch index; the communication minigame calls it the task mode                                                              | `func_801A06D8` indexes `D_801C83D8`                                                                                                                                                                                    |
+| `0x02` | `u8`             | `header.step`, the task state                                                                                                                              | `func_801D11C0 (emi/world00/area030/04@0x801D11C0)`                                                                                                                                                                     |
+| `0x05` | `u8`             | region or scene index; scales the script copy's staging offset; cleared at scene init                                                                      | `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)`; `Area_InitScene (exe/slus_004_22@0x801673AC)`                                                                                                                     |
+| `0x06` | `u8`             | live flag; 9 gates the draw-mode stamp, 10 calls `func_8015A944`                                                                                           | `func_80167E00 (exe/slus_004_22@0x80167E00)`; `func_8015A944 (exe/slus_004_22@0x8015A944)`                                                                                                                              |
+| `0x07` | `u8`             | spawn options; bits in the flag table below                                                                                                                | `func_801A06D8`                                                                                                                                                                                                         |
+| `0x08` | `u8`             | facing direction 0-7; selects the velocity row and the script                                                                                              | `func_801A06D8`                                                                                                                                                                                                         |
+| `0x09` | `u8`             | `timer`, counted up or down by the area step handlers                                                                                                      | `func_801A06D8`                                                                                                                                                                                                         |
+| `0x0C` | `s32`            | `vx`; area 032 adds it to x as the x step                                                                                                                  | `emi/world00/area032/13`                                                                                                                                                                                                |
+| `0x14` | `s32`            | `vz`, signed vertical speed                                                                                                                                | none found                                                                                                                                                                                                              |
+| `0x20` | `s32`            | `gravity`, added to the vertical speed each step                                                                                                           | none found                                                                                                                                                                                                              |
+| `0x24` | `u8`             | `active_flags`; bit 6 marks the record active                                                                                                              | `func_8014DE78 (exe/slus_004_22@0x8014DE78)`                                                                                                                                                                            |
+| `0x2E` | `u16`            | `screen_x`; the draw reads it signed and culls outside `-0x40` to `0x180`                                                                                  | `Area_DrawObjectSprite`                                                                                                                                                                                                 |
+| `0x30` | `u16`            | `screen_y`, read signed by the draw                                                                                                                        | `Area_DrawObjectSprite`                                                                                                                                                                                                 |
+| `0x34` | `s32` (16.16)    | `pos.x`, world x                                                                                                                                           | `func_8014DE78`; `Char_SpawnActor (emi/plchar/plp012/00@0x801CEF14)`                                                                                                                                                    |
+| `0x38` | `s32` (16.16)    | `pos.y`, world y                                                                                                                                           | `func_8014DE78`; `Char_SpawnActor`                                                                                                                                                                                      |
+| `0x3C` | `s32` (16.16)    | `pos.z`, elevation; readers use the high half `+0x3E` as the ground height                                                                                 | `func_8014DE78`; `Char_SpawnActor`                                                                                                                                                                                      |
+| `0x4B` | `u8`             | script-table record index                                                                                                                                  | `Actor_BeginScript (exe/slus_004_22@0x8014D6DC)` reads `work + 0x4B` ([area](../../formats/area/#0x800d3800-area-script-table))                                                                                         |
+| `0x50` | `u8*`            | `script`, cursor into the area script stream                                                                                                               | `Actor_CopyScriptEntry`; `Actor_SeekScript (exe/slus_004_22@0x8014D910)`; `Actor_StepAnimOnce (exe/slus_004_22@0x8014DAEC)`                                                                                             |
+| `0x54` | `ActorRange`     | range record pointer, also read as an integer; byte 2 is the reach, byte 3 bit `0x10` blocks                                                               | `func_8014DE78`                                                                                                                                                                                                         |
+| `0x5C` | `u8[4]`          | a flags byte, then three tint bytes (`+0x5D` to `+0x5F`); read whole as a packed tint, as unsigned bytes and as the signed steps a fade adds toward `0xC0` | `func_801F3728 (emi/world00/area032/13@0x801F3728)`; `func_801F3920 (emi/world00/area032/13@0x801F3920)`                                                                                                                |
+| `0x70` | `ActorStateWord` | the state word; its low byte is the scene flag-table byte and packed voice numbers sit above it                                                            | written by `Area_FindSceneRecord (exe/slus_004_22@0x8014DD3C)`; voice numbers OR'd above it by `SND_QueueSelectionFx (exe/slus_004_22@0x8015D71C)`; read as an argument by `func_801B8A9C (emi/etc/game/00@0x801B8A9C)` |
+| `0x74` | `u8`             | `interaction_flags`, the interaction state; bits in the flag table below                                                                                   | `func_801A06D8`                                                                                                                                                                                                         |
+| `0x7A` | `u8`             | scenario callback table index; `0xFF` is none                                                                                                              | `func_801F8358 (emi/scenario/scena16/00@0x801F8358)`; `Scene_DispatchActor (emi/scenario/scena00/00@0x801FC7D0)` and the other scenario overlays index their table                                                      |
+| `0x8C` | `s16`            | `ext.fishing.stamina_max`, the fishing gauge maximum                                                                                                       | `Fishing_FishStaminaAdd (emi/world00/area030/04@0x801E026C)`                                                                                                                                                            |
+| `0x8E` | `u16`            | `ext.fishing.stamina`, the fishing gauge; a signed delta is added and the result is clamped into `[0, gauge maximum]`                                      | `Fishing_FishStaminaAdd`                                                                                                                                                                                                |
+| `0x90` | `u16`            | compared with `0x1F` by the update: the idle path runs when it is `>= 0x1F` and `+0x09` is 0                                                               | `func_801A06D8`                                                                                                                                                                                                         |
+| `0x92` | `u8`             | the fishing code writes `rand() & 3` into it; it is a lane or position selector, not a turn                                                                | `Fishing_FishAppear (emi/world00/area030/04@0x801DE5EC)`                                                                                                                                                                |
 
 ```c
 typedef struct Actor {
-    /* 0x00 */ u8    flags_00;
-    /* 0x01 */ u8    unk_01;
-    /* 0x02 */ u8    state_02;
-    /* 0x05 */ u8    unk_05;
-    /* 0x06 */ u8    unk_06;
-    /* 0x07 */ u8    option_flags;
-    /* 0x08 */ u8    direction_08;
-    /* 0x0C */ s32   unk_0C;
-    /* 0x14 */ s32   vz;
-    /* 0x20 */ s32   gravity;
-    /* 0x24 */ u8    flags_24;
-    /* 0x2E */ s16   unk_2E;
-    /* 0x30 */ s16   unk_30;
-    /* 0x34 */ Coord x;
-    /* 0x38 */ Coord y;
-    /* 0x3C */ Coord z;
-    /* 0x4B */ u8    unk_4B;
-    /* 0x50 */ u8*   source_50;
-    /* 0x54 */ ActorRange range_54;
-    /* 0x5C */ ActorTint tint;
-    /* 0x70 */ u8    state_70;
-    /* 0x74 */ u8    flags_74;
-    /* 0x7A */ u8    callback_index;
-    /* 0x8C */ s16   stamina_max_8C;
-    /* 0x8E */ u16   stamina_8E;
-    /* 0x90 */ u16   roll_90;
-    /* 0x92 */ u8    facing_92;
-} Actor;                 /* 0x98 bytes; other members folded */
+    /* 0x000 */ TaskHeader      header;
+    /* 0x003 */ u8              unk_03, unk_04, unk_05, unk_06;
+    /* 0x007 */ u8              option_flags, direction_08, timer, unk_0A;
+    /* 0x00B */ ActorParam      param;
+    /* 0x00C */ s32             vx, vy, vz, unk_18, unk_1C;
+    /* 0x020 */ s32             gravity;
+    /* 0x024 */ u8              active_flags, unk_25, unk_26, unk_27, unk_28, draw_layer, unk_2A, unk_2B;
+    /* 0x02C */ u16             unk_2C, screen_x, screen_y, unk_32;
+    /* 0x034 */ WorldPos        pos;
+    /* 0x040 */ SpriteScale     scale;
+    /* 0x048 */ u8              unk_48, unk_49, unk_4A, unk_4B;
+    /* 0x04C */ s32             unk_4C;
+    /* 0x050 */ u8*             script;
+    /* 0x054 */ ActorRange      range_54;
+    /* 0x058 */ u16             script_pc, unk_5A;
+    /* 0x05C */ ActorTint       tint;
+    /* 0x060 */ s32             unk_60, unk_64, unk_68, unk_6C;
+    /* 0x070 */ ActorStateWord  state_70;
+    /* 0x074 */ u8              interaction_flags, timer_75, pad_76, unk_77, unk_78, unk_79;
+    /* 0x07A */ u8              callback_index, unk_7B;
+    /* 0x07C */ u16             unk_7C, unk_7E;
+    /* 0x080 */ s32             walk_dest_x, walk_dest_y;
+    /* 0x088 */ u32             unk_88;
+    /* 0x08C */ ActorExt        ext;
+    /* 0x090 */ u16             roll_90;
+    /* 0x092 */ u8              facing_92, unk_93, unk_94, unk_95, pad_96[2];
+} Actor;                        /* 0x98 bytes */
 ```
 
-Source: [`include/work/actor.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/work/actor.h)
+Source: [`include/sys/actor.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/sys/actor.h)
 
-Offsets `0x03`, `0x04`, `0x0A`, `0x0B`, `0x10`, `0x25-0x2D`, `0x32`, `0x40`, `0x44`, `0x49`, `0x4C`,
-`0x5A`, `0x60-0x6C`, `0x71-0x73`, `0x76-0x77`, `0x79`, `0x7B`, `0x7E`, `0x80-0x88` and `0x93-0x97`
-have no known role. Other overlays use further cells for their own purposes (`+0x18`, `+0x1C`,
+Offsets `0x03`, `0x04`, `0x0A`, `0x25-0x28`, `0x2A-0x2D`, `0x32`, `0x49`, `0x4C`, `0x5A`,
+`0x60-0x6C`, `0x71-0x73`, `0x76-0x77`, `0x79`, `0x7B`, `0x7E`, `0x88` and `0x93-0x97` have no known
+role. Other overlays use further cells for their own purposes (`+0x18`, `+0x1C`,
 `+0x48`, `+0x78` and `+0x7C` in the communication minigame, `+0x4A`, `+0x58` and `+0x75`). Those
 names describe one overlay and are `[inferred]` for the others.
 
@@ -186,40 +185,39 @@ actor rows are the live map objects. There are twenty slots of 116 bytes at `0x8
 
 | Offset | Type          | Meaning                                                                                                                                         | Evidence                                                                                                                                                         |
 | -----: | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0x00` | `u8`          | set to 1 when the slot is claimed                                                                                                               | `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)`                                                                                                                |
-| `0x01` | `u8`          | kind passed to `Char_SpawnActor`                                                                                                                | `Char_SpawnActor (emi/plchar/plp012/00@0x801CEF14)`                                                                                                              |
+| `0x00` | `u8`          | `header.flags`; set to 1 when the slot is claimed                                                                                               | `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)`                                                                                                                |
+| `0x01` | `u8`          | `header.mode`, the kind passed to `Char_SpawnActor`                                                                                             | `Char_SpawnActor (emi/plchar/plp012/00@0x801CEF14)`                                                                                                              |
 | `0x05` | `u8`          | actor type and handler index; seen values `0x0F`, `0x10`, `0x1E`, `0x32`, `0x69`; `0x34` for a character spawn; also read as an accessory count | `Char_SpawnActor`                                                                                                                                                |
 | `0x06` | `u8`          | area id in area 030; slot index in the game overlay                                                                                             | none found                                                                                                                                                       |
-| `0x09` | `u8`          | draw layer; seen values `0x20`, `0x40`, `0x60`, `0x90`, `0xFF`                                                                                  | no reader named                                                                                                                                                  |
-| `0x0B` | `u8`          | index of the linked slot                                                                                                                        | `Char_SpawnActor`                                                                                                                                                |
-| `0x0C` | `s32`         | scenario step                                                                                                                                   | scene readers                                                                                                                                                    |
-| `0x10` | `s32`         | frontend selection                                                                                                                              | frontend readers                                                                                                                                                 |
+| `0x09` | `u8`          | `layer`; seen values `0x20`, `0x40`, `0x60`, `0x90`, `0xFF`                                                                                     | no reader named                                                                                                                                                  |
+| `0x0B` | `u8`          | `link`, the index of the linked slot                                                                                                            | `Char_SpawnActor`                                                                                                                                                |
+| `0x0C` | `s32`         | `scene_step`, the scenario step                                                                                                                 | scene readers                                                                                                                                                    |
+| `0x10` | `s32`         | `selection`, the frontend selection                                                                                                             | frontend readers                                                                                                                                                 |
 | `0x18` | `s32`         | counter                                                                                                                                         | writer `func_801F92DC (emi/scenario/scena00/00@0x801F92DC)`; also written by `func_801F2C04`, `func_801F2CD4` and `func_801F5A44` as slot cells; no reader found |
 | `0x1C` | `s32`         | counter                                                                                                                                         | same writers as `+0x18`; no reader found                                                                                                                         |
 | `0x29` | `u8`          | cleared when the slot is rebuilt                                                                                                                | none found                                                                                                                                                       |
-| `0x34` | `s32` (16.16) | world x; `Area_SampleHeight` argument                                                                                                           | `Char_SpawnActor`                                                                                                                                                |
-| `0x38` | `s32` (16.16) | world y; `Area_SampleHeight` argument                                                                                                           | `Char_SpawnActor`                                                                                                                                                |
-| `0x3C` | `s32` (16.16) | `Area_SampleHeight` of x and y in the integer half (`+0x3E`); the call passes the shifted 16.16 values                                          | `Char_SpawnActor`                                                                                                                                                |
-| `0x64` | `s32[3]`      | scene origin plus offset                                                                                                                        | scene readers                                                                                                                                                    |
+| `0x34` | `s32` (16.16) | `pos.x`; `Area_SampleHeight` argument                                                                                                           | `Char_SpawnActor`                                                                                                                                                |
+| `0x38` | `s32` (16.16) | `pos.y`; `Area_SampleHeight` argument                                                                                                           | `Char_SpawnActor`                                                                                                                                                |
+| `0x3C` | `s32` (16.16) | `pos.z`; `Area_SampleHeight` of x and y in the integer half (`+0x3E`); the call passes the shifted 16.16 values                                 | `Char_SpawnActor`                                                                                                                                                |
+| `0x64` | `Point3DL`    | `camera_angle`, the scene origin plus offset                                                                                                    | scene readers                                                                                                                                                    |
 
 ```c
 typedef struct ActorSlot {
-    /* 0x00 */ u8    flags_00;
-    /* 0x01 */ u8    unk_01;
-    /* 0x05 */ u8    type;
-    /* 0x06 */ u8    unk_06;
-    /* 0x09 */ u8    layer_09;
-    /* 0x0B */ u8    link_0B;
-    /* 0x0C */ s32   step_0C;
-    /* 0x10 */ s32   selection_10;
-    /* 0x18 */ s32   counter_18;
-    /* 0x1C */ s32   counter_1C;
-    /* 0x29 */ u8    unk_29;
-    /* 0x34 */ Coord x;
-    /* 0x38 */ Coord y;
-    /* 0x3C */ Coord z;
-    /* 0x64 */ Vec3i pos;
-} ActorSlot;             /* 0x74 bytes; gaps are pad_XX or unk_XX */
+    /* 0x000 */ TaskHeader  header;
+    /* 0x003 */ u8          unk_03, unk_04, type, unk_06, unk_07, unk_08;
+    /* 0x009 */ u8          layer, unk_0A, link;
+    /* 0x00C */ s32         scene_step, selection, unk_14;
+    /* 0x018 */ s32         counter_18, counter_1C;
+    /* 0x020 */ u8          pad_20[7], unk_27, unk_28, unk_29;
+    /* 0x02A */ u8          pad_2A[2];
+    /* 0x02C */ u16         unk_2C;
+    /* 0x02E */ s16         unk_2E, unk_30;
+    /* 0x032 */ u8          pad_32[2];
+    /* 0x034 */ Coord3D     pos;
+    /* 0x040 */ u8          pad_40[0x0A], unk_4A, pad_4B[0x19];
+    /* 0x064 */ Point3DL   camera_angle;
+    /* 0x070 */ u8          pad_70[4];
+} ActorSlot;               /* 0x74 bytes */
 ```
 
 Source: [`include/game/records.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/records.h)
@@ -271,10 +269,10 @@ Zenny is a `u32` that `Party_AddZenny` clamps at 9,999,999. A shop subtracts onl
 
 ```c
 typedef struct GameClock {
-    /* 0x00 */ u8 hours_00;
-    /* 0x01 */ u8 minutes_01;
-    /* 0x02 */ u8 seconds_02;
-    /* 0x03 */ u8 thirtieths_03;
+    /* 0x00 */ u8 hours;
+    /* 0x01 */ u8 minutes;
+    /* 0x02 */ u8 seconds;
+    /* 0x03 */ u8 thirtieths;
 } GameClock;
 ```
 
