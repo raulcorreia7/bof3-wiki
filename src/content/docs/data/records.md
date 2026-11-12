@@ -37,16 +37,106 @@ flowchart TD
 
 The table gives each row's size and the offset of each field. Each field carries its type. A `description` is a little-endian `u16` resource id in the `0x4000`-based id space of `Message_GetText` ([text](../text/#references)).
 
-| Table        | Size | Fields (offset)                                                                                                                                                                                                                                    |
-| ------------ | ---: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Item         |   18 | name `u8[12]` (0), flags `u8` (`0x0C`), unknown `u8` (`0x0D`), description `u16` (`0x0E`), price `u16` (`0x10`)                                                                                                                                    |
-| Vital item   |   16 | name `u8[12]`, description `u16` (`0x0C`), unknown `u16` (`0x0E`)                                                                                                                                                                                  |
-| Weapon       |   24 | name `u8[12]`, equipability `u8` (`0x0C`), flags `u8` (`0x0D`), kind `u8` (`0x0E`), element `u8` (`0x0F`), weight `u8` (`0x10`), sound `u8` (`0x11`), power `u8` (`0x12`), unknown `u8` (`0x13`), description `u16` (`0x14`), price `u16` (`0x16`) |
-| Armor        |   22 | name `u8[12]`, equipability `u8` (`0x0C`), flags `u8` (`0x0D`), equip type `u8` (`0x0E`), weight `u8` (`0x0F`), power `u8` (`0x10`), unknown `u8` (`0x11`), description `u16` (`0x12`), price `u16` (`0x14`)                                       |
-| Accessory    |   20 | name `u8[12]`, equipability `u8` (`0x0C`), flags `u8` (`0x0D`), kind `u8` (`0x0E`), weight `u8` (`0x0F`), description `u16` (`0x10`), price `u16` (`0x12`)                                                                                         |
-| Ability      |   20 | name `u8[12]`, targeting flags `u8` (`0x0C`), type `u8` (`0x0D`), cost `u8` (`0x0E`), power `u8` (`0x0F`), element `u8` (`0x10`), flags `u8` (`0x11`), description `u16` (`0x12`)                                                                  |
-| Shop stock   |   23 | item count `u8` (`0x00`), then eleven item references of two bytes from `0x01`: item type `u8`, item index `u8`                                                                                                                                    |
-| Level growth |    8 | experience `u16` (`0x00`), HP `u8` (`0x02`), AP `u8` (`0x03`), power and defense `u8` (`0x04`), agility and intellect `u8` (`0x05`), ability `u8` (`0x06`), extra ability `u8` (`0x07`)                                                            |
+| Table        | Type          | Size | Fields (offset)                                                                                                                                                                                                                                |
+| ------------ | ------------- | ---: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Item         | `Item`        |   18 | name `u8[12]` (0), flags `u8` (`0x0C`), icon `u8` (`0x0D`), description `u16` (`0x0E`), price `u16` (`0x10`)                                                                                                                                   |
+| Vital item   | `VitalItem`   |   16 | name `u8[12]`, description `u16` (`0x0C`), pad `u16` (`0x0E`)                                                                                                                                                                                  |
+| Weapon       | `Weapon`      |   24 | name `u8[12]`, equipability `u8` (`0x0C`), flags `u8` (`0x0D`), icon `u8` (`0x0E`), element `u8` (`0x0F`), weight `u8` (`0x10`), sound `u8` (`0x11`), power `u8` (`0x12`), pad `u8` (`0x13`), description `u16` (`0x14`), price `u16` (`0x16`) |
+| Armor        | `Armor`       |   22 | name `u8[12]`, equipability `u8` (`0x0C`), flags `u8` (`0x0D`), equip type `u8` (`0x0E`), weight `u8` (`0x0F`), power `u8` (`0x10`), pad `u8` (`0x11`), description `u16` (`0x12`), price `u16` (`0x14`)                                       |
+| Accessory    | `Accessory`   |   20 | name `u8[12]`, equipability `u8` (`0x0C`), flags `u8` (`0x0D`), icon `u8` (`0x0E`), weight `u8` (`0x0F`), description `u16` (`0x10`), price `u16` (`0x12`)                                                                                     |
+| Ability      | `Ability`     |   20 | name `u8[12]`, targeting flags `u8` (`0x0C`), type `u8` (`0x0D`), cost `u8` (`0x0E`), power `u8` (`0x0F`), element `u8` (`0x10`), flags `u8` (`0x11`), description `u16` (`0x12`)                                                              |
+| Shop stock   | `ShopStock`   |   23 | item count `u8` (`0x00`), then eleven item references of two bytes from `0x01`: item type `u8`, item index `u8`                                                                                                                                |
+| Level growth | `LevelGrowth` |    8 | experience `u16` (`0x00`), HP `u8` (`0x02`), AP `u8` (`0x03`), power and defense `u8` (`0x04`), agility and intellect `u8` (`0x05`), ability `u8` (`0x06`), extra ability `u8` (`0x07`)                                                        |
+
+```c
+typedef struct Item {
+    /* 0x00 */ u8  name[ITEM_NAME_LENGTH];
+    /* 0x0C */ u8  flags;
+    /* 0x0D */ u8  icon;
+    /* 0x0E */ u16 description;
+    /* 0x10 */ u16 price;
+} Item;                             /* 0x12 bytes */
+
+typedef struct VitalItem {
+    /* 0x00 */ u8  name[ITEM_NAME_LENGTH];
+    /* 0x0C */ u16 description;
+    /* 0x0E */ u16 pad_0E;
+} VitalItem;                        /* 0x10 bytes */
+```
+
+Source: [`include/game/item.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/item.h)
+
+```c
+typedef struct Weapon {
+    /* 0x00 */ ItemHeader header;
+    /* 0x0E */ u8         icon;
+    /* 0x0F */ u8         element;
+    /* 0x10 */ u8         weight;
+    /* 0x11 */ u8         sound;
+    /* 0x12 */ u8         power;
+    /* 0x13 */ u8         pad_13;
+    /* 0x14 */ u16        description;
+    /* 0x16 */ u16        price;
+} Weapon;                           /* 0x18 bytes */
+
+typedef struct Armor {
+    /* 0x00 */ ItemHeader header;
+    /* 0x0E */ u8         equip_type;
+    /* 0x0F */ u8         weight;
+    /* 0x10 */ u8         power;
+    /* 0x11 */ u8         pad_11;
+    /* 0x12 */ u16        description;
+    /* 0x14 */ u16        price;
+} Armor;                            /* 0x16 bytes */
+
+typedef struct Accessory {
+    /* 0x00 */ ItemHeader header;
+    /* 0x0E */ u8         icon;
+    /* 0x0F */ u8         weight;
+    /* 0x10 */ u16        description;
+    /* 0x12 */ u16        price;
+} Accessory;                        /* 0x14 bytes */
+```
+
+Source: [`include/game/item.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/item.h)
+
+```c
+typedef struct Ability {
+    /* 0x00 */ u8  name[ABILITY_NAME_LENGTH];
+    /* 0x0C */ u8  targeting_flags;
+    /* 0x0D */ u8  type;
+    /* 0x0E */ u8  cost;
+    /* 0x0F */ u8  power;
+    /* 0x10 */ u8  element;
+    /* 0x11 */ u8  ability_flags;
+    /* 0x12 */ u16 description;
+} Ability;                          /* 0x14 bytes */
+```
+
+Source: [`include/game/ability.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/ability.h)
+
+```c
+typedef struct ShopStock {
+    /* 0x00 */ u8          item_count;
+    /* 0x01 */ ShopItemRef slots[SHOP_STOCK_MAX];
+} ShopStock;                        /* 0x17 bytes */
+```
+
+Source: [`include/game/item.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/item.h)
+
+```c
+typedef struct LevelGrowth {
+    /* 0x00 */ u16 exp;
+    /* 0x02 */ u8  hp;
+    /* 0x03 */ u8  ap;
+    /* 0x04 */ u8  power_defense;
+    /* 0x05 */ u8  agility_intellect;
+    /* 0x06 */ u8  ability;
+    /* 0x07 */ u8  extra_ability;
+} LevelGrowth;                      /* 8 bytes */
+```
+
+Source: [`include/game/character.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/character.h)
 
 How to read the fields:
 
@@ -119,32 +209,21 @@ The runtime record at `g_Characters` has the same layout as the archive row. The
 
 ```c
 typedef struct Character {
-    /* 0x00 */ u8  name[CHARACTER_NAME_LENGTH];
-    /* 0x05 */ u8  character_id;
-    /* 0x06 */ u8  level;
-    /* 0x07 */ u8  unk_07;
-    /* 0x08 */ u32 exp;
-    /* 0x0C */ u16 status;
-    /* 0x0E */ u8  weapon, shield, helmet, armor;
-    /* 0x12 */ u8  accessories[CHARACTER_ACCESSORY_COUNT];
-    /* 0x14 */ u16 current_hp;
-    /* 0x16 */ u16 current_ap;
-    /* 0x18 */ u8  current_willpower;
-    /* 0x19 */ u8  inoculations;
-    /* 0x1A */ u8  fatigue;
-    /* 0x1B */ u8  master_id;
-    /* 0x1C */ u16 max_hp, max_ap, power, defense, agility, intellect;
-    /* 0x28 */ u16 unk_28;
-    /* 0x2A */ u8  willpower;
-    /* 0x2B */ u8  resistances[RES_SLOT_COUNT];
-    /* 0x34 */ u8  surprise_chance, reprisal_chance, critical_chance, evasion, accuracy;
-    /* 0x3C */ u16 base_hp, base_ap, base_power, base_defense, base_agility, base_intellect;
-    /* 0x4A */ u8  base_willpower;
-    /* 0x4B */ u8  base_resistances[RES_SLOT_COUNT];
-    /* 0x54 */ u8  base_surprise_chance, base_reprisal_chance, base_critical_chance,
-                   base_evasion, base_accuracy;
-    /* 0x5C */ u8  healing_abilities[CHARACTER_ABILITY_COUNT];
-    /*  ...  */ /* assist, attack and skill abilities, unk_84, level_up_modifiers, unk_8B */
+    /* 0x00 */ u8          name[CHARACTER_NAME_LENGTH];
+    /* 0x05 */ u8          character_id;
+    /* 0x06 */ u8          level;
+    /* 0x07 */ u8          unk_07;
+    /* 0x08 */ u32         exp;
+    /* 0x0C */ u16         status;
+    /* 0x0E */ Equipment   equip;
+    /* 0x14 */ u16         hp, ap;
+    /* 0x18 */ u8          willpower, inoculations, fatigue, master_id;
+    /* 0x1C */ Stats       stats;
+    /* 0x3C */ Stats       base;
+    /* 0x5C */ AbilitySet  abilities;
+    /* 0x84 */ u8          master_level;
+    /* 0x85 */ u8          level_up_modifiers[CHARACTER_LEVEL_MODIFIER_COUNT];
+    /* 0x8B */ u8          unk_8B[0x19];
 } Character;                      /* 0xA4 bytes */
 ```
 
@@ -252,58 +331,55 @@ An encounter is eight enemy slots (`+0x00`-`+0x07`, `0xFF` empty) and an appeara
 
 The table gives the offset, type and meaning of each field of the 136-byte enemy record.
 
-| Offset | Type      | Name                                                   | Meaning                                                                       |
-| -----: | --------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `0x00` | `char[8]` | `name`                                                 |                                                                               |
-| `0x08` | `u16`     | `enemy id`                                             |                                                                               |
-| `0x0A` | `u8`      | `choice AI`                                            |                                                                               |
-| `0x0B` | `u8[3]`   | unknown                                                |                                                                               |
-| `0x0E` | `u8`      | `target preference`                                    |                                                                               |
-| `0x0F` | `u8`      | unknown                                                |                                                                               |
-| `0x10` | `u16`     | `zenny`                                                |                                                                               |
-| `0x12` | `u16`     | `experience`                                           |                                                                               |
-| `0x14` | `u8`      | `level`                                                |                                                                               |
-| `0x15` | `u8[3]`   | unknown                                                |                                                                               |
-| `0x18` | `u8[8]`   | `initial skills`                                       |                                                                               |
-| `0x20` | `u16[6]`  | `HP`, `AP`, `power`, `defense`, `agility`, `intellect` |                                                                               |
-| `0x2C` | `u8[2]`   | `first item row`                                       | item index, item type                                                         |
-| `0x2E` | `u16`     | `first item row`                                       | rate                                                                          |
-| `0x30` | `u8[2]`   | `second item row`                                      | item index, item type                                                         |
-| `0x32` | `u16`     | `second item row`                                      | rate                                                                          |
-| `0x34` | `u8[64]`  | `AI blocks`                                            | four blocks of 16 bytes: condition (`u8`), 7 parameters, 8 skills             |
-| `0x74` | `u8[4]`   | unknown                                                |                                                                               |
-| `0x78` | `u8[9]`   | `resistances`                                          |                                                                               |
-| `0x81` | `u8`      | unknown                                                |                                                                               |
-| `0x82` | `u8`      | `reach`                                                | footprint size for encounter placement, see the notes below `[inferred]` name |
-| `0x83` | `u8`      | `height`                                               | vertical offset in pixels, see the notes below `[inferred]` name              |
-| `0x84` | `u8[4]`   | unknown                                                |                                                                               |
+| Offset | Type              | Name                                                   | Meaning                                                                       |
+| -----: | ----------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `0x00` | `char[8]`         | `name`                                                 |                                                                               |
+| `0x08` | `EnemyIdCode`     | `enemy_id`                                             |                                                                               |
+| `0x0A` | `u8`              | `choice_ai`                                            |                                                                               |
+| `0x0B` | `u8[3]`           | `unk_0B`                                               |                                                                               |
+| `0x0E` | `u16`             | `event_flags`                                          | the low byte is the target preference                                         |
+| `0x10` | `u16`             | `zenny`                                                |                                                                               |
+| `0x12` | `u16`             | `exp`                                                  |                                                                               |
+| `0x14` | `u16`             | `level`                                                |                                                                               |
+| `0x16` | `u8[2]`           | `unk_16`                                               |                                                                               |
+| `0x18` | `u8[8]`           | `initial_skills`                                       |                                                                               |
+| `0x20` | `u16[6]`          | `hp`, `ap`, `power`, `defense`, `agility`, `intellect` |                                                                               |
+| `0x2C` | `EnemyDrop[2]`    | `drops`                                                |                                                                               |
+| `0x34` | `EnemyAIBlock[4]` | `ai`                                                   | four blocks of 16 bytes: condition, 7 parameters, 8 skills                    |
+| `0x74` | `u8[4]`           | `unk_74`                                               |                                                                               |
+| `0x78` | `u8[9]`           | `resistances`                                          | `RES_INDEX_COUNT` levels                                                      |
+| `0x81` | `u8`              | `status`                                               | `StatusFlags`                                                                 |
+| `0x82` | `u8`              | `reach`                                                | footprint size for encounter placement, see the notes below `[inferred]` name |
+| `0x83` | `u8`              | `height`                                               | vertical offset in pixels, see the notes below `[inferred]` name              |
+| `0x84` | `u8[4]`           | `unk_84`                                               |                                                                               |
 
 ```c
 typedef struct Enemy {
-    /* 0x00 */ u8  name[ENEMY_NAME_LENGTH];
-    /* 0x08 */ u16 enemy_id;
-    /* 0x0A */ u8  choice_ai;
-    /* 0x0E */ u8  target_preference;
-    /* 0x10 */ u16 zenny;
-    /* 0x12 */ u16 exp;
-    /* 0x14 */ u8  level;
-    /* 0x18 */ u8  initial_skills[ENEMY_SKILL_COUNT];
-    /* 0x20 */ u16 hp, ap, power, defense, agility, intellect;
-    /* 0x2C */ u8  first_item_index, first_item_type;
-    /* 0x2E */ u16 first_item_rate;
-    /* 0x30 */ u8  second_item_index, second_item_type;
-    /* 0x32 */ u16 second_item_rate;
-    /* 0x34 */ EnemyAiBlock ai[ENEMY_AI_COUNT];  /* 16 bytes each */
-    /* 0x78 */ u8  resistances[RES_SLOT_COUNT];
-    /* 0x82 */ u8  reach;
-    /* 0x83 */ u8  height;
-} Enemy;                       /* 0x88 bytes; gaps are unk_XX */
+    /* 0x00 */ u8           name[ENEMY_NAME_LENGTH];
+    /* 0x08 */ EnemyIdCode  enemy_id;
+    /* 0x0A */ u8           choice_ai;
+    /* 0x0B */ u8           unk_0B[3];
+    /* 0x0E */ u16          event_flags;
+    /* 0x10 */ u16          zenny, exp;
+    /* 0x14 */ u16          level;
+    /* 0x16 */ u8           unk_16[2];
+    /* 0x18 */ u8           initial_skills[ENEMY_SKILL_COUNT];
+    /* 0x20 */ u16          hp, ap, power, defense, agility, intellect;
+    /* 0x2C */ EnemyDrop    drops[2];
+    /* 0x34 */ EnemyAIBlock ai[ENEMY_AI_COUNT];
+    /* 0x74 */ u8           unk_74[4];
+    /* 0x78 */ u8           resistances[RES_INDEX_COUNT];
+    /* 0x81 */ u8           status;
+    /* 0x82 */ u8           reach;
+    /* 0x83 */ u8           height;
+    /* 0x84 */ u8           unk_84[4];
+} Enemy;                        /* 0x88 bytes */
 
-typedef struct EnemyAiBlock {
+typedef struct EnemyAIBlock {
     /* 0x00 */ u8 condition;
     /* 0x01 */ u8 parameters[ENEMY_AI_PARAMETER_COUNT];
     /* 0x08 */ u8 skills[ENEMY_SKILL_COUNT];
-} EnemyAiBlock;
+} EnemyAIBlock;                 /* 0x10 bytes */
 ```
 
 Source: [`include/game/enemy.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/game/enemy.h)
@@ -313,7 +389,7 @@ Notes on the fields:
 - Skill byte `0x63` (99) in an AI block marks it unused.
 - The enemy id is in the range `0x0001`-`0x04A8`. There are 175 ids for 168 names, and the pointer index is not the id. Six names carry two or three ids: Ammonite `0x95`/`0x96`, Beyd `0x58`/`0x59`, Garr `0x454`/`0x465`, Golem `0x4C`/`0x4D`, Nue `0x0D`/`0x0E` and ToxicMan `0x7F`/`0xAE`/`0xAF`.
 - Resistances run in the order Fire, Frost, Thunder, Earth, Wind, Holy, Psionic, Status, Death. Each value is a level from 0 to 7.
-- The two item rows are 4 bytes each. A battle copies them unchanged to the battler's two drop rows at battler `+0x98` and `+0x9C`, and at the end of the battle both rows roll the same way ([drops](#drops)). The row has two views: [battle records](../battle/#drops) reads the same four bytes as a `u16` item id, a `u8` rate and a padding byte. Pilfer and Steal take the first row ([steal](#steal)).
+- The two item rows are 4 bytes each. A battle copies them unchanged to the battler's two drop rows at battler `+0x98` and `+0x9C`, and at the end of the battle both rows roll the same way ([drops](#drops)). The row has two views: [battle records](../battle/#drops) reads the same four bytes as a `u16` item id, a `u8` rate and a `u8` flags byte. Pilfer and Steal take the first row ([steal](#steal)).
 - `Enemy +0x82` (reach) and `+0x83` (height) are the two bytes at block `+0xCA` and `+0xCB` of the `0x800E4000` encounter block (`0x48 + 0x82 = 0xCA`). Placement reads both through `func_801C7064 (emi/etc/game/00@0x801C7064)`: reach sets the probe step `(reach + 1) << 14` in 16.16 units, and each of the four probe points must project inside the 320 by 240 screen. A final probe must project to a screen y of at least height plus 8. Reach alone feeds the overlap test `func_801C7498 (emi/etc/game/00@0x801C7498)` between two candidates, with half-extent `(reach + 1) << 15`. The battle panels subtract height plus 8 from an enemy's y, and at least one spell effect adds it to a y cell.
 - A chest with item type `0xFF` gives zenny: `item_index × 40`.
 - Manillo fish items start at item index `0x38`.
