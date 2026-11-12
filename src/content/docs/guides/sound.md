@@ -16,19 +16,19 @@ The game plays sound by two routes. The SPU synthesizes music and effects from s
 
 ## What to change
 
-**Sound effects.**
+### Edit sound effects
 
 A cue record is 4 bytes: an SPU voice, a VAB program, a tone and a layer count. A cue id is `(bank << 8) | record_index`. To change what a cue sounds like, edit its `program` and `tone` so that they name another sound in the VAB of the bank ([cue records](../../formats/audio/#emi-type-8-cue-records)). To change the sound itself, replace the bank ([sound banks](../../formats/audio/#bank-layout)).
 
-**Music.**
+### Edit music
 
 A sequence is a stream of MIDI-like events, so it converts to a Standard MIDI File and back ([SEP package](../../formats/audio/#sep-package) and [conversion](../../formats/conversion/#sound-banks)). Edit the notes in a MIDI tool and convert the result back to the package. The track comes from the zone list of the area in the executable ([zone list](../../systems/areas/#zone-list)); byte 6 of a zone rectangle holds the track selector `[inferred]`. The full area-to-track map is `[unknown]`.
 
-**Sound banks.**
+### Replace sound banks
 
 Replace the VH and the VB as raw bytes, together. The header has 128 program records and the tone records that follow ([bank layout](../../formats/audio/#bank-layout)). A VAB header and body pair through the load argument, so keep it on both entries. A converted bank keeps `fsize` equal to the VH size plus the VB size.
 
-**Streamed voices and effects.**
+### Edit streamed audio
 
 A request is a key, `(stream << 12) | cue_index`. The cue table gives the first and last sector of the cue. The table is in the executable, as `u16` values that count periods of 8 sectors (`S_XA00.STR`) or 16 sectors (the other two). To retime or reorder a cue, edit those values ([XA cue tables](../../formats/str/#xa-cue-tables)). The counts are 880 cues for `MAGIC00.STR` and 5 for `VOICE.STR`. The 11 cues of `S_XA00.STR` are `[inferred]`, because nothing bounds the end of the array.
 
@@ -36,7 +36,7 @@ To replace the audio of a cue, write new 4-bit ADPCM sectors at 37,800 Hz with t
 
 ## Limits and pitfalls
 
-**Sound effects.**
+### Sound-effect limits
 
 - The `program` must be below the program count of the bank, and the `tone` must be a tone of that program.
 - The bank selector in the load argument of the entry (0 to 6) must match the bank that the record belongs to.
@@ -44,7 +44,7 @@ To replace the audio of a cue, write new 4-bit ADPCM sectors at 37,800 Hz with t
 - A caller names a cue by its id, which includes the record index. Reordering the records breaks every caller.
 - 1,248 records in bank 6 (the `BENEMY` banks) read their program and tone from a shifted slot. Leave `program` and `tone` as they are in those records ([program offset quirk](../../formats/audio/#program-offset-quirk)).
 
-**Music.**
+### Music limits
 
 - Keep 4 sequences per package, with ids 0 to 3, and a resolution of 48 ticks per quarter note.
 - A note plays through the VAB beside the package, so each program number in the sequence must exist in that bank.
@@ -52,13 +52,13 @@ To replace the audio of a cue, write new 4-bit ADPCM sectors at 37,800 Hz with t
 - A MIDI file carries no sequence id, so a rebuilt package takes its ids from the original.
 - Loop points are NRPN control changes 20 (loop start) and 30 (loop end). Their meaning beyond the observed pairs is `[unknown]`.
 
-**Sound banks.**
+### Sound-bank limits
 
 - The body is SPU ADPCM in 16-byte blocks and must fit the SPU span of its bank ([budgets](../../systems/audio/#ram-and-spu-budget-per-layout)).
 - The header size sets the program count `ps`, and the header window of each bank limits it.
 - The tone count of a program must cover every tone that the cue table references.
 
-**Streamed voices and effects.**
+### Streamed-audio limits
 
 - A stream file cannot grow past its last sector, so a longer clip needs a shorter one elsewhere in the file, with new audio and new cue values together.
 - The file table of the executable keeps the start sector of each file ([file table](../../formats/exe/#the-disc-file-table)).
