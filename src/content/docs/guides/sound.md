@@ -3,7 +3,7 @@ title: "Edit sound and music"
 description: "The game plays sound by two routes."
 ---
 
-The game plays sound by two routes. The SPU synthesizes music and effects from sound banks and cue tables, and the CD hardware streams voices and long effects as XA audio. This guide covers four tasks: sound effects, music, sound banks and streamed audio. The formats are in [audio formats](../../formats/audio/) and [STR and XA](../../formats/str/). How the game requests a sound is in [audio system](../../systems/audio/).
+The game plays sound by two routes. The SPU synthesizes music and effects from sound banks and cue tables, and the CD hardware streams voices and long effects as XA audio. This guide covers four tasks: sound effects, music, sound banks and streamed audio. The formats are in [audio formats](../../formats/audio/) and [STR and XA](../../formats/str/), and how the game requests a sound is in [audio system](../../systems/audio/).
 
 ## Sound effects
 

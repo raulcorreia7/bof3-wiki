@@ -3,7 +3,7 @@ title: "Battle records"
 description: "A battle runs from two overlays that share work tables in fixed RAM."
 ---
 
-A battle runs from two overlays that share work tables in fixed RAM. `emi/battle/battle/03` (loaded at `0x801D0C00`) holds the mode machines, the damage rules and the effect scheduler. `emi/battle/battle/15` (loaded at `0x80096800`) holds the entrance, the panels and the drawing. This page maps their working set: the work rows built at run time, the state words that tie them together and the tables that pick a handler. The static enemy, encounter and ability tables are in [game records](../records/#gameemi-fixed-tables), and the order of a battle is in [battle flow](../../systems/battle/).
+A battle runs from two overlays that share work tables in fixed RAM. `emi/battle/battle/03` (loaded at `0x801D0C00`) holds the mode machines, the damage rules and the effect scheduler; `emi/battle/battle/15` (loaded at `0x80096800`) holds the entrance, the panels and the drawing. This page maps their working set: the work rows built at run time, the state words that tie them together and the tables that pick a handler. The static enemy, encounter and ability tables are in [game records](../records/#gameemi-fixed-tables), and the order of a battle is in [battle flow](../../systems/battle/).
 
 A bare `func_XXXXXXXX` in an evidence cell lives in `emi/battle/battle/03` when its address is `0x801D0C00` or above, in `emi/battle/battle/15` when it is in `0x80096800`-`0x800BFFFF`, and in `emi/etc/game/00` for `0x801C6AEC` and `0x801C6BB4`. Terms such as work row and slot are in the [glossary](../../appendix/glossary/).
 
