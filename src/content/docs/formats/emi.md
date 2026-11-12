@@ -16,11 +16,11 @@ All 880 archives share one 16-byte header.
 | `0x08` |    8 | `char[8]` | `MATH_TBL`                          |
 
 ```c
-typedef struct EmiArchiveHeader {
+typedef struct EMIArchiveHeader {
     u32 entry_count; /* 0x00 */
     u32 version;     /* 0x04 */
-    u8  magic[8];    /* 0x08 */
-} EmiArchiveHeader;
+    u8  magic[EMI_MAGIC_SIZE]; /* 0x08 */
+} EMIArchiveHeader;
 ```
 
 Source: [`include/sys/emi.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/sys/emi.h)
@@ -38,13 +38,13 @@ One 16-byte row per entry follows the header, starting at `0x10`.
 | `0x0E` |    2 | `u16` | padding, always `0x2E2E`                                                 |
 
 ```c
-typedef struct EmiTocEntry {
+typedef struct EMITocEntry {
     u32 size;       /* 0x00 */
     u32 load_arg;   /* 0x04 */
     u32 first_word; /* 0x08 */
     u16 type;       /* 0x0C */
     u16 padding;    /* 0x0E */
-} EmiTocEntry;
+} EMITocEntry;
 ```
 
 Source: [`include/sys/emi.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/sys/emi.h)

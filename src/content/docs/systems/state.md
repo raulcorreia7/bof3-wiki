@@ -54,15 +54,15 @@ Notes on the table:
 
 These values live outside the block. The game rebuilds or resets each one.
 
-| Address                    | Type               | Name                                      | Meaning                                                           |
-| -------------------------- | ------------------ | ----------------------------------------- | ----------------------------------------------------------------- |
-| `0x80146250`               | `GameStateRecord*` | `g_GameState`                             | pointer into `g_BattlePartyBattlers` rows, set per mode           |
-| `0x80145E90`               | `PartyBattler[3]`  | `g_BattlePartyBattlers`                   | per-party work rows of 320 bytes, rebuilt from `g_Characters`     |
-| `0x80143BB0`               | `u8`               | `g_GameStateIndex`                        | request code for the next field step, reset on entry              |
-| `0x80143B90`, `0x80143B92` | `u16` each         | `g_GameEntryState`, `g_GameEntrySubstate` | menu and main-loop step selectors                                 |
-| `0x8014625A`               | `u16`              | `g_AreaWalkFlags`                         | outside the block; `Game_NewGame` sets the entry bits             |
-| `0x80146254`               | `u8`               | `g_PartySize`                             | party size, recomputed from the order array by `Party_CountOrder` |
-| overlay windows            | -                  | area, scene and actor tables              | reloaded with the area and scenario overlays `[inferred]`         |
+| Address                    | Type             | Name                                      | Meaning                                                           |
+| -------------------------- | ---------------- | ----------------------------------------- | ----------------------------------------------------------------- |
+| `0x80146250`               | `PartyMember*`   | `g_GameState`                             | pointer into `g_BattlePartyBattlers` rows, set per mode           |
+| `0x80145E90`               | `PartyMember[3]` | `g_BattlePartyBattlers`                   | per-party work rows of 320 bytes, rebuilt from `g_Characters`     |
+| `0x80143BB0`               | `u8`             | `g_GameStateIndex`                        | request code for the next field step, reset on entry              |
+| `0x80143B90`, `0x80143B92` | `u16` each       | `g_GameEntryState`, `g_GameEntrySubstate` | menu and main-loop step selectors                                 |
+| `0x8014625A`               | `u16`            | `g_AreaWalkFlags`                         | outside the block; `Game_NewGame` sets the entry bits             |
+| `0x80146254`               | `u8`             | `g_PartySize`                             | party size, recomputed from the order array by `Party_CountOrder` |
+| overlay windows            | -                | area, scene and actor tables              | reloaded with the area and scenario overlays `[inferred]`         |
 
 `g_GameState` is not game progress. `func_801E3EC4 (emi/etc/start/08@0x801E3EC4)` points it at a `g_BattlePartyBattlers` row for the camp menu, and `Party_BuildBattlers (emi/etc/game/00@0x801C1400)` points it at one row per party member for the field.
 
