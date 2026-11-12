@@ -190,10 +190,15 @@ checks the content.
 ```sh
 dprint check                    # Markdown format; dprint fmt fixes it
 python3 tools/check_pages.py    # page template, titles, orphan pages
+python3 tools/check_sources.py ../bof3-decomp  # every Source: link, needs a decompilation checkout
 npm run build                   # builds dist/ and validates internal links and anchors
 npm run check:diagrams          # diagram readability, after npm run build
 npm run dev                     # live preview at http://localhost:4321/bof3-wiki/
 ```
+
+`tools/check_sources.py` is optional because the wiki checkout does not include the
+decompilation. It reads each `Source:` URL and asks the checkout whether the path exists at
+`origin/main`; pass `--ref` when the checkout tracks another ref.
 
 The build also writes the search index, `llms.txt`, `llms-full.txt`, the sitemap and a redirect
 page for every URL in `redirects.json`. CI then checks internal links and anchors offline with
