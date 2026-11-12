@@ -3,7 +3,7 @@ title: "UI and text drawing"
 description: "Every conversation, menu label and number goes through one text engine in the resident executable."
 ---
 
-All conversation, menu and number text goes through one text engine in the resident executable. The engine turns a message record from the area's [message table](../../formats/area/) into a box at the bottom of the screen, text drawn one character at a time, a button-wait marker, an optional choice list and screen fades. It draws through the primitive queue ([rendering](../rendering/)). This page covers the message state machine, the window panels, the text drawers and the full-screen fades. The byte encoding and control codes are in [game text](../../data/text/); the overlay that opens each full-screen mode is in [screens](../screens/). Functions are in the main executable `exe/slus_004_22` unless stated.
+All conversation, menu and number text goes through one text engine in the resident executable. The engine turns a message record from the area's [message table](../../formats/area/) into a box at the bottom of the screen, text drawn one character at a time, a button-wait marker, an optional choice list and screen fades. It draws through the primitive queue ([rendering](../rendering/)), and the byte encoding and control codes are in [game text](../../data/text/). This page covers the message state machine, the window panels, the text drawers and the full-screen fades; the overlay that opens each full-screen mode is in [screens](../screens/), and functions are in the main executable `exe/slus_004_22` unless stated.
 
 ## Terms
 

@@ -3,7 +3,7 @@ title: "Areas and the field"
 description: "An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp."
 ---
 
-An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp. The game has 200 areas, one `WORLDnn/AREAnnn.EMI` archive each. The resident engine in `emi/etc/game/00` runs all of them with the data and the small code overlay from the archive. This page covers the area record, the load, the per-frame update, exits and the setup stream. Byte layouts are in the [area format](../../formats/area/), entity rows in [field](../../data/field/) and map-kind flags in [programs](../../data/programs/#map-kinds).
+An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp. The game has 200 areas, one `WORLDnn/AREAnnn.EMI` archive each. The resident engine in `emi/etc/game/00` runs all of them with the data and the small code overlay from the archive. This page covers the area record, the load, the per-frame update, exits and the setup stream; byte layouts are in the [area format](../../formats/area/), entity rows in [field](../../data/field/) and map-kind flags in [programs](../../data/programs/#map-kinds).
 
 ## Area record
 

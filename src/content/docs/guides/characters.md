@@ -3,7 +3,7 @@ title: "Edit characters and enemies"
 description: "A playable character is one record of 164 bytes, and an enemy is one record of 136 bytes."
 ---
 
-A playable character is one record of 164 bytes, and an enemy is one record of 136 bytes. Both sit in fixed tables. Character growth comes from a level table and from master records. This guide shows where each sits and how to change it. The field layouts are in [game records](../../data/records/#character-and-master-data).
+A playable character is one record of 164 bytes, and an enemy is one record of 136 bytes. Both sit in fixed tables. Character growth comes from a level table and from master records. This guide shows where each sits and how to change it; the field layouts are in [game records](../../data/records/#character-and-master-data).
 
 ## Where the data is
 

@@ -3,7 +3,7 @@ title: "Memory map"
 description: "The console has 2 MiB of main RAM at 0x80000000..0x80200000, and the game uses all of it."
 ---
 
-The console has 2 MiB of main RAM at `0x80000000..0x80200000`, and the game uses all of it. Two programs stay resident from boot to power-off. Every other range is a data bank that an area load overwrites, or an overlay window that holds one overlay at a time. This page maps each range to its owner, and covers the scratchpad, stacks, CD ring, sound banks and fixed VRAM uses. [Loading](../loading/) explains how each range gets filled.
+The console has 2 MiB of main RAM at `0x80000000..0x80200000`, and the game uses all of it. Two programs stay resident from boot to power-off; every other range is a data bank that an area load overwrites, or an overlay window that holds one overlay at a time. This page maps each range to its owner, and covers the scratchpad, stacks, CD ring, sound banks and fixed VRAM uses. [Loading](../loading/) explains how each range gets filled.
 
 ## Three kinds of range
 

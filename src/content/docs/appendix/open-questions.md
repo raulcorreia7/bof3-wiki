@@ -3,7 +3,7 @@ title: "Open questions"
 description: "The wiki leaves these questions open, grouped by topic."
 ---
 
-The wiki leaves these questions open, grouped by topic. Each row says what would settle it. A check is static, meaning more code or data to read, unless the row says a run is needed. Each topic lists the pages that hold the evidence and the code involved. [Notation and conventions](../../concepts/notation/#evidence-tags) defines the evidence tags.
+The wiki leaves these questions open, grouped by topic. Each row says what would settle it. A check is static, meaning more code or data to read, unless the row says a run is needed. Each topic lists the pages that hold the evidence and the code involved; [Notation and conventions](../../concepts/notation/#evidence-tags) defines the evidence tags.
 
 ## Startup, frame loop and scheduler
 

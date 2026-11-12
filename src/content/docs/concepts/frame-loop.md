@@ -3,7 +3,7 @@ title: "Frame loop"
 description: "After boot, SYS_Main (exe/slus_004_22@0x8014AAC8) never returns."
 ---
 
-After [boot](../../systems/boot/), `SYS_Main (exe/slus_004_22@0x8014AAC8)` never returns. Every frame, from the title to the credits, is one pass through this loop. The loop owns the display, the controller read and the CD loader tick. Game logic runs in the four callback threads of the [scheduler](../scheduler/). Primitive layouts and drawing are in [rendering](../../systems/rendering/).
+After [boot](../../systems/boot/), `SYS_Main (exe/slus_004_22@0x8014AAC8)` never returns. Every frame, from the title to the credits, is one pass through this loop. The loop owns the display, the controller read and the CD loader tick; game logic runs in the four callback threads of the [scheduler](../scheduler/). Primitive layouts and drawing are in [rendering](../../systems/rendering/).
 
 ## The double-buffered frame
 

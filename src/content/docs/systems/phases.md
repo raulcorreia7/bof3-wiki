@@ -3,7 +3,7 @@ title: "Game phases"
 description: "The game is a stack of modes: boot, title, start menu, field, menu, battle, scenes and game over."
 ---
 
-The game runs as a set of modes: boot, title, start menu, field, menu, battle, scenes and game over. Three mechanisms carry the transitions. The callback slots ([scheduler](../../concepts/scheduler/)) hold the running mode, the state table `g_GameStates` selects what the game does each frame, and the request code `g_GameStateIndex` names the next transition. Almost all play happens in one entry state, the field, as area and scenario code. Menus, battles and shops are excursions from it. The internals of each mode are in [scenario engine](../scenario/), [areas and the field](../areas/) and [battle flow](../battle/).
+The game runs as a set of modes: boot, title, start menu, field, menu, battle, scenes and game over. Three mechanisms carry the transitions: the callback slots ([scheduler](../../concepts/scheduler/)) hold the running mode, the state table `g_GameStates` selects what the game does each frame, and the request code `g_GameStateIndex` names the next transition. Almost all play happens in one entry state, the field, as area and scenario code; menus, battles and shops are excursions from it. The internals of each mode are in [scenario engine](../scenario/), [areas and the field](../areas/) and [battle flow](../battle/).
 
 ## From power-on to the field
 

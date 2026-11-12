@@ -3,7 +3,7 @@ title: "Scenario engine"
 description: "The story runs as 20 small overlay programs, SCENA00 to SCENA19, and one of them is active at a time."
 ---
 
-The story runs as 20 overlay programs, `SCENA00` to `SCENA19`, and one is active at a time. The active scenario sets how each area behaves and what each step into a cell does. A story flag set by the scenario opens a door in [areas and the field](../areas/). The resident field code in `emi/etc/game/00` loads the scenario into a fixed RAM window and calls it at fixed points of the [frame loop](../../concepts/frame-loop/). The story meaning of each scenario is not established.
+The story runs as 20 overlay programs, `SCENA00` to `SCENA19`, and one is active at a time. The active scenario sets how each area behaves and what each step into a cell does. A story flag set by the scenario opens a door in [areas and the field](../areas/). The resident field code in `emi/etc/game/00` loads the scenario into a fixed RAM window and calls it at fixed points of the [frame loop](../../concepts/frame-loop/); the story meaning of each scenario is not established.
 
 The event stage, a smaller layer, runs one-off handlers selected by an event id. This page covers both layers and the story flags. Overlay placement is in [memory](../../concepts/memory/) and [loading](../../concepts/loading/).
 
