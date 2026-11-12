@@ -3,7 +3,7 @@ title: "Memory card save"
 description: "A save is one file on a PlayStation memory card: a 512-byte standard save frame for the BIOS card menu (title and animated icon), followed by a copy of the game's live state."
 ---
 
-A save is one file on a PlayStation memory card: a 512-byte standard save frame for the BIOS card menu (title and animated icon), followed by a copy of the game's live state. The game keeps no separate save structure. It copies a block of RAM to the card and copies it back on load. This page covers the file around the copied fields: its name, header, icons, checksum and the card calls that move it. [Saving and loading](../../systems/saving/) describes the menu flow, and [Game records](../../data/records/#save-layout) names the fields inside the copied block.
+A save is one file on a PlayStation memory card: a 512-byte standard save frame for the BIOS card menu (title and animated icon), followed by a copy of the game's live state. The game keeps no separate save structure; it copies a block of RAM to the card and copies it back on load. This page covers the file around the copied fields: its name, header, icons, checksum and the card calls that move it. [Saving and loading](../../systems/saving/) describes the menu flow, and [Game records](../../data/records/#save-layout) names the fields inside the copied block.
 
 ## File summary
 
