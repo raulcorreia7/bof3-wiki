@@ -2,8 +2,8 @@
   {
     "label": "Concepts",
     "items": [
-      "concepts/architecture",
       "concepts/notation",
+      "concepts/architecture",
       "concepts/memory",
       "concepts/frame-loop",
       "concepts/scheduler",
