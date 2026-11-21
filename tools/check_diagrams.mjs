@@ -108,7 +108,6 @@ function inspect({ index, minFont, minContrast, inline }) {
     o.text = o.text.trim().replace(/\s+/g, ' ');
     o.broken = /[A-Za-z0-9_]- [A-Za-z0-9_(]/.test(o.text) && !!o.el.closest('text');
     o.text = o.text.slice(0, 40);
-    o.edgeLabel = o.el.closest('.edgeLabel, .messageText') ? true : false;
     return o;
   });
   const short = (b) => `"${b.text}"`;
@@ -167,6 +166,15 @@ function inspect({ index, minFont, minContrast, inline }) {
     const lab = svg.querySelector(`.edgeLabel [data-id="${CSS.escape(id)}"], .edgeLabel[data-id="${CSS.escape(id)}"]`);
     return lab ? lab.closest('.edgeLabel') : null;
   };
+  // Whether an edge label has a background opaque enough to hide the line behind it.
+  const hidesLine = (label) => {
+    const bg = [label, label.querySelector('.labelBkg'), label.querySelector('span'), label.querySelector('div')]
+      .filter(Boolean)
+      .map((e) => getComputedStyle(e).backgroundColor)
+      .find((c) => c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent');
+    const alpha = bg ? (bg.match(/rgba\(.*,\s*([\d.]+)\)/) || [0, 1])[1] : 0;
+    return !!bg && +alpha >= 0.95;
+  };
   const seen = new Set();
   for (const p of lines) {
     const isLife = /actor-line|loopLine/.test(p.getAttribute('class') || '');
@@ -188,19 +196,12 @@ function inspect({ index, minFont, minContrast, inline }) {
           let key = (p.getAttribute('data-id') || p.id || p.getAttribute('class')) + '|' + b.text;
           if (isOwn) {
             // own label: the label background must hide the line
-            const lab = own.querySelector('.labelBkg, rect, span, div') ;
-            const bg = [own, own.querySelector('.labelBkg'), own.querySelector('span'), own.querySelector('div')]
-              .filter(Boolean)
-              .map((e) => getComputedStyle(e).backgroundColor)
-              .find((c) => c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent');
-            const alpha = bg ? (bg.match(/rgba\(.*,\s*([\d.]+)\)/) || [0, 1])[1] : 0;
-            if (!bg || +alpha < 0.95) {
+            if (!hidesLine(own)) {
               if (!seen.has('bg' + key)) {
                 seen.add('bg' + key);
                 fail('line', `edge label ${short(b)} has a translucent background`);
               }
             }
-            void lab;
           } else if (!seen.has(key)) {
             seen.add(key);
             fail('line', `${isLife ? ((p.getAttribute('class') || '').includes('loopLine') ? 'frame' : 'lifeline') : 'edge'} crosses ${short(b)}`);
@@ -224,8 +225,8 @@ function inspect({ index, minFont, minContrast, inline }) {
     a: 1,
   });
   const lum = (c) => {
-    const f = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    const linear = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * linear(c.r) + 0.7152 * linear(c.g) + 0.0722 * linear(c.b);
   };
   const solidBg = (el) => {
     for (let e = el; e; e = e.parentElement) {
@@ -276,6 +277,27 @@ function inspect({ index, minFont, minContrast, inline }) {
   return fails;
 }
 
+// Loads one page and returns the failures of its diagrams, each with its 1-based `diagram`.
+async function checkPage(page, path, view) {
+  await page.goto(root + path, { waitUntil: 'load' });
+  await page.evaluate(() => document.fonts.ready);
+  const n = await page.locator('pre.mermaid').count();
+  // Wait until the page script has sized every diagram; a diagram measured before that shows at column width.
+  await page.waitForFunction(
+    (n) => [...document.querySelectorAll('pre.mermaid[data-processed] svg')].filter((s) => s.dataset.sized).length >= n,
+    n,
+    { timeout: 30000 },
+  );
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(150);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const fails = await page.evaluate(inspect, { index: i, minFont: MIN_FONT, minContrast: MIN_CONTRAST, inline: view.width >= 1000 });
+    out.push(...fails.map((f) => ({ diagram: i + 1, ...f })));
+  }
+  return out;
+}
+
 const server = opt('--url') ? null : await serve();
 const root = opt('--url') || `http://127.0.0.1:${server.address().port}${BASE_PATH}`;
 const exe = opt('--chromium') || process.env.CHROMIUM || undefined;
@@ -293,24 +315,9 @@ for (const view of VIEWS) {
     }, theme);
     const page = await ctx.newPage();
     for (const path of pages) {
-      await page.goto(root + path, { waitUntil: 'load' });
-      await page.evaluate(() => document.fonts.ready);
-      const n = await page.locator('pre.mermaid').count();
-      // Wait until the page script has sized every diagram; a diagram measured before that shows at column width.
-      await page.waitForFunction(
-        (n) => [...document.querySelectorAll('pre.mermaid[data-processed] svg')].filter((s) => s.dataset.sized).length >= n,
-        n,
-        { timeout: 30000 },
-      );
-      await page.evaluate(() => document.fonts.ready);
-      await page.waitForTimeout(150);
-      for (let i = 0; i < n; i++) {
-        const fails = await page.evaluate(inspect, { index: i, minFont: MIN_FONT, minContrast: MIN_CONTRAST, inline: view.width >= 1000 });
-        for (const f of fails) {
-          const k = f.kind;
-          counts[k] = (counts[k] || 0) + 1;
-          report.push({ page: path, diagram: i + 1, view: view.name, theme, ...f });
-        }
+      for (const f of await checkPage(page, path, view)) {
+        counts[f.kind] = (counts[f.kind] || 0) + 1;
+        report.push({ page: path, diagram: f.diagram, view: view.name, theme, ...f });
       }
     }
     await ctx.close();
