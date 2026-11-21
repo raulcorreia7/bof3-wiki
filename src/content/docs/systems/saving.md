@@ -40,7 +40,7 @@ The save screen opens from the field, runs inside the main loop, and returns to 
 `SAVE_BuildSlotImage (emi/etc/shop/00@0x801D69E0)` runs just before the write. In order:
 
 1. `SAVE_FormatSlotInfo` builds the title string. `SAVE_BuildFileHeader (emi/etc/start/09@0x801EF27C)` writes the `SC` magic, the icon flag `0x13`, block count 1, the title, the icon palette and three icon frames into the frame at `0x800C1800`.
-2. It refreshes the fields in the live block that the save adds: the script variables, the area id, the entry kind and position, the nine button masks, and the slot summary row. The summary row is five name bytes from the first party record, the three field-order portraits (a portrait of kind 4 shows as `0xB` unless the loaded character index is 5 or `0xC`), the first record's level, the play clock, and the result of testing event flag `0x92`.
+2. It refreshes the fields in the live block that the save adds: the script variables, the area id, the entry type and position, the nine button masks, and the slot summary row. The summary row is five name bytes from the first party record, the three field-order portraits (a portrait of type 4 shows as `0xB` unless the loaded character index is 5 or `0xC`), the first record's level, the play clock, and the result of testing event flag `0x92`.
 3. It clears the checksum halfword at block `+0x70` in live RAM, stores `g_GameFlags` as a byte in `D_80145025`, copies the 4,272 bytes from `0x801448D8` into `g_SaveBuffer`, and sums them in 16 bits.
 4. It zeroes the rest of the buffer up to payload offset `0x1E00`, stores the sum at frame `+0x270`, and publishes the slot row.
 
@@ -123,7 +123,7 @@ After a good read, state 13 shows its message for up to 60 frames or until a but
 7. `Scene_LoadOverlay`: stream the scenario overlay for `scenario_id`.
 8. Set camp substate 4.
 
-`Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` then runs `func_801E7210` and `Char_RebuildStats` for each of the eight records, so all live stats come from base stats and equipment. It calls `CallbackReplace(Game_UpdateMain)`. `Game_UpdateMain` starts at entry state 0, `Game_NewGame`. That function reads the saved area id, position and kind from the block and sets `g_GameAreaId = 0xFFFF`. It calls `Game_RequestAreaChange` to store the entry context and set `g_GameStateIndex = 5`, then advances to entry state 1. See [area](../areas/) for the load that follows.
+`Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` then runs `func_801E7210` and `Char_RebuildStats` for each of the eight records, so all live stats come from base stats and equipment. It calls `CallbackReplace(Game_UpdateMain)`. `Game_UpdateMain` starts at entry state 0, `Game_NewGame`. That function reads the saved area id, position and type from the block and sets `g_GameAreaId = 0xFFFF`. It calls `Game_RequestAreaChange` to store the entry context and set `g_GameStateIndex = 5`, then advances to entry state 1. See [area](../areas/) for the load that follows.
 
 `SAVE_RunLoadVerify (emi/etc/start/08@0x801E5A00)` also restores `g_GameFlags` from `D_80145025`. On a match it sets stereo or mono sound from the byte at `0x80144951`, a block field (`SsSetStereo` or `SsSetMono`).
 

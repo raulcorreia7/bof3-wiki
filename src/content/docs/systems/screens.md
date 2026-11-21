@@ -23,7 +23,7 @@ The [glossary](../../appendix/glossary/) defines request code and entry state.
 | ------------------------------------------------------------------ | ----------: | -------------------------------- | --------------------------------------------------------------- |
 | Code 1, written by `func_801B2A00` (actor step table `D_801CD110`) |           3 | STATUS (`0x269`), start/08       | The in-game menu. The button that triggers it is `[unknown]`.   |
 | Code 6, written by `Party_JoinMember` when the party is full       |           7 | SHOP (`0x266`)                   | Step 6 (`Menu_RunPartySwap`), a party-swap screen.              |
-| Actor of kind 5 (`func_801A18C8`)                                  |           7 | SHOP                             | Step = actor field `+0x18` plus 2.                              |
+| Actor of type 5 (`func_801A18C8`)                                  |           7 | SHOP                             | Step = actor field `+0x18` plus 2.                              |
 | Scene event 10 (inn), cases 6 and 23 (`Scene_RunInn`)              |           7 | SHOP                             | Step = `D_80148698` plus 2. Step 3 is the inn.                  |
 | Code 7, written by `scena06` (`func_801F97C0`, `func_801F9DF4`)    |           9 | BATE (`0x257`)                   | Equipment screen or stat tally for record 7, by `D_8018E244`.   |
 | Code 8, written by `scena11` (`func_801F8B84`)                     |          10 | SHISU (`0x265`)                  | Item minigame with a score and a rank from 0 to 5.              |
@@ -54,7 +54,7 @@ Code 1 calls `UI_SetMode(2)` and `func_80198BC4(0)`, then sets state 3, substate
 | Condition                                                              | Result                                                                                      |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `D_8014869C != 0`, `D_8014504A == 0`, and the world map or area `0xBD` | Save the party position and area in `D_80145040..D_80145048`, request the staged area.      |
-| `D_8014869C != 0`, any other case                                      | Clear the flag bytes at `D_8014504A - 0x122`, request the saved area `D_80145048` (kind 4). |
+| `D_8014869C != 0`, any other case                                      | Clear the flag bytes at `D_8014504A - 0x122`, request the saved area `D_80145048` (type 4). |
 | `D_8014869C == 0`, `D_8014869D != 0`                                   | `Game_RequestAreaChange(D_8014869D, 0x430000, 0x160000, 4)`: jump to that area.             |
 | Both zero                                                              | `g_GameStateIndex = 0`. The field resumes.                                                  |
 
@@ -70,7 +70,7 @@ State 7 runs `g_GameStateHandlers` (`0x801C7B7C`):
 |        1 | `func_80199398`              | Field frame, `Area_UpdateParty`, panels, `Menu_DispatchScreen`.                                                               |
 |        2 | `Game_ReturnFromShop`        | Restore the character sprites, stream COMMU00 when the area has flag `0x10`, return to state 2.                               |
 
-`Menu_DispatchScreen (emi/etc/shop/00@0x801D0EA0)` runs `D_801E5144[11]` by `D_80148650`. Entry 0, `Menu_SelectScreen`, is the selector. It reads `D_8014865C`. A negative value (a script or code origin) sets the step to `D_80148698 + 2`. A shop-actor index copies the actor row's `+0x18` and adds 2, and copies `+0x1C` to `D_80148699`. Actor kind 9 never reaches the screen (`Game_LoadShopOverlay`). The other ten entries are the screens. Steps 2,3,5,6,7: buy/sell, inn ([saving](../saving/)), inoculation, party swap, Skill Ink; 8 to 10 are `[unknown]`.
+`Menu_DispatchScreen (emi/etc/shop/00@0x801D0EA0)` runs `D_801E5144[11]` by `D_80148650`. Entry 0, `Menu_SelectScreen`, is the selector. It reads `D_8014865C`. A negative value (a script or code origin) sets the step to `D_80148698 + 2`. A shop-actor index copies the actor row's `+0x18` and adds 2, and copies `+0x1C` to `D_80148699`. Actor type 9 never reaches the screen (`Game_LoadShopOverlay`). The other ten entries are the screens. Steps 2,3,5,6,7: buy/sell, inn ([saving](../saving/)), inoculation, party swap, Skill Ink; 8 to 10 are `[unknown]`.
 
 ## BATE and SHISU (entry states 9 and 10)
 
@@ -204,12 +204,12 @@ Counts of entry states, request codes, battle substates, scene events and panel 
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | Menu, shop, fishing substates   | 3, 3, 4                                                                                                                                                       | `g_GameEntryHandlers`, `g_GameStateHandlers`, `g_GameSubstateHandlers` |
 | BATE, SHISU, state 11 substates | 3 each                                                                                                                                                        | `g_MenuAbilityOpen`, `g_MenuStatusOpen`, `g_GameFlowHandlers`          |
-| SHOP actor kinds                | 0 to 8 select a screen (`+0x18` plus 2 must stay at 10 or less). Kind 9 skips it. `[inferred]`                                                                | `Menu_SelectScreen`, `Game_LoadShopOverlay`                            |
+| SHOP actor types                | 0 to 8 select a screen (`+0x18` plus 2 must stay at 10 or less). Type 9 skips it. `[inferred]`                                                                | `Menu_SelectScreen`, `Game_LoadShopOverlay`                            |
 | BATE, SHISU step tables         | 4 and 5 entries. Two five-byte names follow BATE's table, at `0x801D86F0` and `0x801D86F8`.                                                                   | `D_801D86E0`; `D_801D96DC`                                             |
 | Fishing rod rows                | The code does not bound the selector: it indexes `sel * 10`. [Field](../../data/field/#fairy-village-and-fishing) owns the rod and lure rows and their count. | `Fishing_SelectGear (emi/world00/area030/04@0x801DDE2C)`               |
 | Screen overlay slots            | BATE `0x257`, SHISU `0x265`, SHOP `0x266`, SISYOU `0x267`, START `0x268`, STATUS `0x269`                                                                      | [disc slot ids](../../formats/emi/#disc-slot-ids)                      |
 
-The dispatch indexes the step byte into the owning overlay's table with no bound check, so an edited screen must keep the byte inside the table. A shop actor kind above 8 reads past `D_801E5144` `[inferred]` from the 11-entry table and the `+2` in `Menu_SelectScreen`.
+The dispatch indexes the step byte into the owning overlay's table with no bound check, so an edited screen must keep the byte inside the table. A shop actor type above 8 reads past `D_801E5144` `[inferred]` from the 11-entry table and the `+2` in `Menu_SelectScreen`.
 
 ## Open questions
 

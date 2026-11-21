@@ -22,7 +22,7 @@ Every change to the *Breath of Fire III* disc follows one cycle: find the entry,
 ## The editing cycle
 
 1. **Find the entry.** [Disc and files](../formats/disc/) lists the files, and
-   [asset kinds](../formats/assets/) says what each entry holds. An entry is written `ARCHIVE.EMI#n`
+   [asset types](../formats/assets/) says what each entry holds. An entry is written `ARCHIVE.EMI#n`
    ([notation](../concepts/notation/#offsets-and-addresses)).
 2. **Extract the payload.** A type-1 entry is [LZ77](../formats/lz77/) data: decode it, edit the decoded
    bytes and encode them again. Every other entry type is stored raw.

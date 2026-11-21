@@ -61,9 +61,9 @@ Payloads carry no TIM header and go to VRAM as raw 16-bit words. The only TIM da
 
 ### Sprite CLUT word
 
-`Area_BuildClut (exe/slus_004_22@0x8014CE78)` builds the word from three bytes of the sprite record: flags `+0x24` (bit `0x04`), selector `+0x27` (`sel`) and kind `+0x28`. `base` is `0x1E0`, or `0x1F0` when flag bit `0x04` is set. The kind sets how many palette cells the sprite owns:
+`Area_BuildClut (exe/slus_004_22@0x8014CE78)` builds the word from three bytes of the sprite record: flags `+0x24` (bit `0x04`), selector `+0x27` (`sel`) and type `+0x28`. `base` is `0x1E0`, or `0x1F0` when flag bit `0x04` is set. The type sets how many palette cells the sprite owns:
 
-| Kind (`+0x28`) | CLUT word                                       | Palette size          | Cells per row |
+| Type (`+0x28`) | CLUT word                                       | Palette size          | Cells per row |
 | -------------: | ----------------------------------------------- | --------------------- | ------------: |
 |              0 | `((base + (sel >> 4)) << 6) \| (sel & 0xF)`     | 1 cell, 16 colors     |            16 |
 |              1 | `(base + sel) << 6`                             | Whole row, 256 colors |             1 |
@@ -71,13 +71,13 @@ Payloads carry no TIM header and go to VRAM as raw 16-bit words. The only TIM da
 |              3 | `((base + (sel >> 2)) << 6) \| ((sel & 3) * 4)` | 4 cells               |             4 |
 |              4 | `((base + (sel >> 1)) << 6) \| ((sel & 1) * 8)` | 8 cells               |             2 |
 
-The row is `word >> 6` and the column is `(word & 0x3F) * 16`. The cell counts match the table `s_PaletteFadeColorCounts = {1, 16, 2, 4, 8}` that the fade code uses. The texture depth follows the kind: `Area_DrawObjectSprite` passes `tp = (kind != 0)`, so kind 0 is a 4-bit texture and kinds 1 to 4 are 8-bit. That kinds 2 to 4 use only the first 32, 64 or 128 colors of a CLUT placed at a multiple of its width is `[inferred]`.
+The row is `word >> 6` and the column is `(word & 0x3F) * 16`. The cell counts match the table `s_PaletteFadeColorCounts = {1, 16, 2, 4, 8}` that the fade code uses. The texture depth follows the type: `Area_DrawObjectSprite` passes `tp = (kind != 0)`, so type 0 is a 4-bit texture and types 1 to 4 are 8-bit. That types 2 to 4 use only the first 32, 64 or 128 colors of a CLUT placed at a multiple of its width is `[inferred]`.
 
 The transparency mode in the page word is the low two bits of record byte `+0x5C` (`tint.bytes.flags`). The vertex color for each of `+0x5D`, `+0x5E` and `+0x5F` is `byte - 0x80`.
 
 ### Texture page and sheet upload
 
-`Area_DrawObjectSprite` takes the page from record byte `+0x25`, plus a page offset of -1, 0 or 1 when the kind is nonzero. The offset comes from the cell's `u`: below `0x28` gives -1, and `0xA1` and above gives 1. For graph type 0 the page word is
+`Area_DrawObjectSprite` takes the page from record byte `+0x25`, plus a page offset of -1, 0 or 1 when the type is nonzero. The offset comes from the cell's `u`: below `0x28` gives -1, and `0xA1` and above gives 1. For graph type 0 the page word is
 
     (tp << 7) | (abr << 5) | ((y & 0x100) >> 4) | ((x & 0x3FF) >> 6)
 
@@ -97,7 +97,7 @@ The last four stage palette rows go at run time to sprites that need their own c
 | Fade records    | `D_80145BD4` | 32 records of 12 bytes            | `GFX_AllocPaletteFade` fills the first record with bit 0 clear.                   |
 | Animation slots | `D_80145D94` | 8 slots                           | `GFX_StartPaletteAnimation` starts one. `GFX_UpdatePaletteAnimations` steps them. |
 
-`GFX_AllocPaletteCell (emi/etc/game/00@0x801968BC)` takes a mode and scans the map row by row, returning the first run of free cells that fits. Mode 0 is one cell, 1 a whole row, 2 two cells (even column), 3 four cells (column multiple of 4) and 4 eight cells. The result is a selector for `Area_BuildClut` of the same kind. Mode 0 returns `cell - 0x40` as a byte. With record flag `0x04` set, `Area_BuildClut` turns that into rows `0x1FC` to `0x1FF`. Those are the same rows (28 to 31) that `GFX_ResetPalette` zeroes, so the dynamic cells live in the last four rows of the stage palette `[inferred]`.
+`GFX_AllocPaletteCell (emi/etc/game/00@0x801968BC)` takes a mode and scans the map row by row, returning the first run of free cells that fits. Mode 0 is one cell, 1 a whole row, 2 two cells (even column), 3 four cells (column multiple of 4) and 4 eight cells. The result is a selector for `Area_BuildClut` of the same type. Mode 0 returns `cell - 0x40` as a byte. With record flag `0x04` set, `Area_BuildClut` turns that into rows `0x1FC` to `0x1FF`. Those are the same rows (28 to 31) that `GFX_ResetPalette` zeroes, so the dynamic cells live in the last four rows of the stage palette `[inferred]`.
 
 A fade, `GFX_AllocPaletteFade (emi/etc/game/00@0x8019651C)`, takes a free cell run for the sprite record, remembers the record's old selector in the fade record, and `GFX_FreePaletteFade` restores it and frees the cells. `GFX_UploadPaletteRows` sets bit `0x8000` (the STP bit) on every color of the record's cells. The code that interpolates colors during a fade is in overlays (`emi/world00/area036/13`, `emi/world02/area085/13`, `emi/world02/area108/14`, `emi/bmagic/magic064/03`), not in the resident core, and is `[unknown]`.
 
@@ -105,7 +105,7 @@ Palette animations read 4-byte steps (`dst`, `src`, `count`, `wait`) and copy `c
 
 ## Sprite sheet queue
 
-`GFX_UpdateTransferQueue (exe/slus_004_22@0x8014E6D0)` runs once per frame after the palette upload. Each of up to 20 entries holds an `x` and `y` (`D_80145A54[0..19]` and `D_80145A54[20..39]`) and a record pointer (`D_80145A04[0..19]`). The record is `w`, `h`, a kind word and the payload at `+8`. Kind 1 expands packed RGB555 pixels to one byte per component and uploads them. Kind 2 decodes LZSS and uploads. Any other kind is a raw `LoadImage`. The count `D_80145A00` is then cleared.
+`GFX_UpdateTransferQueue (exe/slus_004_22@0x8014E6D0)` runs once per frame after the palette upload. Each of up to 20 entries holds an `x` and `y` (`D_80145A54[0..19]` and `D_80145A54[20..39]`) and a record pointer (`D_80145A04[0..19]`). The record is `w`, `h`, a type word and the payload at `+8`. Type 1 expands packed RGB555 pixels to one byte per component and uploads them. Type 2 decodes LZSS and uploads. Any other type is a raw `LoadImage`. The count `D_80145A00` is then cleared.
 
 `Actor_SelectScriptBank` does not test the count before it queues, so a 21st entry in one frame writes past the table.
 

@@ -1,13 +1,13 @@
 ---
-title: "Asset kinds"
-description: "Every EMI entry on the disc belongs to one kind, a name this wiki gives to a class of disc content, chosen from the entry type, the load address and the contents."
+title: "Asset types"
+description: "Every EMI entry on the disc belongs to one type, a name this wiki gives to a class of disc content, chosen from the entry type, the load address and the contents."
 ---
 
-Every EMI entry on the disc belongs to one kind, a name for a class of disc content chosen from the entry type, load address and contents ([glossary](../../appendix/glossary/#disc-and-containers)). This page maps each kind to its page and describes the message-table and game-string kinds, which have no page of their own. Per-kind sizes are in [coverage](../../appendix/coverage/).
+Every EMI entry on the disc belongs to one type, a name for a class of disc content chosen from the entry type, load address and contents ([glossary](../../appendix/glossary/#disc-and-containers)). This page maps each type to its page and describes the message-table and game-string types, which have no page of their own. Per-type sizes are in [coverage](../../appendix/coverage/).
 
-## Where each kind is described
+## Where each type is described
 
-| Kind                                         | Entry type, load address           | Described in                                                                       |
+| Type                                         | Entry type, load address           | Described in                                                                       |
 | -------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------- |
 | EMI container                                | `.EMI` file                        | [EMI](../emi/)                                                                     |
 | `code`                                       | types 0, 1, 2, program windows     | [EMI](../emi/#archive-shapes), [area](../area/#0x801f2c00-area-program-code-arena) |
@@ -31,7 +31,7 @@ Every EMI entry on the disc belongs to one kind, a name for a class of disc cont
 | executables                                  | `SLUS_004.22`, `LOGO.EXE`          | [executable](../exe/)                                                              |
 | conversion to PNG, glTF, SoundFont, MIDI     |                                    | [conversion](../conversion/)                                                       |
 
-The `reserve` kind is zero fill with no consumer: 44 character-sprites fillers of 16,384 zero bytes and 9 all-zero cell slots ([coverage](../../appendix/coverage/#what-keeps-a-range-from-the-next-level)).
+The `reserve` type is zero fill with no consumer: 44 character-sprites fillers of 16,384 zero bytes and 9 all-zero cell slots ([coverage](../../appendix/coverage/#what-keeps-a-range-from-the-next-level)).
 
 ## Message tables
 
@@ -67,13 +67,13 @@ The executables hold 167 C string literals, which need the ASCII encoding. They 
 
 ## Sources and confidence
 
-- **Confidence:** high. Each kind comes from the entry type, load address and contents of every entry on the retail disc, and the text kinds decode and encode back to their own bytes for all payloads.
+- **Confidence:** high. Each type comes from the entry type, load address and contents of every entry on the retail disc, and the text types decode and encode back to their own bytes for all payloads.
 - **Evidence:** the type and load argument of every EMI entry, a table test over all 200 entries that load at `0x80010000`, string location in 831 payloads, and round-trip encoding of every payload and of every archive rebuilt from its tables.
 
 ## Related
 
-- [EMI container](../emi/): entry types and load arguments that select a kind.
+- [EMI container](../emi/): entry types and load arguments that select a type.
 - [Game text](../../data/text/): message-table layout, control codes and the counts on the disc.
-- [Disc and files](../disc/): the files and archives that hold the kinds.
-- [Converting game data](../conversion/): how each kind converts to and from open formats.
-- [Documentation coverage](../../appendix/coverage/): bytes understood per kind.
+- [Disc and files](../disc/): the files and archives that hold the types.
+- [Converting game data](../conversion/): how each type converts to and from open formats.
+- [Documentation coverage](../../appendix/coverage/): bytes understood per type.

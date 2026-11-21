@@ -7,7 +7,7 @@ Two PS-X executables, `SLUS_004.22` and `LOGO/LOGO.EXE`, and the boot file `SYST
 
 ## Files
 
-| Path                |        Size (bytes) |     LBA | Kind                                   | Read by                                 |
+| Path                |        Size (bytes) |     LBA | Type                                   | Read by                                 |
 | ------------------- | ------------------: | ------: | -------------------------------------- | --------------------------------------- |
 | `SYSTEM.CNF`        |                  70 | 187,467 | text, 4 `KEY = value` lines            | the BIOS (boot)                         |
 | `SLUS_004.22`       |           1,445,888 | 187,468 | PS-X EXE, resident game                | the BIOS, from `BOOT`                   |

@@ -3,7 +3,7 @@ title: "Converting game data"
 description: "Stored game bytes map to common interchange formats; a converted file is a view of the stored bytes and never replaces an EMI entry, a media sector stream or an executable."
 ---
 
-The stored bytes stay authoritative: a converted file is a view of them and never replaces an EMI entry, a media sector stream or an executable. This page gives the conversion map, the sector rules for writing a disc file back and the sound-bank conversion. Layouts are in the format pages, indexed in [asset kinds](../assets/#where-each-kind-is-described).
+The stored bytes stay authoritative: a converted file is a view of them and never replaces an EMI entry, a media sector stream or an executable. This page gives the conversion map, the sector rules for writing a disc file back and the sound-bank conversion. Layouts are in the format pages, indexed in [asset types](../assets/#where-each-type-is-described).
 
 ## Conversion map
 

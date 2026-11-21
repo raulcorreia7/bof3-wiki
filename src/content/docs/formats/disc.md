@@ -3,7 +3,7 @@ title: "Disc and files"
 description: "The US disc (SLUS-00422) holds 887 files in 18 directories: 880 EMI archives, 3 XA audio streams, 1 movie, 2 executables and the boot configuration."
 ---
 
-The US disc (`SLUS-00422`) holds 887 files in 18 directories: 880 EMI archives, 3 XA audio streams, 1 movie, 2 executables and the boot configuration. This page lists each directory and kind of file with its slot ids and sectors, and names the code that reads it and when. Archive loading is in [loading](../../concepts/loading/), the memory card in [saving](../../systems/saving/).
+The US disc (`SLUS-00422`) holds 887 files in 18 directories: 880 EMI archives, 3 XA audio streams, 1 movie, 2 executables and the boot configuration. This page lists each directory and type of file with its slot ids and sectors, and names the code that reads it and when. Archive loading is in [loading](../../concepts/loading/), the memory card in [saving](../../systems/saving/).
 
 ## Directories
 
@@ -35,9 +35,9 @@ Example: the title overlay loads from slot `0x262`, in the `/BIN/ETC` row (`0x25
 
 Track 1 holds 188,324 sectors, 188,111 of them in files ([coverage](../../appendix/coverage/#outside-the-887-files)).
 
-## File kinds
+## File types
 
-| Kind                                         | Files |       Bytes | Format                                       | Reader                                                                     |
+| Type                                         | Files |       Bytes | Format                                       | Reader                                                                     |
 | -------------------------------------------- | ----: | ----------: | -------------------------------------------- | -------------------------------------------------------------------------- |
 | EMI archive (`*.EMI`)                        |   880 | 259,745,792 | [EMI](../emi/)                               | `EMI_StartArchive (exe/slus_004_22@0x80162178)` and the loader steps below |
 | XA audio (`*.STR` under `BMAG_XA`, `SCE_XA`) |     3 | 121,569,280 | [STR and XA](../str/)                        | `SND_ResolveXAStream`, `SND_XaStateSeek`, `SND_XaStateRead`                |
@@ -69,11 +69,11 @@ A scenario overlay is at slot `scenario_id + 661` (`0x295` is the base: `SCENA00
 | `LOGO`              |     2 | `LOGO.EXE`, `CAPCOM30.STR`                                                                                                                                           | once, at boot                                          |
 | `/`                 |     2 | `SLUS_004.22`, `SYSTEM.CNF`                                                                                                                                          | the BIOS, at boot                                      |
 
-## Entry kinds
+## Entry types
 
-Counts of all 6,344 EMI entries (250,503,535 bytes) by [kind](../assets/) and directory family. The `text` kind (strings and message tables inside other kinds) and the `data-table` kind (tables inside `ETC/GAME.EMI` entry 0) are views of these entries and add no bytes. Example: `audio-bank` under `BGM` is 162 because the 81 music archives hold a VH and a VB each; their 3 cue tables are in `audio-cues`.
+Counts of all 6,344 EMI entries (250,503,535 bytes) by [type](../assets/) and directory family. The `text` type (strings and message tables inside other types) and the `data-table` type (tables inside `ETC/GAME.EMI` entry 0) are views of these entries and add no bytes. Example: `audio-bank` under `BGM` is 162 because the 81 music archives hold a VH and a VB each; their 3 cue tables are in `audio-cues`.
 
-| Kind                | BATTLE | BENEMY | BGM | BMAGIC | BOSS | BPLCHAR | ETC | PLCHAR | SCENARIO | WORLD00 | WORLD01 | WORLD02 | WORLD03 | WORLD04 | Entries |       Bytes |
+| Type                | BATTLE | BENEMY | BGM | BMAGIC | BOSS | BPLCHAR | ETC | PLCHAR | SCENARIO | WORLD00 | WORLD01 | WORLD02 | WORLD03 | WORLD04 | Entries |       Bytes |
 | ------------------- | -----: | -----: | --: | -----: | ---: | ------: | --: | -----: | -------: | ------: | ------: | ------: | ------: | ------: | ------: | ----------: |
 | `area-actor-defs`   |      - |      - |   - |      - |    - |       - |   - |      - |        - |      38 |      38 |      38 |      38 |      48 |     200 |      22,352 |
 | `area-cells`        |      - |      - |   - |      - |    - |       - |   - |      - |        - |      35 |      38 |      37 |      36 |      45 |     191 |     955,000 |
@@ -95,11 +95,11 @@ Counts of all 6,344 EMI entries (250,503,535 bytes) by [kind](../assets/) and di
 | `texture`           |     10 |      - |   - |     97 |   40 |       - |  36 |      - |        2 |      80 |      76 |      78 |      78 |      96 |     593 | 112,312,320 |
 | total               |     60 |    600 | 246 |    755 |  785 |     786 | 139 |     95 |       29 |     543 |     534 |     544 |     544 |     684 |   6,344 | 250,503,535 |
 
-## Readers by kind
+## Readers by type
 
 A bare function name is in `exe/slus_004_22`.
 
-| Kind                | Format                                                            | Reader (function, image, address)                                                                                                               | Read when                   |
+| Type                | Format                                                            | Reader (function, image, address)                                                                                                               | Read when                   |
 | ------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
 | `texture`           | [graphics](../graphics/)                                          | `EMI_LoadToVram (exe/slus_004_22@0x80162698)` and `EMI_UploadSectorImage (exe/slus_004_22@0x80163378)`: `LoadImage` of 32x32-word rectangles    | archive load, type 3        |
 | `unclassified`      | -                                                                 | -                                                                                                                                               | -                           | 3 | - | - | - | - | - | - | - | - | - | - | 3 | 104,772 |
@@ -113,7 +113,7 @@ A bare function name is in `exe/slus_004_22`.
 | `area-script`       | [area](../area/#0x800d3800-area-script-table)                     | `Actor_BeginScript (exe/slus_004_22@0x8014D6DC)`                                                                                                | actor activation            |
 | `area-actor-defs`   | [area](../area/#0x800e3800-scenestep-table)                       | `Area_FindSceneRecord (exe/slus_004_22@0x8014DD3C)`, `func_80167E00 (exe/slus_004_22@0x80167E00)`, `func_801ACE9C (emi/etc/game/00@0x801ACE9C)` | area entry                  |
 | `area-encounters`   | [area](../area/#0x800e4000-encounters-and-enemy-records)          | `Area_PickEncounter (emi/etc/game/00@0x801C6A7C)`, the encounter picker                                                                         | random encounter            |
-| `area-map`          | [area](../area/#0x80104000-map-bundle)                            | the area map engine ([runtime](../../data/programs/#map-kinds))                                                                                 | area draw                   |
+| `area-map`          | [area](../area/#0x80104000-map-bundle)                            | the area map engine ([runtime](../../data/programs/#map-types))                                                                                 | area draw                   |
 | `area-module`       | [area](../area/#0x80117000-auxiliary-module-window)               | consumers not identified `[unknown]`                                                                                                            | area entry                  |
 | `battle-script`     | [EMI](../emi/#open-questions)                                     | `func_800AD26C (emi/battle/battle/15@0x800AD26C)`                                                                                               | battle                      |
 | `resource-table`    | [text](../../data/text/)                                          | `Message_GetText (exe/slus_004_22@0x801502D0)`                                                                                                  | any string lookup           |
@@ -142,13 +142,13 @@ Bytes by documentation level are in [coverage](../../appendix/coverage/).
 
 ## Sources and confidence
 
-- **Confidence:** high. Counts, sizes and slot ids are measured over all 887 files and 6,344 entries; some entry kinds have no known reader.
+- **Confidence:** high. Counts, sizes and slot ids are measured over all 887 files and 6,344 entries; some entry types have no known reader.
 - **Evidence:** the ISO9660 directory records, the disc file table, every archive's table of contents, and the functions named above.
 
 ## Related
 
 - [EMI container](../emi/): the archive layout and the loader chain.
 - [Executables and boot files](../exe/): the disc file table that maps slot ids to sectors.
-- [Asset kinds](../assets/): what each entry kind holds.
+- [Asset types](../assets/): what each entry type holds.
 - [Loading](../../concepts/loading/): when archives load.
 - [Game version](../../appendix/version/): the release and Redump checksums.

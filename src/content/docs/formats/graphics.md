@@ -139,7 +139,7 @@ Every VRAM word keeps the archive entry that wrote it, and a palette word the en
 
 ### Pairing
 
-A rule names a page and a CLUT row; the replay says what wrote them. The texture is the upload that wrote the page's first word. The palette is the one entry that wrote the whole row, 16 words at 4bpp and 256 at 8bpp. A row with words from two entries, or none, is not paired; no palette is guessed. Two kinds of rule name a page and a row:
+A rule names a page and a CLUT row; the replay says what wrote them. The texture is the upload that wrote the page's first word. The palette is the one entry that wrote the whole row, 16 words at 4bpp and 256 at 8bpp. A row with words from two entries, or none, is not paired; no palette is guessed. Two types of rule name a page and a row:
 
 - A draw site with a literal page and CLUT in one function. `WORLD00/AREA024.EMI#14` writes the page `0x003B` and the CLUT `0x78CA`; in the `AREA024` scene the page is written by entry 7 and the row `(160, 483)` by entry 8.
 - The tile descriptor word read by `func_80155560 (exe/slus_004_22@0x80155560)`, which every area map bundle uses, walked area and world map alike. Bit 31 selects the depth, bits 24 to 27 the CLUT index and bits 28 to 29 the page selector. An 8bpp descriptor (`bit 31 = 0`) reads CLUT row `(0, 483 + index)`. A 4bpp descriptor reads `(16 * index, 483)`. Both use page `(320 + 128 * page, 256)`. Empty descriptors name nothing. The rule also reads the patch words that `func_801576FC (exe/slus_004_22@0x801576FC)` swaps in. Rows 485 and 487 in `AREA024` come from rare tile descriptors, not from an off-by-one with rows 486 and 488. [Area](../area/#terrain-mesh) describes the descriptor.

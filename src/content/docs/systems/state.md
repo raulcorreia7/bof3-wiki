@@ -19,7 +19,7 @@ Offsets in the table are block-relative. The save-file frame adds `0x200` ([game
 | `+0x13`  | `0x801448EB` |     3 | `u8[3]`              | `D_801448EB`, `EC`, `ED`    | scene-event state bytes                                      |
 | `+0x20`  | `0x801448F8` |     4 | `u8[4]`              | -                           | four script variable bytes from `0x80146864` to `0x80146867` |
 | `+0x24`  | `0x801448FC` |     2 | `u16`                | -                           | area id, copied from `g_GameAreaId`                          |
-| `+0x27`  | `0x801448FF` |     1 | `u8` `[inferred]`    | -                           | entry kind byte, from `D_80145E98` `[inferred]`              |
+| `+0x27`  | `0x801448FF` |     1 | `u8` `[inferred]`    | -                           | entry type byte, from `D_80145E98` `[inferred]`              |
 | `+0x28`  | `0x80144900` |     8 | `s32[2]`             | -                           | two position words, from `D_80145EC4` and `D_80145EC8`       |
 | `+0x79`  | `0x80144951` |     1 | `u8`                 | -                           | stereo or mono sound flag, read by `SAVE_RunLoadVerify`      |
 | `+0x7A`  | `0x80144952` |     2 | `u8[2]` `[inferred]` | `D_80144952`, `53`          | window style and palette bytes `[inferred]`                  |
