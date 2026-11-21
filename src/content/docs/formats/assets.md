@@ -3,7 +3,7 @@ title: "Asset kinds"
 description: "Every EMI entry on the disc belongs to one kind, a name this wiki gives to a class of disc content, chosen from the entry type, the load address and the contents."
 ---
 
-Every EMI entry on the disc belongs to one kind: a name this wiki gives to a class of disc content, chosen from the entry type, the load address and the contents ([glossary](../../appendix/glossary/#disc-and-containers)). This page maps each kind to the page that describes it. It also holds the message-table and game-string kinds, which have no format page of their own. Per-kind sizes are in [coverage](../../appendix/coverage/).
+Every EMI entry on the disc belongs to one kind, a name for a class of disc content chosen from the entry type, load address and contents ([glossary](../../appendix/glossary/#disc-and-containers)). This page maps each kind to its page and describes the message-table and game-string kinds, which have no page of their own. Per-kind sizes are in [coverage](../../appendix/coverage/).
 
 ## Where each kind is described
 
@@ -35,32 +35,32 @@ The `reserve` kind is zero fill with no consumer: 44 character-sprites fillers o
 
 ## Message tables
 
-The dialogue is in message tables, the `0x80010000` payloads of the area archives. A table decodes to text and encodes back to its own bytes. [Game text](../../data/text/#message-table) owns the table layout, the test for a table and for a text table, and the counts on the disc.
+Dialogue is in message tables, the `0x80010000` payloads of the area archives. A table decodes to text and encodes back to its own bytes. [Game text](../../data/text/#message-table) owns the table layout, the table tests and the counts on the disc.
 
-- **Slots.** A slot is its message's index, or none for the end of the table. A message runs to the next distinct offset, and the slots past the last message point at the end of the table. The table is the table, then the messages in offset order.
-- **Text.** Control codes are `{TAG}`. A code with one operand byte is `{TAG:hh}`. A byte with no established meaning is `{RAW:hh}`. Letters and digits are ASCII. The fullwidth `，` and `：` are the high slots `0x8D` and `0x8F`. The codes and their evidence are in [text control codes](../../data/text/#control-codes).
-- **Name fields.** A name field uses the same codes, with `{END}` as the only single-byte code. The C strings of an executable use plain ASCII with `{TAB}`, `{NEWLINE}` and `{CR}`.
+- **Slots.** A slot is its message's index, or none for the end of the table. A message runs to the next distinct offset; slots past the last message point at the end of the table. The table is the slot table, then the messages in offset order.
+- **Text.** Control codes are `{TAG}`; a code with one operand byte is `{TAG:hh}`; a byte with no established meaning is `{RAW:hh}`. Letters and digits are ASCII. The fullwidth `，` and `：` are the high slots `0x8D` and `0x8F`. Codes and evidence are in [text control codes](../../data/text/#control-codes).
+- **Name fields.** They use the same codes, with `{END}` as the only single-byte code. The C strings of an executable use plain ASCII with `{TAB}`, `{NEWLINE}` and `{CR}`.
 - **Not text.** A payload that is not a table has no message form. An unknown tag, an operand that is not one byte, a character the encoding lacks and an empty message have no encoding.
 
 Every text table and every message of one encodes back to its own bytes, and every archive rebuilt from its tables reads back unchanged.
 
 :::caution
-Rewriting a table changes the slot table and the messages only. A message that changes length moves every message after it, so any other offset that points into the table is stale afterwards. `{LINK:nn}` reads such an offset ([control codes](../../data/text/#control-codes)). Check an edited table in the game before it ships.
+Rewriting a table changes the slot table and the messages only. A message that changes length moves every message after it, so any other offset into the table goes stale. `{LINK:nn}` reads such an offset ([control codes](../../data/text/#control-codes)). Check an edited table in the game.
 :::
 
 ## Game strings
 
-The strings outside text tables sit in the other payloads. The names in the game tables and the enemy records are fixed-width fields, and every other string is a record that ends at its terminator or where the pointer table that reaches it begins. A pointer table is two consecutive words that point inside the payload, and only a payload with a load address (types 0 to 2 in the RAM window) has one.
+Strings outside text tables sit in the other payloads. Names in the game tables and enemy records are fixed-width fields; every other string is a record that ends at its terminator or where the pointer table that reaches it begins. A pointer table is two consecutive words that point inside the payload, and only a payload with a load address (types 0 to 2 in the RAM window) has one.
 
-On the retail disc 831 payloads hold strings, 43,593 in all. 165 are text tables with 10,510 messages, and 666 are other payloads with 33,083 strings. A string is located by its offset and length, and a name also has a stride. The bytes between strings are not text.
+On the retail disc 831 payloads hold 43,593 strings: 165 text tables with 10,510 messages, and 666 other payloads with 33,083 strings. A string is located by offset and length, a name also by stride. The bytes between strings are not text.
 
-- A name must fit its own field. A shorter name is padded with zeros, so the records after it keep their offsets.
-- A record may change length, but a payload that holds a pointer to it does not follow the change.
-- A record that overlaps a name or another record is left out, and the name wins. 19 of the 33,102 strings outside message tables overlap (1 name and 18 records, in 14 payloads), which leaves the 33,083.
+- A name must fit its field. A shorter name is zero-padded, so later records keep their offsets.
+- A record may change length, but a payload that points to it does not follow.
+- A record that overlaps a name or another record is left out, and the name wins. 19 of the 33,102 strings outside message tables overlap (1 name and 18 records, in 14 payloads), leaving the 33,083.
 - All 2,523 payloads that are not message tables decode and encode back to their own bytes, 666 of them with strings.
 
 :::caution
-A record that changes length moves the bytes after it. A pointer table that reaches those bytes is stale afterwards. Check an edited payload in the game before it ships.
+A record that changes length moves the bytes after it, and a pointer table that reaches them goes stale. Check an edited payload in the game.
 :::
 
 The executables hold 167 C string literals, which need the ASCII encoding. They are not in the 33,083.

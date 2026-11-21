@@ -3,29 +3,29 @@ title: "Audio formats"
 description: "Breath of Fire III stores music and sound effects as PsyQ sound banks (VAB), sound-effect cue tables and music sequence packages (SEP), and it streams voice lines and long effects as XA ADPCM."
 ---
 
-Breath of Fire III stores music and sound effects as PsyQ sound banks (VAB), sound-effect cue tables and music sequence packages (SEP), and it streams voice lines and long effects as XA ADPCM. This page gives the byte layouts of the three bank and sequence kinds and the format of an XA sound group. The sector layout of the stream files is in [STR and XA playback](../str/), the runtime that requests and schedules sound is in [Audio system](../../systems/audio/), and the loader chain is in [EMI container](../emi/#loader-chain).
+Breath of Fire III stores music and sound effects as PsyQ sound banks (VAB), sound-effect cue tables and music sequence packages (SEP), and it streams voice lines and long effects as XA ADPCM. This page gives the byte layouts of the bank and sequence kinds and the XA sound group. The stream sector layout is in [STR and XA playback](../str/), the runtime in [Audio system](../../systems/audio/), the loader chain in [EMI container](../emi/#loader-chain).
 
 ## Content on disc
 
-The game plays sound by two routes. Voice lines, magic effects and the logo soundtrack stream from the disc as XA ADPCM through the CD hardware. Music and sound effects are synthesized on the SPU by the PsyQ `libsnd` and `libspu` runtime from three kinds of data: a sound bank (VAB), sound-effect cue tables and music sequences (SEP).
+Sound plays by two routes. Voice lines, magic effects and the logo soundtrack stream from the disc as XA ADPCM through the CD hardware. Music and sound effects are synthesized on the SPU by the PsyQ `libsnd` and `libspu` runtime from sound banks (VAB), sound-effect cue tables and music sequences (SEP).
 
-Each `BIN/BGM/BGMxxx.EMI` is a bank plus a sequence package: type 6 is the VAB header (VH), type 7 the VAB body (VB) and type 10 the SEP package. The named tracks are `BGMOPN`, `BGMEND`, `BGMSPC` and `BGMBAT00` to `BGMBAT06`. The rest are numbered `BGM000` to `BGM197`, some with `A` and `B` variants. The disc holds 81 BGM archives, 2,040 type-6 and type-7 entries (1,020 pairs), 904 type-8 cue tables and 119 type-10 packages. Sound banks also appear in the area, enemy, boss, battle and character archives ([EMI](../emi/#entry-types)).
+Each `BIN/BGM/BGMxxx.EMI` is a bank plus a sequence package: type 6 is the VAB header (VH), type 7 the VAB body (VB), type 10 the SEP package. The named tracks are `BGMOPN`, `BGMEND`, `BGMSPC` and `BGMBAT00` to `BGMBAT06`; the rest are `BGM000` to `BGM197`, some with `A` and `B` variants. The disc holds 81 BGM archives, 2,040 type-6 and type-7 entries (1,020 pairs), 904 type-8 cue tables and 119 type-10 packages. Banks also appear in the area, enemy, boss, battle and character archives ([EMI](../emi/#entry-types)).
 
 ## XA ADPCM
 
-An XA audio sector holds 18 sound groups of 128 bytes in its 2,324-byte payload. [STR and XA playback](../str/#sector-layout) describes the rest of the sector and the stream files. The subheader byte `coding` has bit 0 for stereo (1) or mono (0), and bit 2 for 18,900 Hz (1) or 37,800 Hz (0). The game uses `0x00` (mono, 37,800 Hz) and `0x01` (stereo, 37,800 Hz). The `channel` field separates interleaved streams. The last sector of a channel (submode bit `0x80`) is valid audio.
+An XA audio sector holds 18 sound groups of 128 bytes in its 2,324-byte payload ([sector layout](../str/#sector-layout)). The subheader byte `coding` has bit 0 for stereo (1) or mono (0), and bit 2 for 18,900 Hz (1) or 37,800 Hz (0). The game uses `0x00` (mono, 37,800 Hz) and `0x01` (stereo, 37,800 Hz). The `channel` field separates interleaved streams. The last sector of a channel (submode bit `0x80`) is valid audio.
 
-A 128-byte sound group holds 16 parameter bytes, then 28 data words of 4 bytes. The group carries eight sound units of 28 samples each, and every unit has its own parameter byte. Bytes 4 to 11 are the parameters of units 0 to 7. Bytes 0 to 3 copy bytes 4 to 7, and bytes 12 to 15 copy bytes 8 to 11. In each parameter byte, bits 0 to 3 are `shift` and bits 4 to 5 are `filter`, so one group can change its pair up to eight times. Sample *j* of unit *u* is in data word *j*, byte `u / 2`: the low nibble for an even unit and the high nibble for an odd unit. A mono group plays units 0 to 7 in order, which gives 224 samples. A stereo group sends the even units to the left channel and the odd units to the right, which gives 112 samples per channel.
+A 128-byte sound group holds 16 parameter bytes, then 28 data words of 4 bytes: eight sound units of 28 samples, each with its own parameter byte. Bytes 4 to 11 are the parameters of units 0 to 7; bytes 0 to 3 copy bytes 4 to 7 and bytes 12 to 15 copy bytes 8 to 11. In each parameter byte, bits 0 to 3 are `shift` and bits 4 to 5 are `filter`, so a group can change its pair up to eight times. Sample *j* of unit *u* is in data word *j*, byte `u / 2`: the low nibble for an even unit, the high nibble for an odd one. A mono group plays units 0 to 7 in order (224 samples). A stereo group sends even units to the left channel and odd units to the right (112 samples per channel).
 
 ## VAB bank
 
-A VAB is the PsyQ sound bank: a header (VH) that describes programs and tones, and a body (VB) that holds the samples. The loader loads them as two EMI entries (types 6 and 7) that share their load argument, in all 1,020 pairs. The header field `fsize` equals `len(VH) + len(VB)` in all 1,020 banks.
+A VAB is the PsyQ sound bank: a header (VH) describing programs and tones, and a body (VB) holding the samples. They load as two EMI entries (types 6 and 7) that share their load argument, in all 1,020 pairs. `fsize` equals `len(VH) + len(VB)` in all 1,020 banks.
 
-A program is an instrument. It owns one or more tones, and each tone maps a note range to one sample (a VAG) with volume, pan, pitch and envelope settings. A game or a sequence picks a program, and a note then selects the tones whose range contains it.
+A program is an instrument. It owns one or more tones; each tone maps a note range to one sample (a VAG) with volume, pan, pitch and envelope settings. A sequence picks a program, and a note selects the tones whose range contains it.
 
 ### `VabHdr`
 
-The 32-byte PsyQ `VabHdr` opens the file.
+The 32-byte PsyQ `VabHdr` opens the file:
 
 | Offset | Size | Type    | Name        | Meaning                                    |
 | -----: | ---: | ------- | ----------- | ------------------------------------------ |
@@ -65,7 +65,7 @@ Source: [`include/psyq/libsnd.h`](https://github.com/raulcorreia7/bof3-decomp/bl
 
 ### Bank layout
 
-The header is followed by the program table, the tone table and the VAG size table. The tone table length depends on `ps`.
+The header is followed by the program table, tone table and VAG size table. The tone table length depends on `ps`.
 
 | Region         |           Position |                                Size |
 | -------------- | -----------------: | ----------------------------------: |
@@ -76,13 +76,13 @@ The header is followed by the program table, the tone table and the VAG size tab
 
 `len(VH) == 0x820 + ps*0x200 + 0x200` in all 1,020 banks. `SsVabOpenHeadWithMode (exe/slus_004_22@0x80173CB0)` in the linked library places the tone table at `VH + 0x20 + limit*16`, where the limit is a fixed 128 records (64 below version 5). It rejects a `ps` above that limit and places the size table at `tone table + ps*0x200`.
 
-**Program table.** The table always has 128 records. `ps` counts the records whose `tones` byte is nonzero, not the table length. The `tones` bytes of those records sum to `ts` (1,020 of 1,020). Their indices are the playable program numbers, and they may run past `ps`. The linked code walks all 128 records and writes the running count of nonzero-`tones` records into `ProgAtr.reserved1`. That count is the tone block that the program's notes select.
+**Program table.** Always 128 records. `ps` counts the records whose `tones` byte is nonzero, not the table length. Those `tones` bytes sum to `ts` (1,020 of 1,020). Their indices are the playable program numbers and may run past `ps`. The linked code walks all 128 records and writes the running count of nonzero-`tones` records into `ProgAtr.reserved1`; that count is the tone block the program's notes select.
 
-**Tone table.** The table has `ps` blocks of 16 slots, one block per playable record, packed in record order. Block *b* belongs to the *b*-th record with `tones != 0` (1,020 of 1,020). A slot is live when its `vag` field is nonzero. The live slots of a block are its first `tones` slots (4,416 of 4,416 blocks), and every live slot's `prog` field names its own record's index (4,416 of 4,416). Slots past the live count are stale authoring bytes, and a writer must keep them unchanged. 35 of them carry a volume with no `vag`.
+**Tone table.** `ps` blocks of 16 slots, one per playable record, in record order. Block *b* belongs to the *b*-th record with `tones != 0` (1,020 of 1,020). A slot is live when its `vag` is nonzero. The live slots of a block are its first `tones` slots (4,416 of 4,416 blocks), and every live slot's `prog` names its own record's index (4,416 of 4,416). Slots past the live count are stale authoring bytes that a writer must keep unchanged; 35 carry a volume with no `vag`.
 
-**VAG size table.** Unit 0 is 0, the null sample. Units 1 to `vs` add up to the body size: `sum(units[1..=vs]) * 8 == len(VB)` in all 1,020 banks, and every nonzero unit is a multiple of 16 bytes. Units past `vs` are stale in 180 headers. They are never read, and a writer keeps them unchanged. The linked code sums `vs + 1` units at 8 bytes per unit from version 5 on, stops at 256 units and rejects a body above 512 KiB.
+**VAG size table.** Unit 0 is 0, the null sample. Units 1 to `vs` add up to the body size: `sum(units[1..=vs]) * 8 == len(VB)` in all 1,020 banks, and every nonzero unit is a multiple of 16 bytes. Units past `vs` are stale in 180 headers, never read; a writer keeps them unchanged. The linked code sums `vs + 1` units at 8 bytes per unit from version 5 on, stops at 256 units and rejects a body above 512 KiB.
 
-**Body.** Each VAG's range starts where the previous range ended. The first 16 bytes of the body are zero in all 1,020 banks: this is the null sample's block header, which the game transfers and plays rather than strips. The second byte of each 16-byte ADPCM block holds the shape flags. Bit 2 marks the loop-return block, bit 0 ends the sample, and bit 1 on the end block makes the marked block the loop start. All 8,330 non-empty ranges set the end flag, and 938 of them also loop. A one-pass decode is the number of blocks up to the end flag, times 28 samples. The loop window runs from the loop-start block through the block after the end block, times 28.
+**Body.** Each VAG's range starts where the previous range ended. The first 16 bytes of the body are zero in all 1,020 banks: the null sample's block header, which the game transfers and plays rather than strips. The second byte of each 16-byte ADPCM block holds the shape flags. Bit 2 marks the loop-return block, bit 0 ends the sample, and bit 1 on the end block makes the marked block the loop start. All 8,330 non-empty ranges set the end flag, and 938 of them also loop. A one-pass decode is the number of blocks up to the end flag, times 28 samples. The loop window runs from the loop-start block through the block after the end block, times 28.
 
 ### `VagAtr`
 
@@ -139,7 +139,7 @@ typedef struct VagAtr {
 
 Source: [`include/psyq/libsnd.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/psyq/libsnd.h)
 
-The pitch-bend range is tone-local. Several fields never vary on the disc: `VabHdr.id`, `attr1` and `attr2` are 0 in all 1,020 banks. `reserved0` is `0xEEEE` and `reserved1` is `0xFFFFFFFF`. `ProgAtr.attr` is 0 in the 4,416 playable records. `VagAtr.vibW`, `vibT`, `porW` and `porT` are 0 in all 70,656 slots.
+The pitch-bend range is tone-local. Constant on the disc: `ProgAtr.attr` is 0 in the 4,416 playable records, and `VagAtr.vibW`, `vibT`, `porW` and `porT` are 0 in all 70,656 slots.
 
 ### Playback
 
@@ -149,7 +149,7 @@ A note-on uses `fine = 0`: `_SsNoteOn`, `_SsVmKeyOn` and `_SsVmSelectToneAndVag`
 
 ## EMI type-8 cue records
 
-A type-8 entry is one bank's cue table for sound effects. It is a list of 4-byte records. Each record names an SPU voice, a VAB program and a tone. The loader copies the payload into a fixed chunk, and the dispatcher `SND_PlayCue (exe/slus_004_22@0x8015DF18)` turns one record into `SsUtKeyOnV` and `SsUtSetDetVVol` calls. A cue id names a record by bank and index.
+A type-8 entry is one bank's sound-effect cue table: a list of 4-byte records, each naming an SPU voice, a VAB program and a tone. The loader copies the payload into a fixed chunk, and `SND_PlayCue (exe/slus_004_22@0x8015DF18)` turns a record into `SsUtKeyOnV` and `SsUtSetDetVVol` calls.
 
 | Item   | Value                                                                                                                     |
 | ------ | ------------------------------------------------------------------------------------------------------------------------- |
@@ -159,7 +159,7 @@ A type-8 entry is one bank's cue table for sound effects. It is a list of 4-byte
 | Reader | `g_SndCueReaders[bank]`: `0x8015E994`, `0x8015EFAC`, `0x8015F5C8`, `0x8015FBE4`, `0x80160200`, `0x8016081C`, `0x80160E38` |
 | Cue id | `(bank << 8) \| record_index`; `SND_PlayCue` splits it into `(cue_id >> 8) & 0xF` and `cue_id & 0xFF`                     |
 
-[EMI load argument](../emi/#load-argument) lists the bank selectors by archive kind. A record packs these fields into its 4 bytes:
+[EMI load argument](../emi/#load-argument) lists the bank selectors by archive kind. Record fields:
 
 | Offset | Bits   | Type | Name             | Meaning                                                                                                                                        |
 | -----: | ------ | ---: | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -184,7 +184,7 @@ typedef struct EMICue {
 
 Source: [`include/audio/cue.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/audio/cue.h)
 
-To set up a voice, the reader indexes the bank's VAB header at `0x820 + 512*program + 32*tone` and copies `VagAtr` bytes 2 (volume), 3 (pan), 5 (pitch tune) and 6 (min note) into voice state. It keys the base voice with `note = min note` and `fine = pitch tune`, plus `layers` extra voices on `voice + n` with tone slot `tone + n`. Tone volume and pan become SPU volumes only in the layered paths, as `vol * (128 - pan) / 128` and `vol * pan / 128`. The record has no envelope, so `adsr1` and `adsr2` come from the `VagAtr`.
+The reader indexes the bank's VAB header at `0x820 + 512*program + 32*tone` and copies `VagAtr` bytes 2 (volume), 3 (pan), 5 (pitch tune) and 6 (min note) into voice state. It keys the base voice with `note = min note` and `fine = pitch tune`, plus `layers` extra voices on `voice + n` with tone slot `tone + n`. Tone volume and pan become SPU volumes only in the layered paths, as `vol * (128 - pan) / 128` and `vol * pan / 128`. `adsr1` and `adsr2` come from the `VagAtr`; the record has no envelope.
 
 Record checks:
 
@@ -195,13 +195,13 @@ Record checks:
 
 ### Program offset quirk
 
-The seven reader routines (`0x8015E994` and its six twins) compute the tone offset as `0x820 + g_VabToneOffsets[tone] + g_VabProgramOffsets[program]`. `g_VabToneOffsets (exe/slus_004_22@0x801821E8)` holds `32 * n`, and `g_VabProgramOffsets (exe/slus_004_22@0x801821E0)` holds four halfwords `{0, 512, 1024, 0}`. The readers index that table with the record's program, 0 to 7, so programs 4 to 7 read past it into the first tone-table halfwords. Program 3 reads 0, and programs 4 to 7 read 0, 32, 64 and 96.
+The seven readers (`0x8015E994` and its six twins) compute the tone offset as `0x820 + g_VabToneOffsets[tone] + g_VabProgramOffsets[program]`. `g_VabToneOffsets (exe/slus_004_22@0x801821E8)` holds `32 * n`, and `g_VabProgramOffsets (exe/slus_004_22@0x801821E0)` holds four halfwords `{0, 512, 1024, 0}`. The readers index that table with the record's program, 0 to 7, so programs 4 to 7 read past it into the first tone-table halfwords. Program 3 reads 0; programs 4 to 7 read 0, 32, 64 and 96.
 
-This hits 1,248 records, all in bank 6 with programs 3 to 7 (the 200 `BIN/BENEMY` banks). They read attributes from a different slot than the record names. The other 7,360 records agree with the table. This is how the shipped engine behaves, not what the record means.
+This hits 1,248 records, all in bank 6 with programs 3 to 7 (the 200 `BIN/BENEMY` banks), which read attributes from a different slot than the record names. The other 7,360 records agree with the table. This is the shipped engine's behavior, not what the record means.
 
 ## SEP package
 
-The disc list labels type 10 "SEQ", but the container is SEP, a sequence package. All 119 packages hold exactly 4 sequences: 81 in `BIN/BGM`, 35 in `BIN/BOSS`, 2 in `BIN/BATTLE` and 1 in `BIN/ETC`.
+The disc list labels type 10 "SEQ"; the container is SEP, a sequence package. All 119 packages hold exactly 4 sequences: 81 in `BIN/BGM`, 35 in `BIN/BOSS`, 2 in `BIN/BATTLE` and 1 in `BIN/ETC`.
 
 The file header is 6 bytes: the magic `70 51 45 53` (`pQES` in file order, `SEQp` as a little-endian word) and a `u16` big-endian version, 0. A 13-byte header opens each sequence.
 
@@ -230,7 +230,7 @@ typedef struct SepSequenceHeader {
 
 Source: [`include/audio/sep.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/audio/sep.h)
 
-The headers and payloads tile the package exactly in all 119 packages. Each payload is a stream of MIDI-like events: variable-length delta times, running status, note on and off, program change, control change and pitch bend. Only the tempo and end-of-track events are meta events, and meta events carry a Standard MIDI File length. The end-of-track event is `FF 2F 00` and it closes all 476 sequences. No sequence contains a tempo meta event, so the tempo is the header field. A pitch-bend event has two MIDI data bytes. The linked renderer uses the second as the 7-bit coarse value, centered at 64, and ignores the first.
+Headers and payloads tile each of the 119 packages exactly. A payload is a stream of MIDI-like events: variable-length delta times, running status, note on and off, program change, control change and pitch bend. Only tempo and end-of-track are meta events, with a Standard MIDI File length. End-of-track is `FF 2F 00` and closes all 476 sequences. No sequence contains a tempo meta event, so the tempo is the header field. A pitch-bend event has two MIDI data bytes; the linked renderer uses the second as the 7-bit coarse value, centered at 64, and ignores the first.
 
 The control changes include NRPN-style extensions: loop start (20), loop end (30) and VAB attribute control. The select pairs seen are CC 99 (934 events), CC 98 (186) and CC 6 (282).
 
@@ -245,8 +245,6 @@ Over the 476 sequences (508,471 events):
 
 ## Sound control
 
-The main executable has these entry points for sound:
-
 |      Address | Function                | Role                                                                             |
 | -----------: | ----------------------- | -------------------------------------------------------------------------------- |
 | `0x8015CEBC` | `SND_Exit`              | all-key-off, close active VAB ids, release seven slots, disable reverb           |
@@ -256,7 +254,7 @@ The main executable has these entry points for sound:
 | `0x80161C20` | `SND_PlayBgm`           | start the selected BGM cue and record its id in `g_SndBgmId`                     |
 | `0x80161CD0` | `SND_FadeOutBgm`        | fade out the selected BGM cue                                                    |
 
-All are in `exe/slus_004_22`. `SND_Exit` is not the music scheduler or the bootstrap entry. A standalone player must reproduce the tables that the EMI loader fills before it calls the cue-start path.
+All are in `exe/slus_004_22`. `SND_Exit` is neither the music scheduler nor the bootstrap entry. A standalone player must reproduce the tables the EMI loader fills before it calls the cue-start path.
 
 ## Open questions
 
@@ -267,8 +265,8 @@ All are in `exe/slus_004_22`. `SND_Exit` is not the music scheduler or the boots
 
 ## Sources and confidence
 
-- **Confidence:** medium. The VAB, cue-record and SEP layouts are read from the code and checked on every instance, but two cue-record fields have no known role and a standalone player's tables are not traced.
-- **Evidence:** the linked PsyQ 3.7 `libsnd` structures and routines, the seven cue-reader routines and `SND_PlayCue`, and checks over all 1,020 banks, 904 cue tables and 119 SEP packages. The SPU hardware model (ADPCM, ADSR, interpolation, reverb) follows [psx-spx](https://psx-spx.consoledev.net/soundprocessingunitspu/) ([sources](../../appendix/sources/)). The XA sound-group layout follows the psx-spx [XA ADPCM section](https://psx-spx.consoledev.net/cdromformat/) (header bytes and `decode_28_nibbles`).
+- **Confidence:** medium. The VAB, cue-record and SEP layouts are checked on every instance; two cue-record fields have no known role and a standalone player's tables are not traced.
+- **Evidence:** the linked PsyQ 3.7 `libsnd` structures and routines, the seven cue readers and `SND_PlayCue`, and checks over all 1,020 banks, 904 cue tables and 119 SEP packages. The SPU model (ADPCM, ADSR, interpolation, reverb) follows [psx-spx](https://psx-spx.consoledev.net/soundprocessingunitspu/) ([sources](../../appendix/sources/)); the XA sound group follows the psx-spx [XA ADPCM section](https://psx-spx.consoledev.net/cdromformat/).
 
 ## Related
 

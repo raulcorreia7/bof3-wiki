@@ -3,11 +3,9 @@ title: "EMI container"
 description: "An EMI archive is a 16-byte header, a table of contents (TOC) and payloads that each start on a CD sector boundary (2,048 bytes)."
 ---
 
-An EMI archive is a 16-byte header, a table of contents (TOC) and payloads that each start on a CD sector boundary (2,048 bytes). Each TOC row gives a payload size, a type and a load argument, and the type tells the loader to copy the payload to RAM, decompress it, upload it to VRAM or hand it to the sound system. The 880 archives on the US disc hold almost all game data, in 6,344 entries. The archive does not say what a payload means, because that depends on the archive family and the slot, and the payload formats are on their own pages.
+An EMI archive is a 16-byte header, a table of contents (TOC) and payloads that each start on a CD sector boundary (2,048 bytes). Each TOC row gives a payload size, a type and a load argument; the type tells the loader to copy the payload to RAM, decompress it, upload it to VRAM or hand it to the sound system. The 880 archives on the US disc hold almost all game data, in 6,344 entries. What a payload means depends on the archive family and slot; payload formats have their own pages.
 
 ## Header
-
-All 880 archives share one 16-byte header.
 
 | Offset | Size | Type      | Meaning                             |
 | -----: | ---: | --------- | ----------------------------------- |
@@ -27,7 +25,7 @@ Source: [`include/sys/emi.h`](https://github.com/raulcorreia7/bof3-decomp/blob/m
 
 ## TOC entry
 
-One 16-byte row per entry follows the header, starting at `0x10`.
+One 16-byte row per entry follows the header from `0x10`.
 
 | Offset | Size | Type  | Meaning                                                                  |
 | -----: | ---: | ----- | ------------------------------------------------------------------------ |
@@ -49,19 +47,19 @@ typedef struct EMITocEntry {
 
 Source: [`include/sys/emi.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/sys/emi.h)
 
-The first payload starts at `0x800`. Each later payload starts at the next sector boundary after the previous one:
+The first payload starts at `0x800`; each later one at the next sector boundary after the previous:
 
 ```text
 next payload offset = current offset + size rounded up to a multiple of 0x800
 ```
 
-The last payload ends exactly at the end of the file, so no archive has a trailing sector.
+The last payload ends exactly at the end of the file.
 
-For example, a TOC row with size 1,160, load argument `0x800E4000` and type `0` describes a 1,160-byte block that the type-0 handler copies to RAM address `0x800E4000`. It takes one sector, so the next payload starts 2,048 bytes after it.
+Example: a row with size 1,160, load argument `0x800E4000` and type `0` is a 1,160-byte block copied to RAM `0x800E4000`. It takes one sector, so the next payload starts 2,048 bytes later.
 
 ### Padding
 
-Padding bytes have fixed values, so a rebuilt archive can match the original byte for byte.
+Fixed fill values let a rebuilt archive match the original byte for byte.
 
 | Region                                      | Fill     |
 | ------------------------------------------- | -------- |
@@ -73,7 +71,7 @@ Over the whole disc this is 1,686,656 bytes of `0x2E` TOC fill and 7,440,017 byt
 
 ## Entry types
 
-The type is a loader command. Types 4 and 5 never appear in a TOC (0 of 6,344 rows). They are internal loader states, and `g_EmiEntryHandlers` points both at `EMI_ReadToc`. Types 2 and 9 have a handler, but no entry uses them on this disc.
+The type is a loader command. Types 4 and 5 never appear in a TOC (0 of 6,344 rows); they are internal loader states, and `g_EmiEntryHandlers` points both at `EMI_ReadToc`. Types 2 and 9 have a handler, but no entry uses them.
 
 | Type | Loader treatment                                                 | Entries | Payload bytes | Note                                                 |
 | ---: | ---------------------------------------------------------------- | ------: | ------------: | ---------------------------------------------------- |
@@ -87,11 +85,11 @@ The type is a loader command. Types 4 and 5 never appear in a TOC (0 of 6,344 ro
 |  `9` | sequence copy                                                    |       0 |             - |                                                      |
 | `10` | sequence copy (SEP package)                                      |     119 |     1,836,303 | every package starts `pQES`                          |
 
-The `Note` classes for type 0 are estimates. A type-0 entry counts as code only when its archive, slot, bytes, load address and disassembly agree. The 527 code-bearing entries resolve to 405 distinct images.
+The type-0 `Note` classes are estimates. An entry counts as code only when its archive, slot, bytes, load address and disassembly agree. The 527 code-bearing entries resolve to 405 distinct images.
 
 ### Load argument
 
-The load argument at TOC `+0x04` is not always a CPU address.
+TOC `+0x04` is not always a CPU address.
 
 |      Type | Interpretation                                                                |
 | --------: | ----------------------------------------------------------------------------- |
@@ -114,9 +112,9 @@ A BOSS archive loads banks 0, 1, 2 and 6 together. [Audio](../audio/) explains w
 
 ## Disc slot ids
 
-The game names an archive by its slot id, the archive's index in the disc file list. `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` takes the slot id and reads the start sector from `g_EmiSlotLbas[slot_id]`. For example, `0x261` is `FIRST.EMI` and `0x262` is `GAME.EMI`. The list is in ascending sector order, so each directory is one contiguous run of slots. [Disc and files](../disc/#directories) gives the slot range of each directory, and the [executable page](../exe/#the-disc-file-table) describes the table.
+The game names an archive by its slot id, its index in the disc file list. `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` reads the start sector from `g_EmiSlotLbas[slot_id]`. For example, `0x261` is `FIRST.EMI` and `0x262` is `GAME.EMI`. The list is in ascending sector order, so each directory is one contiguous run of slots ([Disc and files](../disc/#directories) gives the ranges; the [executable page](../exe/#the-disc-file-table) describes the table).
 
-The slot id is not the entry slot, which is the TOC index inside one archive. The table names the caller that picks the slot for each directory.
+The slot id is not the entry slot, the TOC index inside one archive. The caller that picks the slot, by directory:
 
 | Directory    | Caller that picks the slot                                                                                                                                                                                                                                                                                           |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -133,7 +131,7 @@ The slot id is not the entry slot, which is the TOC index inside one archive. Th
 | `SCE_XA`     | `SND_StartXAStream`, key kinds 0 and 2                                                                                                                                                                                                                                                                               |
 | `WORLD00-04` | `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)` and `Battle_ReloadAreaAudio (emi/battle/battle/03@0x801D7108)`: `area + 0x2AB`                                                                                                                                                                                          |
 
-`EMI_GetArchiveId (exe/slus_004_22@0x8016728C)` adds a family bias to the character index, for the four character families:
+`EMI_GetArchiveId (exe/slus_004_22@0x8016728C)` adds a family bias to the character index:
 
 | Family |    Bias | Archives      |
 | -----: | ------: | ------------- |
@@ -142,9 +140,9 @@ The slot id is not the entry slot, which is the TOC index inside one archive. Th
 |    `2` | `0x1EE` | `BPLUxxx`     |
 |    `3` | `0x27D` | `PLPxxx` code |
 
-The index is the party combination: the row of the 19-row table `D_80181B34` that lists the three characters the archive set holds ([party combinations](../../concepts/loading/#characters-and-the-party)). Combination 0 is `012` (young Ryu, young Nina, Garr), so family 0 gives slot `0x26A` (618, `PL012`), and slots 475, 494 and 637 are `BPLD012`, `BPLU012` and `PLP012`. Combination 12 is `349`: `PL349` is slot 630.
+The index is the party combination, a row of the 19-row table `D_80181B34` listing the three characters the archive set holds ([party combinations](../../concepts/loading/#characters-and-the-party)). Combination 0 is `012` (young Ryu, young Nina, Garr): family 0 gives slot `0x26A` (618, `PL012`), and slots 475, 494 and 637 are `BPLD012`, `BPLU012` and `PLP012`. Combination 12 is `349`: `PL349` is slot 630.
 
-`SND_StartXAStream (exe/slus_004_22@0x801636A0)` is not an EMI loader. It streams the three XA files with its own state machine ([STR and XA](../str/); their slot ids are in the [executable data](../exe/#other-executable-data)).
+`SND_StartXAStream (exe/slus_004_22@0x801636A0)` is not an EMI loader; it streams the three XA files with its own state machine ([STR and XA](../str/); slot ids in the [executable data](../exe/#other-executable-data)).
 
 ## Loader chain
 
@@ -163,24 +161,9 @@ Every archive read runs `EMI_LoadArchive`, `EMI_GetArchiveSector`, `EMI_StartArc
 
 All handlers sit in `exe/slus_004_22`.
 
-```mermaid
-flowchart LR
-    H["archive slot id,<br/>EMI_GetArchiveSector,<br/>header: MATH_TBL<br/>+ TOC"]
-    H -->|"TOC type 0"| R["EMI_Loader<br/>CopyPayload:<br/>RAM load argument"]
-    H -->|"type 1, 2"| Q["EMI_Loader<br/>QueuePayload:<br/>LZ77 stream + decode"]
-    H -->|"type 3"| G["EMI_Loader<br/>LoadGraphics:<br/>LoadImage 32x32"]
-    H -->|"type 6, 7, 8"| A["VAB header, body<br/>and cues by bank"]
-    H -->|"type 9, 10"| M["EMI_Loader<br/>LoadSequence:<br/>alternate destination"]
-    R --> C["code or data<br/>at its RAM address"]
-    Q --> C
-    G --> V["VRAM page"]
-    A --> B["audio bank<br/>record"]
-    M --> B
-```
-
 ## Archive shapes
 
-Archives of one family share a shape: the same entry types in the same slots. The shape fixes what each slot holds. Slot numbers in this section are TOC indexes. The table counts the entries of each type over the 880 archives of the family.
+Archives of one family share a shape: the same entry types in the same slots. Slot numbers here are TOC indexes.
 
 | Family                              | Archives | Shape                                                                                     | Entries by type                 |
 | ----------------------------------- | -------: | ----------------------------------------------------------------------------------------- | ------------------------------- |
@@ -203,13 +186,13 @@ A BPLCHAR archive has one of three shapes:
 | one-section bank |       75 | VAB triple and one type-0 section at one of five fixed addresses ([load arguments](../character/#load-arguments))     |
 | container only   |        2 | `BPLD349`, `BPLU349`: raw or LZ77 container                                                                           |
 
-The filler loads at `0x8003B800`, and the LZ77 container then overwrites it. Nothing reads it ([character](../character/#load-arguments) classes it `reserve`).
+The filler loads at `0x8003B800` and the LZ77 container overwrites it. Nothing reads it ([character](../character/#load-arguments) classes it `reserve`).
 
 A PLCHAR archive pair has two shapes. `PLxxx` is a VAB triple plus an LZ77 bank at `0x8003B800` (slot 3). `PLPxxx` is one type-0 code entry at `0x801CE400` (slot 0).
 
 ### Code overlays
 
-The first `u32` of every code payload is a module id, and the type-0 loader compares it with the TOC's cached first word. The ids form one namespace across all archives:
+The first `u32` of every code payload is a module id, which the type-0 loader compares with the TOC's cached first word. Ids form one namespace across all archives:
 
 | Range            | Bodies | Content                                                                                                                                                           |
 | ---------------- | -----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -239,7 +222,7 @@ Where the code entry sits depends on the family:
 
 ### WORLD shapes
 
-A WORLD archive holds one sound bank, its type-3 uploads and the type-0 [area working set](../area/). The role of an entry follows its load address, not its slot number. Seven shapes cover the 200 archives:
+A WORLD archive holds one sound bank, its type-3 uploads and the type-0 [area working set](../area/). An entry's role follows its load address, not its slot. Seven shapes cover the 200 archives:
 
 | Shape | Archives | Entries | Layout                                                                                                                     |
 | ----- | -------: | ------: | -------------------------------------------------------------------------------------------------------------------------- |
@@ -251,11 +234,11 @@ A WORLD archive holds one sound bank, its type-3 uploads and the type-0 [area wo
 | F     |        1 |      15 | AREA004: area program at 9, extra type-3 upload `0x1A080400` at 14                                                         |
 | G     |        1 |      15 | AREA024: extra type-3 upload `0x1A080400` at 9, area program at 14                                                         |
 
-The area program is code in 181 archives. The other 19 payloads at `0x801F2C00` have no stack prologue and no `jr $ra`, so they are data ([area](../area/#0x801f2c00-area-program-code-arena)). Format details per load address are in [area](../area/) and [character](../character/). Which overlay is resident in which window is in [runtime](../../data/programs/).
+The area program is code in 181 archives. The other 19 payloads at `0x801F2C00` have no stack prologue and no `jr $ra`, so they are data ([area](../area/#0x801f2c00-area-program-code-arena)). Which overlay is resident in which window is in [runtime](../../data/programs/).
 
 ### Data-only code-window payloads
 
-Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT blocks with one segment ending at `0x200`, one CLUT and neither a `jr $ra` nor an `addiu sp,sp` prologue.
+Two type-0 images with code-style addresses are 512-byte CLUT blocks, not code: one segment ending at `0x200`, one CLUT, no `jr $ra` and no `addiu sp,sp` prologue.
 
 | Target                   |         Load | Payload                                                                               |
 | ------------------------ | -----------: | ------------------------------------------------------------------------------------- |
@@ -268,7 +251,6 @@ Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | BOSS slot ids `0x1B3`-`0x1DA`: no caller found; the one boss-overlay site read requests slot 4 (`BATL_RET`)                                                                     | a runtime trace of a boss battle load               |
 | BMAGIC loading is table-driven (`BattleSelection` at `0x800B65F8`); no caller maps a spell id to a table row                                                                    | the code that fills `BattleSelection.id`            |
-| BPLCHAR section readers for `0x8005680C`, `0x8007180C` and `0x8007A80C`: not found                                                                                              | a reader of those addresses in a battle overlay     |
 | BPLCHAR filler (16 KiB zero entry at `0x8003B800`, 44 archives): purpose                                                                                                        | a reader of the entry                               |
 | BGM cue tables in BGM004, BGM108 and BGM117 (4-20 B): consumer                                                                                                                  | the sound-request code that indexes bank cue tables |
 | Type-8 cue byte 2, low nibble                                                                                                                                                   | a consumer of the cue byte                          |
@@ -276,8 +258,8 @@ Two type-0 images with code-style addresses hold no code. Both are 512-byte CLUT
 
 ## Sources and confidence
 
-- **Confidence:** high. The header, TOC, padding, types and shapes are measured on all 880 archives; a few readers of type-0 data blocks are not found.
-- **Evidence:** every archive's header and TOC, the loader functions named above, and the callers that pick slots. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) (EMI and overlay notes) only confirms ([sources](../../appendix/sources/)).
+- **Confidence:** high. Header, TOC, padding, types and shapes are measured on all 880 archives; a few readers of type-0 data blocks are not found.
+- **Evidence:** every archive's header and TOC, the loader functions and slot callers named above. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) only confirms ([sources](../../appendix/sources/)).
 
 ## Related
 
