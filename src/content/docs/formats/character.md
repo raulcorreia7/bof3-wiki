@@ -87,7 +87,7 @@ The pixel and script formats inside a node are not decoded.
 
 The word at section `+4` is the section-relative offset of the palette table. The table starts with the word `4n` for `n` palettes, followed by the palette offsets `4n + 0x40k`. Each palette is 32 16-bit colors. `n` is 1, 2 or 8 in all 141 character-sprites entries (66 containers with three tables each, and 75 sections).
 
-`GFX_LoadPalette (exe/slus_004_22@0x80166C48)` copies palette `mode` into the palette RAM of a work slot (`0x80035600 + slot * 0x40`). It reads the section from work `+0x4C`, which `Party_LoadMemberSprite (emi/etc/game/00@0x801C1254)` stages. The callers seen pass `mode` 0, except `func_8019C664 (emi/etc/game/00@0x8019C664)`, which passes 1.
+`GFX_LoadPalette (exe/slus_004_22@0x80166C48)` copies palette `mode` into the palette RAM of a work slot (`0x80035600 + slot * 0x40`). It reads the section from work `+0x4C`, which `Party_LoadMemberSprite (emi/etc/game/00@0x801C1254)` stages. Form banks are staged at palette 0 by `func_801E7634` and its sibling functions. `func_801E3EC4` places START entry 7 through `Party_LoadMemberSprite` at palette 0. Field banks also use palette 1, staged by `func_8019C664 (emi/etc/game/00@0x8019C664)` for the leader. All 141 entries have the game's palette.
 
 Palette tables can be changed and written back over the decoded container, leaving every other byte unchanged.
 
@@ -103,6 +103,7 @@ The field-side reader `Party_LoadMemberSprite` reads the container's section off
 
 - Readers of the `BPLCHAR` section addresses `0x8005680C`, `0x8007180C` and `0x8007A80C`, and whether the five addresses are the battle reader's section positions (the field reader picks section *n* for the *n*-th character of the party combination). Settled by: a battle overlay that reads them. The field reader forms its base with `lui` and `ori` (`0x801C12D0`), so a search must fold `ori` pairs as well as `addiu`. No payload or executable contains the little-endian word of any load argument.
 - Who consumes the loader's published destinations (`D_80146844`, `D_8014677C`, `0x801464B8`). Settled by: a reader in an overlay; none is known.
+- The party bank that `GFX_LoadPalette` stages, which is chosen at run time. Settled by: a trace of the bank index at each call.
 - Who uploads the pixels: `LoadImage` has 8 direct `jal` sites, all in `exe/slus_004_22`, and no overlay uploads an image. Settled by: a trace of the node bytes to a primitive.
 - `BMAGIC/KAIZAR_D.EMI`, `KAIZAR_F.EMI` and `KAIZAR_N.EMI` entry 0 (type 0, `0x8003B800`, 34,924 bytes each, identical): `u32 4` head, no palette tables, and they read as a record stream. They are unclassified, not character sprites. Settled by: a reader of the block.
 - The node's 16-byte prefix; the tag `0x0080` (`width`, `count`, `size = width * 0x100`); `flags | offset` table entries; the pixel or script format of a node. Settled by: a reader of node fields in battle or field code.
