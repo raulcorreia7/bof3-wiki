@@ -104,7 +104,7 @@ The field-side reader `Party_LoadMemberSprite` reads the container's section off
 - Readers of the `BPLCHAR` section addresses `0x8005680C`, `0x8007180C` and `0x8007A80C`, and whether the five addresses are the battle reader's section positions (the field reader picks section *n* for the *n*-th character of the party combination). Settled by: a battle overlay that reads them. The field reader forms its base with `lui` and `ori` (`0x801C12D0`), so a search must fold `ori` pairs as well as `addiu`. No payload or executable contains the little-endian word of any load argument.
 - Who consumes the loader's published destinations (`D_80146844`, `D_8014677C`, `0x801464B8`). Settled by: a reader in an overlay; none is known.
 - Who uploads the pixels: `LoadImage` has 8 direct `jal` sites, all in `exe/slus_004_22`, and no overlay uploads an image. Settled by: a trace of the node bytes to a primitive.
-- `BMAGIC/KAIZAR_D.EMI`, `KAIZAR_F.EMI` and `KAIZAR_N.EMI` entry 0 (type 0, `0x8003B800`, 34,924 bytes each, identical): `u32 4` head, no palette tables, and they read as a record stream. They are unclassified, not character sprites (bof3-tools #66). Settled by: a reader of the block.
+- `BMAGIC/KAIZAR_D.EMI`, `KAIZAR_F.EMI` and `KAIZAR_N.EMI` entry 0 (type 0, `0x8003B800`, 34,924 bytes each, identical): `u32 4` head, no palette tables, and they read as a record stream. They are unclassified, not character sprites. Settled by: a reader of the block.
 - The node's 16-byte prefix; the tag `0x0080` (`width`, `count`, `size = width * 0x100`); `flags | offset` table entries; the pixel or script format of a node. Settled by: a reader of node fields in battle or field code.
 
 ## Sources and confidence
