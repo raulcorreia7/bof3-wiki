@@ -43,4 +43,4 @@ Each page lists its open questions in its own Open questions section, with what 
 
 ## Strings
 
-[text guide](../../guides/text/), [game text](../../data/text/#open-questions), [asset kinds](../../formats/assets/#message-tables).
+[text guide](../../guides/text/), [game text](../../data/text/#open-questions), [asset types](../../formats/assets/#message-tables).

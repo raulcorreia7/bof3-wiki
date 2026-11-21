@@ -73,7 +73,7 @@ States 5 and 6 draw the choice prompt. The scenario 16 code raises the popup req
 |           4 | `func_801979D4`                                       | waits for the message window to close, then returns to 2                                                                     |
 |           5 | `Game_UpdateBattle (emi/etc/game/00@0x80197A24)`      | battle: runs the eight functions of `g_GameModeHandlers`                                                                     |
 |           6 | `Game_UpdateCameraLook`                               | camera look mode (D-pad orbit); back to 2 when the camera is restored                                                        |
-|           7 | `Game_UpdateShop (emi/etc/game/00@0x80198234)`        | runs `g_GameStateHandlers[substate]`; substate 0 streams `SHOP`, or returns to 2 at once for a shop actor of kind 9          |
+|           7 | `Game_UpdateShop (emi/etc/game/00@0x80198234)`        | runs `g_GameStateHandlers[substate]`; substate 0 streams `SHOP`, or returns to 2 at once for a shop actor of type 9          |
 |           8 | `Game_UpdateFishing (emi/etc/game/00@0x801984AC)`     | runs `g_GameSubstateHandlers[substate]`; entered from state 1 when `g_GameRequestFlags` bit 3 is set                         |
 |           9 | `Game_UpdateAbilityMenu (emi/etc/game/00@0x80198744)` | 3-handler table `g_MenuAbilityOpen`: streams `BATE`, an equipment screen and a stat tally for character record 7             |
 |          10 | `Game_UpdateStatusMenu (emi/etc/game/00@0x80198904)`  | 3-handler table `g_MenuStatusOpen`: streams `SHISU`, an item minigame that scores the items used and ranks the score 0 to 5  |
@@ -98,7 +98,7 @@ Field code writes a request code to `g_GameStateIndex (exe/slus_004_22@0x80143BB
 |    8 | `scena11`: `func_801F8B84`, two stores                                                                             | goes to state 10, the `SHISU` screen ([screens](../screens/#bate-and-shisu-entry-states-9-and-10))                    |
 |    9 | `func_801B5910`, when Start is pressed and `g_GameRequestFlags & 0x69` is clear; `func_80167428` in the executable | goes to state 11; Start-in-field is `[inferred]`                                                                      |
 
-`Game_RequestAreaChange` stores the seed, position and kind in `0x80143F10..0x80143F1C`, calls `func_801A02E8` and `func_801A0380`, and sets code 5. `g_GameEntryMode (exe/slus_004_22@0x80143F1E)` is the effect index that state 1 starts: 10 when the load flags have bit 0 set (the world map), 20 for area `0xBD`, otherwise 0.
+`Game_RequestAreaChange` stores the seed, position and type in `0x80143F10..0x80143F1C`, calls `func_801A02E8` and `func_801A0380`, and sets code 5. `g_GameEntryMode (exe/slus_004_22@0x80143F1E)` is the effect index that state 1 starts: 10 when the load flags have bit 0 set (the world map), 20 for area `0xBD`, otherwise 0.
 
 ### Screen effects
 

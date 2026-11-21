@@ -62,9 +62,9 @@ for fields, so one field type has one name on every page.
 
 ## Offsets and addresses
 
-Four kinds of position appear. Each page says which one a number is.
+Four types of position appear. Each page says which one a number is.
 
-| Kind           | Counted from                                                      | Written as                                 |
+| Type           | Counted from                                                      | Written as                                 |
 | -------------- | ----------------------------------------------------------------- | ------------------------------------------ |
 | RAM address    | the start of the console's address space                          | `0x80195800` (eight digits)                |
 | file offset    | byte 0 of a file, such as an executable or a save file            | `0x270`                                    |

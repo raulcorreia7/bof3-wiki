@@ -154,7 +154,7 @@ text.
 
 ## References
 
-| Kind           | Width | Where                                                | Reaches                                            |
+| Type           | Width | Where                                                | Reaches                                            |
 | -------------- | ----- | ---------------------------------------------------- | -------------------------------------------------- |
 | `table-index`  | `u16` | the message table's offsets, at `payload + slot * 2` | the record that the slot selects                   |
 | `text-id`      | `u16` | a record of a name table                             | a string through the resource id space (see below) |
@@ -194,6 +194,6 @@ entry 8 of `BOSS` (5 times) and entry 0 of `ETC/AFLDKWA` (1). The ids are local 
 
 - [Game records](../records/): fixed tables with names and text ids.
 - [UI and text drawing](../../systems/ui/): the message window.
-- [Asset kinds](../../formats/assets/): message tables among the disc content.
+- [Asset types](../../formats/assets/): message tables among the disc content.
 - [Edit text and dialogue](../../guides/text/): changing a string.
 - [Glossary](../../appendix/glossary/): table, record, slot and text id.

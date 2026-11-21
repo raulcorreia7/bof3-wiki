@@ -5,7 +5,7 @@ description: "The console has 2 MiB of main RAM at 0x80000000..0x80200000, and t
 
 The console has 2 MiB of main RAM at `0x80000000..0x80200000`, and the game uses all of it. Two programs stay resident from boot to power-off; every other range is a data bank that an area load overwrites, or an overlay window that holds one overlay at a time. This page maps each range to its owner. [Loading](../loading/) explains how each range gets filled.
 
-## Three kinds of range
+## Three types of range
 
 - **Fixed code.** The executable `exe/slus_004_22` (`0x80149800..0x80190C60`) and the resident game program `emi/etc/game/00` (`0x80195800..0x801CD958`) never move and are never replaced.
 - **Data banks.** Low RAM (`0x80010000..0x8003B800`) and the area band (`0x800D3800..0x80117000`) hold per-area data: text, tables, palettes, scripts and the map. Entering a new area overwrites them.

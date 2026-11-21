@@ -37,6 +37,6 @@ A raw sector is 2,352 bytes. Track 1 holds 188,324 sectors and track 2 holds 15,
 
 ## Related
 
-- [Disc and files](../../formats/disc/): the directories and file kinds inside track 1.
+- [Disc and files](../../formats/disc/): the directories and file types inside track 1.
 - [Executables and boot files](../../formats/exe/): the serial and the boot configuration.
 - [Sources](../sources/): where the other claims come from.

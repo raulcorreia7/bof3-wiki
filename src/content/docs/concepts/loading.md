@@ -3,7 +3,7 @@ title: "Loading"
 description: "The game streams almost everything it runs or draws from the disc during play: overlay code, area maps, battle data, character graphics, sound banks and story scenes."
 ---
 
-The game streams nearly all code and data from the disc during play. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_LoadArchive` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each kind of data. The archive layout is in the [EMI container](../../formats/emi/).
+The game streams nearly all code and data from the disc during play. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_LoadArchive` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each type of data. The archive layout is in the [EMI container](../../formats/emi/).
 
 ## Load request flow
 
@@ -270,7 +270,7 @@ Three paths reach VRAM:
 
 - **Archive graphics (type 3).** `EMI_LoadToVram` unpacks the load argument into a start column, a row and a column count before wrap. `EMI_UploadSectorImage` then calls `LoadImage` for each 2,048-byte sector as a 32 by 32 block, bounded to x below 1001 and y below 501.
 - **The palette.** `GFX_UploadPalette` runs each frame. When `g_GfxPalettePending` is set it uploads the rectangle (0, 0x1E0, 0x100, 0x20) from `0x80037800`.
-- **The transfer queue.** `GFX_UpdateTransferQueue` runs each frame and walks `D_80145A00`. Kind 1 expands RGB555, kind 2 decodes LZSS, anything else is a `LoadImage`.
+- **The transfer queue.** `GFX_UpdateTransferQueue` runs each frame and walks `D_80145A00`. Type 1 expands RGB555, type 2 decodes LZSS, anything else is a `LoadImage`.
 
 No wait for `LoadImage` to finish was found in the loader. The image formats are in [graphics](../../formats/graphics/).
 

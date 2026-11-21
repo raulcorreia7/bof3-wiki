@@ -3,7 +3,7 @@ title: "Audio formats"
 description: "Breath of Fire III stores music and sound effects as PsyQ sound banks (VAB), sound-effect cue tables and music sequence packages (SEP), and it streams voice lines and long effects as XA ADPCM."
 ---
 
-Breath of Fire III stores music and sound effects as PsyQ sound banks (VAB), sound-effect cue tables and music sequence packages (SEP), and it streams voice lines and long effects as XA ADPCM. This page gives the byte layouts of the bank and sequence kinds and the XA sound group. The stream sector layout is in [STR and XA playback](../str/), the runtime in [Audio system](../../systems/audio/), the loader chain in [EMI container](../emi/#loader-chain).
+Breath of Fire III stores music and sound effects as PsyQ sound banks (VAB), sound-effect cue tables and music sequence packages (SEP), and it streams voice lines and long effects as XA ADPCM. This page gives the byte layouts of the bank and sequence types and the XA sound group. The stream sector layout is in [STR and XA playback](../str/), the runtime in [Audio system](../../systems/audio/), the loader chain in [EMI container](../emi/#loader-chain).
 
 ## Content on disc
 
@@ -159,7 +159,7 @@ A type-8 entry is one bank's sound-effect cue table: a list of 4-byte records, e
 | Reader | `g_SndCueReaders[bank]`: `0x8015E994`, `0x8015EFAC`, `0x8015F5C8`, `0x8015FBE4`, `0x80160200`, `0x8016081C`, `0x80160E38` |
 | Cue id | `(bank << 8) \| record_index`; `SND_PlayCue` splits it into `(cue_id >> 8) & 0xF` and `cue_id & 0xFF`                     |
 
-[EMI load argument](../emi/#load-argument) lists the bank selectors by archive kind. Record fields:
+[EMI load argument](../emi/#load-argument) lists the bank selectors by archive type. Record fields:
 
 | Offset | Bits   | Type | Name             | Meaning                                                                                                                                        |
 | -----: | ------ | ---: | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |

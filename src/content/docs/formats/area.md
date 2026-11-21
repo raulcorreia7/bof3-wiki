@@ -33,7 +33,7 @@ The area's dialogue: a little-endian `u16` slot array, then the records.
 +slot[0] .. end          ; records, delimited by consecutive distinct slots
 ```
 
-A message is addressed by its slot index. Two slots may share one record, and unused slots point at the end of the payload; 185 of the 200 payloads have at least one such slot, 182 have two or more. All 200 area entries load at this address. 197 are message tables and 165 of those are text tables (see [text kinds](../assets/#message-tables)): 162 at entry 11, 2 at entry 7, 1 at entry 12. The other 35 payloads are the 32 non-text tables at entry 11 and the 3 fishing payloads at entry 18, which are not tables. [Game text](../../data/text/#message-table) defines both terms and the record bytes and control codes.
+A message is addressed by its slot index. Two slots may share one record, and unused slots point at the end of the payload; 185 of the 200 payloads have at least one such slot, 182 have two or more. All 200 area entries load at this address. 197 are message tables and 165 of those are text tables (see [text types](../assets/#message-tables)): 162 at entry 11, 2 at entry 7, 1 at entry 12. The other 35 payloads are the 32 non-text tables at entry 11 and the 3 fishing payloads at entry 18, which are not tables. [Game text](../../data/text/#message-table) defines both terms and the record bytes and control codes.
 
 The code at `@0x801514D0` forms `D_80010000[g_MessageRequest] + 0x80010000`; `@0x8014F800` is the text draw entry.
 
@@ -387,10 +387,10 @@ The `+0x20` and `+0x22` lists use a header word whose byte 3 is the dispatcher o
 
 ### Not decoded
 
-Open: the names behind a byte-code value, the operands of the `+0x20` and `+0x22` records, the renderer fields beyond the descriptor bit map, and `scroll`. Two kinds of candidate data are located but their loaders are not identified:
+Open: the names behind a byte-code value, the operands of the `+0x20` and `+0x22` records, the renderer fields beyond the descriptor bit map, and `scroll`. Two types of candidate data are located but their loaders are not identified:
 
 - Battle backgrounds. They are type-3 uploads in `BIN/BATTLE/BATL_DRA`, `BATL_OVR`, `BATL_RET` and `BATL_RE2`. Each is 32,768 bytes, and `BATL_OVR` has one of 65,536 bytes. Their descriptors (`0x1A080200`, `0x1C080200`, `0x1E080200`, and `0x1A080400` for the `BATL_OVR` upload) place them at VRAM columns 26, 28 and 30 on the row at y = 256, which are texture pages 13 to 15 ([load argument](../graphics/#type-3-load-argument)). The same archives hold a shared 512-byte overlay at `0x80036E00` (`BATTLE/BATL_RE2.EMI#1`). Which upload a battle draws as its background, and its palette, are `[unknown]`.
-- World map. `BIN/WORLD00/AREA000` is McNeil, a walked area, not the world map. The world map is the 11 areas whose `AreaLoad` flag byte at `+0x32` has bit 0 set: 016, 033, 045, 065, 087, 088, 104, 115, 121, 151 and 152 ([runtime](../../data/programs/#map-kinds)). `AREA000` is a 100 by 80 bundle with six objects. Its entries 5 and 7 are uploads of 262,144 bytes each, which is 512 by 256 words at 16 bits. Read as 16bpp they look like indexed data, and their palette is `[unknown]`.
+- World map. `BIN/WORLD00/AREA000` is McNeil, a walked area, not the world map. The world map is the 11 areas whose `AreaLoad` flag byte at `+0x32` has bit 0 set: 016, 033, 045, 065, 087, 088, 104, 115, 121, 151 and 152 ([runtime](../../data/programs/#map-types)). `AREA000` is a 100 by 80 bundle with six objects. Its entries 5 and 7 are uploads of 262,144 bytes each, which is 512 by 256 words at 16 bits. Read as 16bpp they look like indexed data, and their palette is `[unknown]`.
 
 ## `0x80117000`: auxiliary module window
 

@@ -360,7 +360,7 @@ Source: [`include/battle/records.h`](https://github.com/raulcorreia7/bof3-decomp
 Three more tables belong to the panels.
 
 - The owner table is the panel task array shifted by 3, so its records start at `0x80148333`. Byte
-  `+0x07` of record i is the kind that `func_801DA69C` walks (`0x8014833A`, stride 36).
+  `+0x07` of record i is the type that `func_801DA69C` walks (`0x8014833A`, stride 36).
 - The panel-owner table at `0x801ED9B0` has 4-byte entries: the owner index (`u8` at `0x00`), a second
   byte (`0x01`) and the panel id (`u16` at `0x02`).
 - The selection-type table at `0x801CA71C` has 20-byte rows. A `u16` mask is at `0x00`, and
@@ -439,7 +439,7 @@ A reprisal is the struck battler's immediate physical answer. The hit's ending s
 
 | Step                             | Function                         | Rule                                                                                                                                                                                                                                                                                                                                                                |
 | -------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hit ending of the struck battler | `func_801E020C`, `func_801E414C` | The target was knocked out: clear pending and go to step 6, sub-step 4. Else pending was set: clear pending and set done. Else, when the action targets one battler rather than a side: a physical action sets pending when the reprisal roll passes; an ability whose kind mask has `0x800` and whose kind flag `0x10` is clear sets pending when the roll passes. |
+| Hit ending of the struck battler | `func_801E020C`, `func_801E414C` | The target was knocked out: clear pending and go to step 6, sub-step 4. Else pending was set: clear pending and set done. Else, when the action targets one battler rather than a side: a physical action sets pending when the reprisal roll passes; an ability whose type mask has `0x800` and whose type flag `0x10` is clear sets pending when the roll passes. |
 | Closing step of the turn         | `func_801D43EC`                  | Clear done. When pending is set, swap the 16 action-state bytes of the acting battler and the target, set the command state to physical, and restart the acting battler at step 0, sub-step 1.                                                                                                                                                                      |
 
 The party roll is `reprisal_chance` (character record offset `0x35`) out of 100
@@ -456,12 +456,12 @@ The battle code copies a table to the stack and indexes it. Names follow the sel
 | ------------------------------- | -----------: | ---: | ----------------------------------------- | ----------------------------------------------------------- |
 | `g_BattlePhases`                | `0x801D0C04` |    6 | battle mode `0x801462E0`                  | `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)`     |
 | `g_BattleEntrances`             | `0x801D0C1C` |    4 | sub-step `0x801462E2`                     | `Battle_DispatchEntrance (emi/battle/battle/03@0x801D17C4)` |
-| `g_BattleEvents`                | `0x801D0C84` |    5 | event slot's kind bit                     | `Battle_UpdateEvents (emi/battle/battle/03@0x801DE43C)`     |
+| `g_BattleEvents`                | `0x801D0C84` |    5 | event slot's type bit                     | `Battle_UpdateEvents (emi/battle/battle/03@0x801DE43C)`     |
 | `g_BattleEffectStages`          | `0x801D0CC0` |    4 | queued slot mode `+0x06`                  | `Battle_UpdateEffects (emi/battle/battle/03@0x801E5824)`    |
 | `g_BattleEffectStage0Funcs`     | `0x801D0CD0` |   19 | queued slot handler index `+0x05`, mode 0 | `func_801E5AF4`                                             |
 | `g_BattleEffectStage1Funcs`     | `0x801D0D1C` |  110 | queued slot handler index `+0x05`, mode 1 | `func_801E5B8C`                                             |
 | `g_BattleEffectStage3Funcs`     | `0x801D0ED4` |    8 | queued slot handler index `+0x05`, mode 3 | `func_801E5C1C`                                             |
-| `g_BattlePanelFuncs`            | `0x801D0F80` |    8 | panel task kind `+0x02`                   | `func_801E9074`                                             |
+| `g_BattlePanelFuncs`            | `0x801D0F80` |    8 | panel task type `+0x02`                   | `func_801E9074`                                             |
 | `g_BattlePanelTaskForwarders`   | `0x801D0FEC` |    3 | caller's selector byte                    | `func_801EA1E0`                                             |
 | `g_BattleRecallAbilities`       | `0x801EAC58` |   32 | `rand() & 0x1F`; the row is an ability id | `Battle_PickTarget (emi/battle/battle/03@0x801D3844)`       |
 | `g_BattleMagicShuffleAbilities` | `0x801EAC78` |   32 | `rand() & 0x1F`; the row is an ability id | `Battle_PickTarget (emi/battle/battle/03@0x801D3844)`       |

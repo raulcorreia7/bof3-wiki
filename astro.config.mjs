@@ -58,7 +58,7 @@ export default defineConfig({
             { label: 'Systems', paths: ['systems/**'], description: 'How each part of the game runs.' },
             { label: 'Formats', paths: ['formats/**'], description: 'Byte layouts of the files on the disc.' },
             { label: 'Data tables', paths: ['data/**'], description: 'Row layouts of the tables in RAM and in the archives.' },
-            { label: 'Guides', paths: ['guides/**'], description: 'How to change each kind of data and what to keep intact.' },
+            { label: 'Guides', paths: ['guides/**'], description: 'How to change each type of data and what to keep intact.' },
             { label: 'Appendix', paths: ['appendix/**'], description: 'Glossary, open questions, coverage and sources.' },
           ],
         }),

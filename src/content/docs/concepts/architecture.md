@@ -38,4 +38,4 @@ flowchart TD
 - [Frame loop](../frame-loop/) and [scheduler](../scheduler/): one pass of the loop and the four callback slots.
 - [Memory map](../memory/) and [loading](../loading/): which image owns which RAM, and how data reaches it.
 - [Game phases](../../systems/phases/): every phase from power-on to the end credits.
-- [Edit the game](../../guides/): how to change each kind of data.
+- [Edit the game](../../guides/): how to change each type of data.

@@ -60,13 +60,13 @@ A battle-effect module starts with its id and then a table of callbacks, which a
 
 `LOGO/LOGO.EXE` is a second PS-X executable that loads at `0x801CE000` and runs before the title. It overlaps only the character window `0x801CE400` and the scene window `0x801D0C00`.
 
-## Map kinds
+## Map types
 
 The game has one resident map engine. The world map and the town and dungeon maps are all area images that this engine runs. A flag in each area's load entry selects the world-map variant.
 
-`g_AreaLoads (exe/slus_004_22@0x8017F974)` holds 200 pointers, one per area. Each points to an `AreaLoad` entry inside that area's own program. Byte `+0x32` of the entry is the map-kind flag, copied to `g_GameRequestFlags` when the area loads.
+`g_AreaLoads (exe/slus_004_22@0x8017F974)` holds 200 pointers, one per area. Each points to an `AreaLoad` entry inside that area's own program. Byte `+0x32` of the entry is the map-type flag, copied to `g_GameRequestFlags` when the area loads.
 
-| Value  | Kind                        | Areas                                       |
+| Value  | Type                        | Areas                                       |
 | ------ | --------------------------- | ------------------------------------------- |
 | `0x01` | world map                   | 016, 033, 045, 065, 087, 088, 115, 151, 152 |
 | `0x21` | world map, bit `0x20` set   | 104, 121                                    |
@@ -78,13 +78,13 @@ The game has one resident map engine. The world map and the town and dungeon map
 
 Area 000 is McNeil, not the world map. Bit `0x20` appears only on two world maps and its effect is `[unknown]`. Each world map pairs with a battlefield through a table in `emi/etc/game/00` (`D_801CD224`): ten rows of two `u16`, world-map area then battlefield area. The pairs are 16 to 20, 33 to 29, 45 to 63, 65 to 64, 87 to 72, 88 to 73, 115 to 110, 121 to 20, 151 to 124 and 152 to 125.
 
-Bit 0 (world map) changes three behaviors; Area_DrawScene then runs one engine for both kinds:
+Bit 0 (world map) changes three behaviors; Area_DrawScene then runs one engine for both types:
 
 - **Party rows.** `func_801BFF9C (emi/etc/game/00@0x801BFF9C)` sets the party to one row when the map is not loading and the area is a world map or fishing area, is area 187 or 189 (`0xBB`, `0xBD`), or is a camp scene while event flag `0x77` is clear. On a world map it then looks up a scene record by Ryu's form (`character_id` 0 gives record `0x52`, 9 gives `0xCB`, 7 gives `0x27A`, and any other form gives none). Otherwise the row count is the whole party.
 - **Cell layer.** With bit 0 set, `Area_DrawCellLayer (exe/slus_004_22@0x80155B40)` and `func_801530D0 (exe/slus_004_22@0x801530D0)` skip the column count minus 2 columns, never fewer than 0.
 - **Shading and camera.** `func_80153DE8 (exe/slus_004_22@0x80153DE8)` sets the shade flag to `0x80` when bit 0 is set. It sets the camera height to 0 for fishing areas (bit `0x08`) and to `Area_SampleHeight` of the scroll target otherwise.
 
-One renderer draws both map kinds and battle: GTE-rotated textured quads. `Area_DrawScene (exe/slus_004_22@0x8014BA54)` runs the record list, `Area_DrawActors` and the cell layers, and `Area_DrawParts` and `Area_DrawGouraudQuads` project parts through the GTE. There is no separate flat-cell renderer for towns. The four `Actor` rows that `Area_UpdateParty` steps (`g_Actors`) are the party's map objects in every map kind and in battle ([field](../field/#actor-rows)).
+One renderer draws both map types and battle: GTE-rotated textured quads. `Area_DrawScene (exe/slus_004_22@0x8014BA54)` runs the record list, `Area_DrawActors` and the cell layers, and `Area_DrawParts` and `Area_DrawGouraudQuads` project parts through the GTE. There is no separate flat-cell renderer for towns. The four `Actor` rows that `Area_UpdateParty` steps (`g_Actors`) are the party's map objects in every map type and in battle ([field](../field/#actor-rows)).
 
 ## PsyQ SDK
 
@@ -105,11 +105,11 @@ The retail build has `checkRECT(char *, RECT *)` at `0x8017B438` and an argument
 - The entry path of the battle-effect modules (no static caller).
 - Which code owns name entry after New Game; the mutable character record is `g_Characters` (`0x80144968`), name bytes `0x00..0x04`.
 - The `emi/etc/game/00` handler tables at `0x801C7B08..0x801C7BB0` (`g_GameCampMenuLoad`, `g_GameStates`, `g_GameEntryHandlers`, `g_GameModeHandlers`, `g_GameStateHandlers`, `g_GameSubstateHandlers`, `g_MenuAbilityOpen`, `g_MenuStatusOpen`, `g_GameFlowHandlers`) are initialized data. No code writes them, so the load fixes the handlers.
-- The effect of map-kind bit `0x20`.
+- The effect of map-type bit `0x20`.
 
 ## Sources and confidence
 
-- **Confidence:** medium. The load addresses, windows and map kinds are read from every image and every area, but the entry path of the battle-effect modules and the effect of map-kind bit `0x20` are not established.
+- **Confidence:** medium. The load addresses, windows and map types are read from every image and every area, but the entry path of the battle-effect modules and the effect of map-type bit `0x20` are not established.
 - **Evidence:** the load argument of every EMI entry, both PS-X headers, `g_AreaLoads` over all 200 areas, the module ids and callback tables in the battle overlays, and the linked PsyQ members compared with the 3.7 release ([sources](../../appendix/sources/#sony-sdk)).
 
 ## Related
@@ -119,4 +119,4 @@ The retail build has `checkRECT(char *, RECT *)` at `0x8017B438` and an argument
 - [EMI container](../../formats/emi/): load argument and entry types.
 - [Executables and boot files](../../formats/exe/): PS-X headers, disc file table.
 - [Code map](../code-map/): which code owns which job.
-- [Areas and the field](../../systems/areas/): the area load that reads the map-kind flag.
+- [Areas and the field](../../systems/areas/): the area load that reads the map-type flag.
