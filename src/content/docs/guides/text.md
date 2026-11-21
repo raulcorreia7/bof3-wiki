@@ -3,7 +3,7 @@ title: "Edit text and dialogue"
 description: "Every string in the game is a byte string in one custom encoding."
 ---
 
-Every string in the game is a byte string in one custom encoding. Dialogue sits in a message table of each area, menu and battle text in a shared resource table, and names in fixed-width fields of the record tables. This guide shows how to change each kind. The encoding and the control codes are in [game text](../../data/text/).
+Every string in the game is a byte string in one custom encoding. Dialogue sits in each area's message table, menu and battle text in a shared resource table, and names in fixed-width fields of the record tables. The encoding and control codes are in [game text](../../data/text/).
 
 ## Where the data is
 
@@ -31,7 +31,7 @@ Every string in the game is a byte string in one custom encoding. Dialogue sits 
 
 ### Name edits
 
-A name field has a fixed width, and a name may fill all of it with no terminator. A shorter name ends with `0x00` padding. In the item table, for example, `Bread` is 5 letters followed by seven 0 bytes in a 12-byte field. The widths are in the [row layouts](../../data/records/#row-layouts).
+A name field has a fixed width, and a name may fill all of it with no terminator. A shorter name ends with `0x00` padding (`Bread` is 5 letters and seven 0 bytes in a 12-byte field). Widths: [row layouts](../../data/records/#row-layouts).
 
 ## Limits and pitfalls
 
@@ -43,7 +43,7 @@ A name field has a fixed width, and a name may fill all of it with no terminator
 
 ## Check in the game
 
-Play to the scene that shows the message, or open the menu that shows the name. No static map from a message slot to its scene exists ([open questions](../../appendix/open-questions/#strings)), so expect to try the slots that a script could use. A wrong offset shows text from the wrong record, or garbage.
+Play to the scene that shows the message, or open the menu that shows the name. No static map from a message slot to its scene exists ([open questions](../../appendix/open-questions/#strings)). A wrong offset shows text from the wrong record, or garbage.
 
 ## Related
 

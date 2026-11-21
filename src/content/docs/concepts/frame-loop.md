@@ -3,7 +3,7 @@ title: "Frame loop"
 description: "After boot, SYS_Main (exe/slus_004_22@0x8014AAC8) never returns."
 ---
 
-After [boot](../../systems/boot/), `SYS_Main (exe/slus_004_22@0x8014AAC8)` never returns. Every frame, from the title to the credits, is one pass through this loop. The loop owns the display, the controller read and the CD loader tick; game logic runs in the four callback threads of the [scheduler](../scheduler/). Primitive layouts and drawing are in [rendering](../../systems/rendering/).
+After [boot](../../systems/boot/), `SYS_Main (exe/slus_004_22@0x8014AAC8)` never returns. Every frame, from the title to the credits, is one pass through this loop. The loop owns the display, the controller read and the CD loader tick; game logic runs in the four callback threads of the [scheduler](../scheduler/). Primitive layouts: [rendering](../../systems/rendering/).
 
 ## The double-buffered frame
 
@@ -15,9 +15,7 @@ Game code reaches the primitive arena through `GFX_AddPrim (exe/slus_004_22@0x80
 
 ## The callback threads
 
-`CallbackRun (exe/slus_004_22@0x8014B73C)` is the only place game code runs. Game logic is up to four cooperative kernel threads, one per callback slot. Each thread runs until it calls `CallbackWait` (resume after n passes) or `CallbackExit`; control returns to `CallbackRun`, which moves to the next slot. Nothing pre-empts a thread, so a thread that never yields freezes the game.
-
-Slot 0 usually holds the main game loop, slot 1 the title during the title, and slot 2 a screen effect such as a fade. The [scheduler](../scheduler/) lists what each slot runs and how a thread starts, yields and is replaced.
+`CallbackRun (exe/slus_004_22@0x8014B73C)` is the only place game code runs: up to four cooperative kernel threads, one per callback slot. Each runs until it calls `CallbackWait` (resume after n passes) or `CallbackExit`; control then returns to `CallbackRun`, which moves to the next slot. Nothing pre-empts a thread, so a thread that never yields freezes the game. Slot assignments: [scheduler](../scheduler/#slot-assignments).
 
 ## Order of one pass
 
@@ -60,7 +58,7 @@ Fields of one 144-byte render record that the loop addresses:
 - resets 56 cell records of 48 bytes at `D_80142CC0` `[inferred]`, which the area map engine uses;
 - sets `D_801459F8` to `0x800E4800` and `D_801459FC` to `0x800F5000`, the area work window and the area code base.
 
-`GFX_AddPrim` appends a primitive only while the cursor plus the primitive size stays below `0x80028FCC + b * 0x9000`. The arena of one buffer is therefore 36,812 bytes. When it is full the call returns silently and the primitive is lost. Every sprite, window, glyph and map cell of a frame draws from this arena. Layer order and primitive layouts are in [rendering](../../systems/rendering/).
+`GFX_AddPrim` appends a primitive only while the cursor plus the primitive size stays below `0x80028FCC + b * 0x9000`, so the arena of one buffer is 36,812 bytes. When it is full the call returns silently and the primitive is lost. Every sprite, window, glyph and map cell of a frame draws from this arena.
 
 ## Input
 
@@ -68,27 +66,15 @@ Fields of one 144-byte render record that the loop addresses:
 
 ## Soft reset
 
-Holding Select and Start together returns the game to the first boot callback. The test is `(g_InputHeld & (PADselect | PADstart)) == 0x900`. A counter `g_SysResetHoldFrames (exe/slus_004_22@0x80143F44)` counts the passes in which it holds and clears when it stops holding. On the pass where the counter already equals 60, so the 61st pass in a row, and only if `EMI_IsReady` is true, the loop runs `SND_Exit` and `CallbackStopAll`, then `CallbackRegister(0, SYS_StartFrontend)`. The game reloads `FIRST.EMI` and `GAME.EMI` and returns to the title without the logo. If the loader is busy, the reset waits.
+Holding Select and Start together returns the game to the first boot callback. The test is `(g_InputHeld & (PADselect | PADstart)) == 0x900`. A counter `g_SysResetHoldFrames (exe/slus_004_22@0x80143F44)` counts the passes in which it holds and clears when it stops. On the 61st pass in a row (about 2 seconds), and only if `EMI_IsReady` is true, the loop runs `SND_Exit` and `CallbackStopAll`, then `CallbackRegister(0, SYS_StartFrontend)`. The game reloads `FIRST.EMI` and `GAME.EMI` and returns to the title without the logo. If the loader is busy, the reset waits.
 
 ## Loader tick
 
-`EMI_Update (exe/slus_004_22@0x80163010)` looks at `g_EmiServiceMode`. In mode 1 it runs `EMI_UpdateStream`, the disc read for overlays and data. In mode 2 it runs `SND_UpdateXA`, the XA audio player. In any other mode it does nothing. [Loading](../loading/) covers the loader and the [audio system](../../systems/audio/) covers XA.
+`EMI_Update (exe/slus_004_22@0x80163010)` looks at `g_EmiServiceMode`. In mode 1 it runs `EMI_UpdateStream`, the disc read for overlays and data. In mode 2 it runs `SND_UpdateXA`, the XA audio player. In any other mode it does nothing ([loading](../loading/), [audio system](../../systems/audio/)).
 
 ## Late frames
 
 A random encounter does not start in a frame whose drawing ended late. `SYS_CaptureDrawTime (exe/slus_004_22@0x8014B17C)` is the `DrawSync` callback and stores `VSync(1)` in `D_80143EFC`. `Area_CanStartEncounter (emi/etc/game/00@0x801B3EB0)` returns 0 when `D_80143EFC >= 0xF1` and `g_GameRequestFlags` bit 0 is clear. By the PsyQ contract `VSync(1)` returns the horizontal blanks elapsed since the last `VSync` call, so the limit is about 240 scan lines. `[inferred]`
-
-## Data and limits
-
-| Limit                         | Value                                                 | Source                                                                         |
-| ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Ordering table layers         | 8                                                     | `ClearOTagR(..., 8)` in `SYS_Main`; `SYS_PrepareFrame`; `SYS_SubmitFrame`      |
-| Primitive arena per buffer    | `0x80020000 + b * 0x9000`, size 36,812                | `SYS_PrepareFrame`, `GFX_AddPrim`                                              |
-| Display                       | 320 x 240, buffers at y = 0 and y = 0xF0              | `SYS_InitDisplay (exe/slus_004_22@0x8014AE08)`                                 |
-| Queued VRAM uploads per frame | 20                                                    | `GFX_UpdateTransferQueue` reads halves from `D_80145A54[0..19]` and `[20..39]` |
-| Upload kinds                  | 3: raw `LoadImage`, RGB555 expand (1), LZSS (2)       | `GFX_UpdateTransferQueue (exe/slus_004_22@0x8014E6D0)`                         |
-| Staged palette                | 256 x 32 pixels at VRAM (0, 0x1E0), from `0x80037800` | `GFX_UploadPalette (exe/slus_004_22@0x8014E22C)`                               |
-| Soft reset hold               | 61 passes, about 2 seconds                            | `SYS_Main`                                                                     |
 
 ## Open questions
 

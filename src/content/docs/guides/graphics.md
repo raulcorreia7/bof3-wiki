@@ -3,7 +3,7 @@ title: "Edit graphics and textures"
 description: "The game keeps pictures in three forms: textures that the loader uploads to VRAM, palettes that sit in a palette arena, and character sprites that hold sprites with their own palettes."
 ---
 
-The game keeps pictures in three forms: textures that the loader uploads to VRAM, palettes that sit in a palette arena, and character sprites that hold sprites with their own palettes. This guide shows how to change each one. The formats are in [graphics formats](../../formats/graphics/) and [character sprites](../../formats/character/).
+The game keeps pictures in three forms: textures that the loader uploads to VRAM, palettes in a palette arena, and character sprites with their own palettes. Formats: [graphics formats](../../formats/graphics/) and [character sprites](../../formats/character/).
 
 ## Where the data is
 
@@ -18,7 +18,7 @@ The game keeps pictures in three forms: textures that the loader uploads to VRAM
 
 ### Edit textures
 
-Edit the words of a chunk. Read the payload as 16-bit words if the depth is unknown. For a texture whose depth and palette are known, edit it as indexed pixels, and for a direct-color texture edit the color words.
+Edit the words of a chunk. For a texture with known depth and palette, edit indexed pixels; for a direct-color texture, edit the color words; otherwise edit raw 16-bit words.
 
 ### Edit palettes
 
@@ -30,7 +30,7 @@ Edit the sheet as 4-bit pixels. A byte of text selects one 8 by 12 pixel cell of
 
 ### Edit character sprites
 
-Edit the palette tables only. A container has one palette layer per section, and each palette is 32 color words ([palette layer](../../formats/character/#palette-layer)). Decode the container, change the palette, and write the table back over the decoded container. Every other byte stays the same.
+Edit the palette tables only. A container has one palette layer per section, each palette 32 color words ([palette layer](../../formats/character/#palette-layer)). Decode the container, change the palette, write the table back over the decoded container. Every other byte stays the same.
 
 ## Limits and pitfalls
 
@@ -38,7 +38,7 @@ Edit the palette tables only. A container has one palette layer per section, and
 
 - The payload size stays a multiple of 2,048 and matches the rectangle count in the load argument. A rectangle uploads only if its whole extent lies inside the 1,024 by 512 word VRAM.
 - Several sheets can cover the same VRAM words, for example slots 5 and 7 of `AREA024`. Which one is resident depends on the stream order.
-- Depth and palette are known for 202 of the 593 textures ([texture-to-palette pairing](../../formats/graphics/#texture-to-palette-pairing)). The other 391 are `[unknown]`: a draw rule that names the texture's page and palette, replayed in the scene that loads it, is the only evidence, and no rule pairs them. Edit those as raw 16-bit words only.
+- Depth and palette are known for 202 of the 593 textures ([texture-to-palette pairing](../../formats/graphics/#texture-to-palette-pairing)). The other 391 are `[unknown]`: no rule pairs them. Edit those as raw 16-bit words only.
 - An indexed edit keeps the palette that the texture uses.
 
 ### Palette limits
@@ -54,11 +54,10 @@ The byte-to-cell formula is code in the executable. A new glyph needs a free cel
 - The 3 `BMAGIC` blocks have no palette layer, so 141 of the 144 entries have palettes.
 - The pixel format and the animation script inside a node are `[unknown]`. Treat them as read-only.
 - A changed container must compress again to fit its window and the sectors of its archive.
-- Monster sprites are not located: the `BENEMY` archives hold audio only, so an enemy keeps its look.
 
 ## Check in the game
 
-Go to the screen or area that draws the picture: the field for a character palette, a battle for a battle sprite, a text box for the font. A texture that you cannot place has no known screen, so change a distinctive area of the picture and look for it.
+Go to the screen that draws the picture: the field for a character palette, a battle for a battle sprite, a text box for the font. For a texture you cannot place, change a distinctive area and look for it.
 
 ## Related
 

@@ -3,11 +3,9 @@ title: "Loading"
 description: "The game streams almost everything it runs or draws from the disc during play: overlay code, area maps, battle data, character graphics, sound banks and story scenes."
 ---
 
-The game streams nearly all code and data from the disc during play: overlays, area maps, battle data, character graphics, sound banks and story scenes. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_LoadArchive` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each kind of data; the archive layout is in the [EMI container](../../formats/emi/).
+The game streams nearly all code and data from the disc during play. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_LoadArchive` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each kind of data. The archive layout is in the [EMI container](../../formats/emi/).
 
 ## Load request flow
-
-Seven steps take a request from the slot id to usable data.
 
 1. **Request.** Game code calls `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` with a slot id. The slot id is the index of the archive in the disc file list. The call looks up the archive's disc address in the table `g_EmiSlotLbas (exe/slus_004_22@0x80182444)`, installs two CD callbacks, and starts the drive. It returns at once.
 2. **Wait.** The calling thread polls with `CallbackWait(1)` until `EMI_IsReady` returns nonzero. The other callback threads keep running, so a load blocks only its caller. In battle, a step machine polls instead of a loop.
@@ -42,7 +40,7 @@ sequenceDiagram
     Caller->>Ram: call the fixed entry<br/>address
 ```
 
-Only one stream owns the CD at a time: a new request replaces the old one and nothing queues. `[inferred]` The loader does not track what a window holds. A load overwrites the overlay at its address, and no guard in the code read stops a load into a window whose overlay is still running. Guards in unread code are `[unknown]`.
+Only one stream owns the CD at a time: a new request replaces the old one and nothing queues. `[inferred]` The loader does not track what a window holds. A load overwrites the overlay at its address, and no guard in the code read stops a load into a window whose overlay is still running.
 
 ### A worked example
 
@@ -61,7 +59,7 @@ The area program is last, so the stream is ready only once the program is in pla
 
 ## Slot ids
 
-A slot id is the archive's index in the disc file list, in ascending disc order. Fixed archives have fixed ids. Numbered series start at a base slot, and archive n of a series sits at base + n. The base slot of each series and the caller that picks it are in the [EMI container](../../formats/emi/#disc-slot-ids).
+A slot id is the archive's index in the disc file list, in ascending disc order. Numbered series start at a base slot, and archive n of a series sits at base + n. The base slot of each series and its caller are in the [EMI container](../../formats/emi/#disc-slot-ids).
 
 :::note
 A slot id names an archive. The entry slot is a different number: the index of one entry inside an archive's table of contents.
@@ -135,8 +133,6 @@ A swap overwrites the old overlay's code and its own variables. Only the persist
 
 ## Load paths
 
-Each kind of data has its own request function. The table lists every request site in the code. The subsections give the trigger, archive, destinations and reader of each path.
-
 | Path                                        | Request function                                                                                                   | Archive                                         | Lands                                                                   | Read by                                       |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
 | [Boot](#title-and-boot)                     | `SYS_StartFrontend`, `SYS_EnterFrontend`, `Game_BeginTitle`                                                        | `FIRST`, `GAME`, `DEMO`                         | SPU banks 0 and 1, VRAM, RAM                                            | `func_801D0C04`, the title states             |
@@ -163,13 +159,11 @@ The title overlay streams `DEMO` (`0x25F`) from `Game_BeginTitle (emi/etc/game/0
 
 `func_8019FAA0` is the area loader. It clears the actors and the palette fades, restarts the music with `SND_StartBGM`, and, only when the area id differs from the loaded one and `g_GameStateIndex` is 5, calls `EMI_LoadArchive(area_id + 0x2AB)` and waits. The conditions that choose an area change are in [area](../../systems/areas/). The entries of an area archive follow the worked example above. Some areas add a code block at `0x801EEC00` or `0x80117000`, and `area030` has 23 entries, with code at `0x801D0C00` and a companion at `0x800F5000`. The function reads the new area's `g_AreaLoads` record, sets the colour matrix and starts the area program.
 
-The functions `Message_Request`, `Message_GetText`, `Area_RequestCellRows` and `Area_LoadPaletteBank` do not read the disc. `Message_GetText (exe/slus_004_22@0x801502D0)` looks up a message in the table at `0x8001A000`. `Area_RequestCellRows` queues cell row ids. `Area_LoadPaletteBank` copies palette records in RAM. See [area](../../systems/areas/).
-
 ### Scenario
 
 `Scene_Start (emi/etc/game/00@0x801A7704)` sets the scenario state and calls `Scene_LoadOverlay (emi/etc/game/00@0x801A7804)`, which calls `EMI_LoadArchive(scenario_id + 0x295)`. It waits with `CallbackWait`, then calls `Game_UpdateScenario`, which calls `entry_00` of `g_SceneScenes[scenario_id]` and then `Game_UpdateScene`. Each `SCENA` archive is one type-0 entry at `0x801F6C00`. The five archives below it (`0x290` to `0x294`: `SCE10EFF` and `SCE15EF0` to `SCE15EF3`) are scenario effect programs; `SCE10EFF` is one type-0 entry at `0x801D0C00`.
 
-Scenario programs change the party with `EMI_LoadPartyArchives` (about 50 sites in `scena01` to `scena14`, through `SCENE_SET_PARTY` and the `Scene_Join*` helpers). Every call passes family 0. See [characters](#characters-and-the-party).
+Scenario programs change the party with `EMI_LoadPartyArchives` (about 50 sites in `scena01` to `scena14`, through `SCENE_SET_PARTY` and the `Scene_Join*` helpers), always with family 0.
 
 ### Characters and the party
 
@@ -215,7 +209,7 @@ The game state table `g_GameStates` has one handler per state. A menu state has 
 | `Game_UpdateStatusMenu`  | `Game_LoadStatusMenu`  | `SHISU` (`0x265`)  | `Game_ReturnFromStatusMenu`  |
 | `Game_UpdateCampMenu`    | `Game_LoadCampMenu`    | `START` (`0x268`)  | `func_801E1680` `[inferred]` |
 
-Every open handler streams the archive, waits for the loader, copies the palette (`GFX_CopyPalette`), raises `g_GfxPalettePending` and moves the entry substate on. Each archive writes its code to `0x801D0C00`, graphics to two VRAM blocks, and a sound bank to SPU bank 1 (`START` also has an LZ77 bank at `0x8003B800` and `SHOP` more code at `0x801EEC00`).
+Every open handler streams the archive, waits, copies the palette (`GFX_CopyPalette`), raises `g_GfxPalettePending` and advances the entry substate. Each archive writes its code to `0x801D0C00`, graphics to two VRAM blocks, and a sound bank to SPU bank 1 (`START` also has an LZ77 bank at `0x8003B800` and `SHOP` more code at `0x801EEC00`).
 
 - **Close handlers.** `Game_ReturnFromMenu` first reloads the party with `EMI_LoadPartyArchives` on `g_PartyFieldOrder` when the menu changed the party (`D_80148661`), then restores the `PL` character sprites (flag `0x20`), then loads `COMMU00` when the area has the Fairy Village flag. `Game_ReturnFromShop` does the last two for the shop. `Game_ReturnFromAbilityMenu` and `Game_ReturnFromStatusMenu` restore the `PL` character sprites through `GameRunMapLoadHandshake`. The shop overlay also reloads the party after it changes it: `func_801DE944 (emi/etc/shop/00)` calls `EMI_LoadPartyArchives` on the field order.
 - **`SISYOU`.** `Menu_OpenMaster` (`g_SceneEventStep` 0 to 4) streams `SISYOU` (`0x267`), runs `Menu_ResetMasterPanel` and `Menu_UpdateMaster` from it, and restores the `PL` character sprites in step 3. It polls `EMI_IsReady` instead of waiting.
@@ -268,7 +262,7 @@ The battle overwrites the area's message table, the sound banks and the `PL` cha
 4. `Battle_ReloadAreaAudio` streams the area archive (`g_GameAreaId + 0x2AB`) with flag `0x20`, so only its sound bank returns.
 5. `Battle_ReloadPartyBank` sets layout 0, restages each party actor's script record and requests the `PL` character sprites.
 
-The rest of the area's data stays in RAM because battle writes other windows. The battle windows `0x801D0C00`, `0x80096800` and `0x800F0800` hold the program. The one exception is `0x8001A000`, which is why `AFLDKWA` exists. `[inferred]`
+The rest of the area's data stays in RAM because battle writes other windows (`0x801D0C00`, `0x80096800`, `0x800F0800`). The one exception is `0x8001A000`, which is why `AFLDKWA` exists. `[inferred]`
 
 ### Graphics to VRAM
 
@@ -278,7 +272,7 @@ Three paths reach VRAM:
 - **The palette.** `GFX_UploadPalette` runs each frame. When `g_GfxPalettePending` is set it uploads the rectangle (0, 0x1E0, 0x100, 0x20) from `0x80037800`.
 - **The transfer queue.** `GFX_UpdateTransferQueue` runs each frame and walks `D_80145A00`. Kind 1 expands RGB555, kind 2 decodes LZSS, anything else is a `LoadImage`.
 
-No wait for `LoadImage` to finish was found in the loader. Whether a `DrawSync` elsewhere covers it is `[unknown]`. The image formats are in [graphics](../../formats/graphics/).
+No wait for `LoadImage` to finish was found in the loader. The image formats are in [graphics](../../formats/graphics/).
 
 ### Audio banks
 
@@ -288,13 +282,13 @@ No wait for `LoadImage` to finish was found in the loader. Whether a `DrawSync` 
 - Type 7 sets SPU DMA mode, calls `SsVabClose` and `SsVabOpenHeadSticky` with the bank record. In ring state 4, `EMI_UploadVabBody` moves the body with `SsVabTransBodyPartly` and `SsVabTransCompleted`, opens the sequence with `SsSepOpenJ`, and may call `SND_PlaySequence`.
 - Type 8 copies the cue table. Types 9 and 10 copy the sequence and set flag bit 2.
 
-`BGM` archives hold only types 6, 10 and 7, and no code. [Audio](../../systems/audio/) covers the banks.
+`SND_SetBankLayout(layout)` runs before a bank stream: layout 0 by `SYS_StartFrontend` and `Game_StartSelectedGame`, layout 2 by `Game_BeginTitle`, layout 1 by the battle entry. The per-type entry handling is in [audio](../../systems/audio/#banks); the tables are in [memory](../../concepts/memory/#sound-memory).
 
 ### Music
 
 `SND_StartBGM (exe/slus_004_22@0x80161B24)` takes a track id (`0xFF` means none), a cue level and a cue shape. It calls `SND_RequestBGM (exe/slus_004_22@0x80161BBC)`, which reads `bank_slot` from `g_BGMTracks[id]` and calls `EMI_LoadArchive(bank_slot)` only when it differs from the bank of the track now playing, or when none plays. A return of 1 makes `SND_StartBGM` wait for `EMI_IsReady`; then `SND_PlayBGM` starts the sequence unless that track is already active. The 165 tracks share the 81 `BGM` archives (`0xD1` to `0x121`): tracks 0 and 1 are two sequences of `0xD1`, for example, so switching between them loads nothing.
 
-Scenario code calls `SND_RequestBGM` alone (`scena00`, `scena16`, `scena17`, `commu02`, `commu03`), so the load runs while the scene continues. `SND_StartBGM` is called by `func_8019FAA0` on every area load and by the area script op in `func_801A96E4`. A `BGM` archive is a type-6 header, a type-10 sequence and a type-7 body for SPU bank 0 and has no code. The battle path that reloads a bank is in [after a battle](#after-a-battle).
+Scenario code calls `SND_RequestBGM` alone (`scena00`, `scena16`, `scena17`, `commu02`, `commu03`), so the load runs while the scene continues. `SND_StartBGM` is called by `func_8019FAA0` on every area load and by the area script op in `func_801A96E4`. A `BGM` archive is a type-6 header, a type-10 sequence and a type-7 body for SPU bank 0, with no code ([audio](../../systems/audio/)).
 
 ### XA audio
 
@@ -322,8 +316,6 @@ The only movie code is in `LOGO.EXE`, which [boot](../../systems/boot/#the-logo-
 `SYS_LoadExec (exe/slus_004_22@0x8014E0FC)` is the only direct disc read outside the stream. It is blocking: `SYS_ReadCd` calls `CdRead`, then loops on `CdReadSync(1)` and `VSync(0)`, with up to 10 attempts. No thread runs and no frame is drawn while it reads. It loads `LOGO.EXE` once, at boot ([boot](../../systems/boot/)).
 
 ## Data and limits
-
-The loader's data:
 
 | Data                        | Type                  | Address                      | Role                                                                          |
 | --------------------------- | --------------------- | ---------------------------- | ----------------------------------------------------------------------------- |
@@ -355,12 +347,10 @@ The loader's data:
 | Which pointer table picks each battle form archive (`D_800B4A64`, `D_800B4A68`) and what the forms are | Find where the two pointers are set, and read the `BRT`, `CRYU`, `DRG`, `PAPY`, `RT` and `RYU` archives |
 | The conditions in `func_8019FAA0` that choose a world or area change                                   | The function branches on state values not yet traced                                                    |
 
-Also read in the code: `BOSS` (`0x1B3` to `0x1DA`) is requested through `g_BossArchiveSlots` in `Battle_LoadBattleArchive`; `ENDKANJI` (`0x260`) is requested by the ending scene in `scena17`; `AFLDKWA` restores the message table after a battle ([after a battle](#after-a-battle)).
-
 ## Sources and confidence
 
 - **Confidence:** medium. The request flow, the entry types and every call site of `EMI_LoadArchive`, `EMI_GetArchiveId`, `EMI_LoadPartyArchives`, `SND_RequestBGM`, `SND_StartBGM`, `SND_SetBankLayout`, `SND_StartXAStream` and `SYS_LoadExec` are read in the code. The guards against a window overwrite, the party search in `EMI_FindPartyArchive` (unmatched) and the runtime callers of the loaded overlays are `[inferred]` or `[unknown]`.
-- **Evidence:** the code of `EMI_LoadArchive`, `EMI_CdOnReady`, `EMI_UpdateStream`, the entry handlers in `g_EmiEntryHandlers`, `SND_UpdateXA` and `SYS_LoadExec`; the table of contents of `AREA001`; the table of contents of every archive that a constant slot names; the call sites of the request functions in the executable and the overlays; the party combination table and its readers `Party_LoadMemberSprite` and `Actor_BeginScript`.
+- **Evidence:** `EMI_LoadArchive`, `EMI_CdOnReady`, `EMI_UpdateStream`, `g_EmiEntryHandlers`, `SND_UpdateXA`, `SYS_LoadExec`; the table of contents of `AREA001` and of every archive that a constant slot names; every call site of the request functions; the party combination table.
 
 ## Related
 

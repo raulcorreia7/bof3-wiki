@@ -3,11 +3,11 @@ title: "Edit the game"
 description: "Every change to the Breath of Fire III disc follows one cycle: find the entry, extract its payload, change the bytes, rebuild the archive, put the file back and test."
 ---
 
-Every change to the *Breath of Fire III* disc follows one cycle: find the entry, extract its payload, change the bytes, rebuild the archive, put the file back and test. Seven guides apply the cycle to text, items, characters, sound, maps, graphics and saves. Each one says where the data sits, what to change, which limits the game enforces and how to check the result. The guides link to the pages that own the layouts and do not repeat them.
+Every change to the *Breath of Fire III* disc follows one cycle: find the entry, extract its payload, change the bytes, rebuild the archive, put the file back and test. Seven guides apply it to text, items, characters, sound, maps, graphics and saves. They link to the pages that own the layouts.
 
 ## Tasks
 
-The write path says how a change gets back into the game. *In place* means the guide lists the fields to edit. *Partly* means some of the data is editable only as raw bytes.
+*In place* means the guide lists the fields to edit. *Partly* means some data is editable only as raw bytes.
 
 | Task                                       | Write path         | Not yet known                                                           |
 | ------------------------------------------ | ------------------ | ----------------------------------------------------------------------- |
@@ -26,8 +26,7 @@ The write path says how a change gets back into the game. *In place* means the g
    ([notation](../concepts/notation/#offsets-and-addresses)).
 2. **Extract the payload.** A type-1 entry is [LZ77](../formats/lz77/) data: decode it, edit the decoded
    bytes and encode them again. Every other entry type is stored raw.
-3. **Change the bytes.** Edit a field in place when the guide gives its layout. A field keeps its size and
-   its offset.
+3. **Change the bytes.** Edit a field in place when the guide gives its layout. A field keeps its size and offset.
 4. **Rebuild the archive.** Keep the archive version and the type and load argument of every entry, because
    the game cannot recover them from the payload. A rebuild with no edit tests your tool
    ([rebuilding an archive](../formats/conversion/#rebuilding-an-emi-archive)).
@@ -50,9 +49,7 @@ The write path says how a change gets back into the game. *In place* means the g
   - `FIRST.EMI#3` and `ENDKANJI.EMI#0`: the font sheet, 32,768 bytes each and identical.
 - **Fixed row counts.** Tables hold a fixed number of rows of a fixed size. No layout stores a count, so
   edit rows in place. Adding a row has no documented reader.
-- **Code changes.** The wiki documents data. A change to code, such as a constant, edits an instruction in
-  an overlay or in `SLUS_004.22`, and the file keeps its size. Each guide says when a goal needs a code
-  change.
+- **Code changes.** The wiki documents data. A code change, such as a constant, edits an instruction in an overlay or `SLUS_004.22` and keeps the file size.
 - **Unknown fields.** A field marked `[unknown]` has no known effect. Leave it as it is.
 
 ## Related

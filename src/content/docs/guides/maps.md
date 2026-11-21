@@ -3,11 +3,11 @@ title: "Edit maps and scripts"
 description: "An area is one archive, BIN/WORLDn/AREAnnn.EMI, and 200 of them exist."
 ---
 
-An area is one archive, `BIN/WORLDn/AREAnnn.EMI`, and 200 of them exist. Loading an area copies a fixed set of blocks to fixed RAM addresses: the map, a cell grid, the actor scripts, the scene table, the encounters, the text and one program. This guide shows where each block sits and what you can change in it. The formats are in [area formats](../../formats/area/), and the loading flow is in [areas and the field](../../systems/areas/).
+An area is one archive, `BIN/WORLDn/AREAnnn.EMI`; 200 exist. Loading an area copies a fixed set of blocks to fixed RAM addresses: the map, a cell grid, the actor scripts, the scene table, the encounters, the text and one program. Formats: [area formats](../../formats/area/). Loading flow: [areas and the field](../../systems/areas/).
 
 ## Where the data is
 
-Every area archive uses the same load addresses, so the address names the block. The entry sizes are in the [area working set](../../formats/area/).
+Every area archive uses the same load addresses, so the address names the block. Entry sizes: [area working set](../../formats/area/).
 
 | Block                  | Load address | What you change there                                                                       |
 | ---------------------- | ------------ | ------------------------------------------------------------------------------------------- |
@@ -33,7 +33,7 @@ The textures, the palettes and the sound bank of the area are further entries of
 
 ## Limits and pitfalls
 
-Each block must fit its window. The table gives the largest entry of each block over all 200 areas.
+Each block must fit its window. Largest entry of each block over all 200 areas:
 
 | Block         | Window (bytes) | Largest entry (bytes) | Headroom | Where        |
 | ------------- | -------------: | --------------------: | -------: | ------------ |
@@ -50,7 +50,7 @@ Each block must fit its window. The table gives the largest entry of each block 
 
 ## Check in the game
 
-Enter the area. A map edit shows in the terrain and the tiles, an encounter edit in the next battle, and a scene table or script edit in what the actors do. Change one section at a time to see which edit caused a change.
+Enter the area. A map edit shows in the terrain and tiles, an encounter edit in the next battle, a scene table or script edit in what the actors do. Change one section at a time.
 
 ## Related
 

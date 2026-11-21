@@ -3,7 +3,7 @@ title: "Edit items, skills and shops"
 description: "Items, equipment, abilities (skills and magic), shop stock and level growth sit in eight fixed tables in one entry, GAME.EMI#0."
 ---
 
-Items, equipment, abilities (skills and magic), shop stock and level growth sit in eight fixed tables in one entry, `GAME.EMI#0`. A row has a fixed size, and the game finds a row by multiplying its index by the stride of the table. This guide shows how to change a row. The field layouts are in [game records](../../data/records/#row-layouts).
+Items, equipment, abilities (skills and magic), shop stock and level growth sit in eight fixed tables in one entry, `GAME.EMI#0`. The game finds a row by multiplying its index by the table's stride. Field layouts: [game records](../../data/records/#row-layouts).
 
 ## Where the data is
 
@@ -38,7 +38,7 @@ What the common fields do:
 
 ## Check in the game
 
-Items and equipment show their name and price in the item and equipment menus. A changed ability shows its cost in the ability list and its effect in a battle. A changed shop row shows in the shop that reads it. A row with a wrong stride shows names from a neighboring row.
+Items and equipment show their name and price in their menus. A changed ability shows its cost in the ability list and its effect in battle. A wrong stride shows names from a neighboring row.
 
 ## Related
 

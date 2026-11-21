@@ -3,7 +3,7 @@ title: "Game version"
 description: "Every page describes one release: Breath of Fire III (USA) for the PlayStation, serial SLUS-00422, as the Redump image with the checksums listed here."
 ---
 
-Every page describes one release: *Breath of Fire III* (USA) for the PlayStation, serial `SLUS-00422`, in the Redump image whose files and checksums this page lists. Another region or revision can differ in addresses, sizes and contents, so check the image before you apply a page to it.
+Every page describes one release: *Breath of Fire III* (USA) for the PlayStation, serial `SLUS-00422`, in the Redump image whose checksums this page lists. Another region or revision can differ in addresses, sizes and contents.
 
 ## Release
 
@@ -20,7 +20,7 @@ Every page describes one release: *Breath of Fire III* (USA) for the PlayStation
 
 ## Redump image files
 
-Each size is in bytes and each digest is lower-case hexadecimal, as Redump publishes it. A dump matches this wiki when all three track and sheet digests match.
+Sizes are in bytes and digests are lower-case hexadecimal, as Redump publishes them. A dump matches this wiki when all three digests match.
 
 | File                                   |        Size | CRC32      | MD5                                | SHA-1                                      |
 | -------------------------------------- | ----------: | ---------- | ---------------------------------- | ------------------------------------------ |
@@ -33,7 +33,7 @@ A raw sector is 2,352 bytes. Track 1 holds 188,324 sectors and track 2 holds 15,
 ## Sources and confidence
 
 - **Confidence:** high. The names, sizes and digests are published values; the sector counts follow from the sizes.
-- **Evidence:** the Redump database entry for Breath of Fire III (USA) at redump.org, which a public mirror of the Redump data at data.spludlow.co.uk reproduces. The sheet and both tracks match on size, CRC32, MD5 and SHA-1. The wiki holds no image and no retail bytes.
+- **Evidence:** the Redump database entry for Breath of Fire III (USA) at redump.org, reproduced by data.spludlow.co.uk. The sheet and both tracks match on size, CRC32, MD5 and SHA-1. The wiki holds no image and no retail bytes.
 
 ## Related
 
