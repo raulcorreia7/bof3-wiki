@@ -3,15 +3,15 @@ title: "Saving and loading"
 description: "A save is one memory card file of one card block: a 512-byte card header followed by a copy of the 4,272-byte persistent block."
 ---
 
-A save is one memory card file of one card block: a 512-byte card header followed by a copy of the 4,272-byte persistent block. A load copies the block back and rebuilds what the block does not hold: the loaded area, the party work rows and the character graphics. This page covers the save and load screens, the card driver, the checks and the rebuild after a load. The byte layout of the file and the checksum steps are in [save format](../../formats/save/).
+A save is one memory card file of one card block: a 512-byte card header followed by a copy of the 4,272-byte persistent block. A load copies the block back and rebuilds what the block does not hold: the loaded area, the party work rows and the character graphics. This page covers the save and load screens, the card driver, the checks and the rebuild after a load. Byte layout and checksum steps: [save format](../../formats/save/).
 
 ## The player's view
 
-At a save point the player opens a menu, picks a memory card port and a slot, and confirms; the game writes one file of one card block. Continue on the title screen lists the saved slots the same way, reads the chosen file, checks it and returns to the field. The block is described in [persistent state](../state/#one-persistent-block).
+At a save point the player opens a menu, picks a memory card port and a slot, and confirms; the game writes one file of one card block. Continue on the title screen lists the saved slots the same way, reads the chosen file, checks it and returns to the field ([persistent state](../state/#one-persistent-block)).
 
 ## Images involved
 
-Five images take part: the executable, the resident game program and three overlays. The resident game program only hands control to the overlays.
+The resident game program only hands control to the overlays.
 
 | Image                                         | Load address | Holds                                   |
 | --------------------------------------------- | ------------ | --------------------------------------- |
@@ -27,39 +27,7 @@ The save staging buffer `g_SaveBuffer (emi/etc/shop/00@0x800C1A00)` is the paylo
 
 ## Saving
 
-The save screen opens from the field, runs inside the main loop, and returns to the field.
-
-```mermaid
-sequenceDiagram
-    participant Ev as Scene event<br/>10, game/00
-    participant Main as g_GameStates<br/>7, game/00
-    participant Sav as Save machine,<br/>shop/00
-    participant Drv as Card driver,<br/>start/09
-    participant Bios as PsyQ card<br/>calls
-    participant Card as Memory card
-
-    Ev->>Main: D_8014865C = -2,<br/>g_GameEntryState = 7
-    Main->>Main: Game_LoadShopOverlay<br/>EMI_LoadArchive<br/>SHOP
-    Main->>Sav: func_80199398 runs<br/>Shop_DispatchStep each<br/>frame
-    Sav->>Drv: state 2 func_801D47AC<br/>SAVE_AccessFile 0 per<br/>port
-    Drv->>Bios: _card_info and<br/>_card_load
-    Bios->>Card: probe
-    Sav->>Drv: state 5 func_801D4BBC<br/>SAVE_ScanDirectory
-    Drv->>Bios: firstfile and nextfile
-    Sav->>Drv: func_801D7208<br/>SAVE_AccessFile read<br/>0x1C at 0xEA0
-    Note over Sav: state 8 slot select,<br/>state 9 or 13 confirm
-    alt overwrite, state 10<br/>func_801D51B8
-        Sav->>Drv: SAVE_AccessFile mode 1<br/>size 1
-    else new file, state 14<br/>func_801D5894
-        Sav->>Drv: SAVE_AccessFile mode<br/>0x200 creates one<br/>block
-    end
-    Sav->>Sav: SAVE_BuildSlotImage<br/>gathers block, header,<br/>checksum
-    Sav->>Drv: SAVE_AccessFile mode 2<br/>size 4,784
-    Drv->>Bios: open, lseek, write,<br/>close
-    Bios->>Card: write 4,864 bytes
-    Sav->>Sav: g_SaveCardStatus = 8<br/>or 10, func_801D6CE4<br/>updates the row
-    Sav-->>Main: state 0x12<br/>func_801D5D98 leaves,<br/>Game_ReturnFromShop resumes<br/>the field
-```
+The save screen opens from the field, runs inside the main loop, and returns to the field. The driver reads and writes through `SAVE_AccessFile`.
 
 - Scene event 10 is `Scene_StartShopSave (emi/etc/game/00@0x801A802C)`, entry 10 of `g_SceneEvents (emi/etc/game/00@0x801C84BC)`. Its cases 6 and 23 set `D_8014865C = -2` and `g_GameEntryState = 7`. The scripts or objects that select event 10 are not traced `[unknown]`.
 - `g_GameStates[7]` is `Game_UpdateShop`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Shop_DispatchStep`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
@@ -110,38 +78,7 @@ State 12 picks its next state from the status. A press of any button, or the tim
 
 ## Loading
 
-The load screen runs only from the start menu, before any game exists.
-
-```mermaid
-sequenceDiagram
-    participant Title as Game_LeaveTitle,<br/>game/01
-    participant Camp as Game_UpdateCampMenu,<br/>game/00
-    participant Menu as Continue menu,<br/>start/08
-    participant Load as Load screens 0<br/>to 16,<br/>start/08
-    participant Drv as Card driver,<br/>start/09
-    participant Main as Game_UpdateMain,<br/>game/00
-
-    Title->>Camp: CallbackRegister 0,<br/>then CallbackExit
-    Camp->>Camp: Game_LoadCampMenu<br/>streams START slot<br/>0x268
-    Camp->>Menu: substate 1 states 0 to<br/>6
-    Menu->>Drv: func_801E7348 scans<br/>both ports
-    Note over Menu: D_801ED7EC 0 =<br/>Continue, nonzero =<br/>New Game
-    Menu->>Load: substate 3 when<br/>Continue is chosen
-    Load->>Drv: state 3 func_801E5078<br/>probes ports
-    Load->>Drv: state 6 func_801E54A4<br/>SAVE_ScanDirectory
-    Load->>Drv: func_801E77F0 reads<br/>the 0x1C summary row<br/>per slot
-    Note over Load: state 9 slot select,<br/>state 10 confirm
-    Load->>Drv: state 11<br/>SAVE_RunLoadVerify<br/>SAVE_AccessFile mode 1<br/>size 4,784
-    Load->>Load: copy 4,272 bytes to<br/>0x801448D8 and sum<br/>them
-    alt checksum matches
-        Load->>Load: g_SaveCardStatus = 5,<br/>state 13 then 15 then<br/>16
-        Load->>Load: SAVE_RunLoadRestore<br/>rebuilds party rows,<br/>scene state, overlay
-        Load->>Main: Menu_ExitCamp<br/>recomputes stats,<br/>CallbackReplace
-    else mismatch
-        Load->>Load: g_SaveCardStatus = 7,<br/>state 13 message, back<br/>to state 2
-    end
-    Main->>Main: Game_NewGame,<br/>entry state 1, field
-```
+The load screen runs only from the start menu, before any game exists. `Game_LeaveTitle` registers `Game_UpdateCampMenu`, which streams `START` (slot `0x268`) and runs the continue menu (camp substate 1), then the load screens (camp substate 3). Continue is `D_801ED7EC` 0.
 
 ### The continue menu
 
@@ -223,15 +160,6 @@ What the driver does in `SAVE_AccessFile (emi/etc/start/09@0x801EEC30)`:
 - On status timeout or any other value it returns -1.
 - `SAVE_OpenFile (emi/etc/start/09@0x801EF96C)` retries `open` 120 times with one `VSync` between tries. On failure it re-polls the card. When it creates a file, it scans the directory and sets status 4 if the summed file sizes plus one block exceed the capacity bound, else status 3. The test is `total + (blocks << 13) > 0x1E000`, which is 122,880 bytes or 15 blocks.
 - `SAVE_TransferFile (emi/etc/start/09@0x801EFB44)` retries a failed `read` or `write` once per `SAVE_PollCardInfo`, up to 60 times, and returns -1 when the card reports a timeout.
-
-How each card state looks to the player:
-
-| Card state       | Save screen                                                | Load screen                  |
-| ---------------- | ---------------------------------------------------------- | ---------------------------- |
-| No card          | probe reports timeout, message                             | menu reports 2 for that port |
-| Unformatted card | prompts, then calls `format("bu00:")` or `format("bu10:")` | no BOF3 file, status 6       |
-| Full card        | creation fails with status 4                               | -                            |
-| Corrupt file     | -                                                          | checksum mismatch, status 7  |
 
 ## Data and limits
 

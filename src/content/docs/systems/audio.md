@@ -3,45 +3,11 @@ title: "Audio system"
 description: "The game plays music and effects as sampled instruments in SPU memory, driven by a sequencer or by direct key-on, and streams recorded speech from the disc through the CD controller without touching main RAM."
 ---
 
-The game plays music and effects as sampled instruments in SPU memory, driven by a sequencer or by direct key-on, and streams recorded speech from the disc through the CD controller without touching main RAM. This page covers the runtime between the disc and the speakers: bank loading into SPU memory, music start and battle handover, effect cues and XA streaming. File formats, loader steps and RAM windows are on other pages ([audio formats](../../formats/audio/), [loading](../../concepts/loading/), [memory](../../concepts/memory/#sound-memory)).
+The game plays music and effects as sampled instruments in SPU memory, driven by a sequencer or by direct key-on, and streams recorded speech from the disc through the CD controller without touching main RAM. This page covers the runtime between the disc and the speakers. Formats, loader steps and RAM windows: [audio formats](../../formats/audio/), [loading](../../concepts/loading/), [memory](../../concepts/memory/#sound-memory).
 
 ## Data to SPU
 
-Three routes lead to the SPU: music, effects and XA. Music and effects both pass through the EMI loader. XA does not touch main RAM.
-
-```mermaid
-flowchart TD
-    disc[("Disc EMI archive<br/>BGM, BATTLE,<br/>BOSS, SE")]
-    ldr["EMI loader<br/>types 6, 7, 8,<br/>9, 10"]
-    vh["Bank header window<br/>0x8011A000 and up"]
-    seq["Sequence window<br/>bank 0, SEP package"]
-    cue["Cue table<br/>0x801486A0<br/>+ 124 x bank"]
-    spu[("SPU RAM<br/>per-layout<br/>addresses")]
-    sep["PsyQ SEP player<br/>SsSepPlay"]
-    key["SND_PlayCue<br/>SsUtKeyOnV"]
-    voices(["24 SPU voices"])
-    disc --> ldr
-    ldr -- "type 6" --> vh
-    ldr -- "type 7,<br/>DMA" --> spu
-    ldr -- "types<br/>9, 10" --> seq
-    ldr -- "type 8" --> cue
-    vh -- "SsVab<br/>OpenHeadSticky" --> spu
-    seq -- "SsSepOpenJ" --> sep
-    sep --> voices
-    cue --> key
-    key --> voices
-    spu --> voices
-```
-
-XA audio skips the loader and goes from the disc to the voices:
-
-```mermaid
-flowchart TD
-    xa[("Disc XA files<br/>0x2A9, 0x1B2, 0x2AA")] --> cdc["CD controller<br/>CdlReadS, filter"]
-    cdc -- "CdMix, no main RAM" --> voices(["24 SPU voices"])
-```
-
-The CD controller mixes XA into the audio output itself. `SND_SetCdVolume (exe/slus_004_22@0x80163EB0)` sets that mix with `CdMix`.
+Music and effects pass through the EMI loader (entry types 6 to 10: header, body, cue table, sequence) into bank windows and SPU RAM; a sequencer (`SsSepPlay`) or `SND_PlayCue` (`SsUtKeyOnV`) then drives the 24 SPU voices. XA skips the loader: the CD controller (`CdlReadS`, filter) mixes it into the audio output with `CdMix`, so it never touches main RAM. `SND_SetCdVolume (exe/slus_004_22@0x80163EB0)` sets that mix.
 
 ## Initialization
 
@@ -65,7 +31,7 @@ The active layout sets the SPU RAM partition:
 |      1 | `Battle_LoadPartySprites` (`emi/etc/game/00`)                                                                                                                          |            7 | Battle                       |
 |      2 | `Game_BeginTitle (emi/etc/game/01@0x801D0C90)`                                                                                                                         |            2 | Title screen                 |
 
-Bank 0 carries the music in every layout, with a different window size in each. The sizes are in [RAM and SPU budget per layout](#ram-and-spu-budget-per-layout), [memory](../../concepts/memory/#sound-memory) and [loading](../../concepts/loading/#audio-banks).
+Bank 0 carries the music in every layout, with a different window size in each ([budgets](#ram-and-spu-budget-per-layout)).
 
 An EMI audio entry reaches its bank record as follows:
 

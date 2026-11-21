@@ -3,17 +3,15 @@ title: "Persistent state"
 description: "The party, the inventory, the zenny, the story flags, the play clock and the player's place in the world live in one 4,272-byte block of RAM at 0x801448D8 that no overlay covers."
 ---
 
-The party, inventory, zenny, story flags, play clock and the player's place in the world live in one 4,272-byte block of RAM at `0x801448D8` that no overlay covers. The block persists across area changes, battles, menus and the save screen. A save copies it to the memory card; a load copies it back and rebuilds all other state from it. This page maps the block, the state kept outside it and the code that writes it; the record field layouts and the save and load flow are on other pages.
+The party, inventory, zenny, story flags, play clock and the player's place in the world live in one 4,272-byte block of RAM at `0x801448D8` that no overlay covers. It persists across area changes, battles, menus and the save screen. A save copies it to the memory card; a load copies it back and rebuilds all other state from it. Record field layouts and the save and load flow are on other pages.
 
 ## One persistent block
 
-Every long-lived value sits in the block `0x801448D8..0x80145988`. Save and load copy it byte for byte. `SAVE_BuildSlotImage` copies 4,272 bytes from `g_SceneEventFlags - 0x650`, which is `0x801448D8`. `SAVE_RunLoadVerify` copies the same length back.
+Every long-lived value sits in the block `0x801448D8..0x80145988`. `SAVE_BuildSlotImage` copies 4,272 bytes from `g_SceneEventFlags - 0x650`, which is `0x801448D8`; `SAVE_RunLoadVerify` copies the same length back.
 
-The block lies in the executable's work-variable range, which no overlay window covers ([memory](../../concepts/memory/)). An overlay swap never moves or clears it.
+The block lies in the executable's work-variable range, so an overlay swap never moves or clears it ([memory](../../concepts/memory/)).
 
-Offsets in the table are block-relative. The save-file frame adds `0x200`, so frame offset = block offset + `0x200`. [Game records](../../data/records/#save-layout) uses the frame.
-
-The table lists the block in memory order, with the global's name where the block holds one.
+Offsets in the table are block-relative. The save-file frame adds `0x200` ([game records](../../data/records/#save-layout) uses the frame).
 
 | Offset   | Address      |  Size | Type                 | Name                        | Meaning                                                      |
 | -------- | ------------ | ----: | -------------------- | --------------------------- | ------------------------------------------------------------ |
@@ -52,7 +50,7 @@ Notes on the table:
 
 ### Not persistent
 
-These values live outside the block. The game rebuilds or resets each one.
+The game rebuilds or resets each of these.
 
 | Address                    | Type             | Name                                      | Meaning                                                           |
 | -------------------------- | ---------------- | ----------------------------------------- | ----------------------------------------------------------------- |
@@ -88,31 +86,6 @@ flowchart TD
 ```
 
 `Game_StartSelectedGame` stops the sound effects, sets sound layout 0, clears the play clock, calls `Scene_Start(16)` and registers `Game_UpdateMain`. `Party_InitDefaults` supplies the default party records. It runs as state 0 of camp substate 2, which the New Game choice selects ([saving](../saving/#the-continue-menu)). For records 0 to 6 it copies `D_801EB514[i]` and sets base, current and record willpower to `(level << 4) / D_801EBA34[i][0] + D_801EBA34[i][1]`. It copies `D_801EB990` into the record that `D_80181B1A` names.
-
-## Overlays and the block
-
-```mermaid
-flowchart LR
-    subgraph res["emi/etc/game/00 resident at 0x80195800"]
-        H["g_GameStates, g_SceneEvents handlers"]
-    end
-    subgraph win["overlay windows"]
-        S["start/08<br/>camp menu"]
-        SH["shop/00<br/>save and shop"]
-        A["area and<br/>scenario overlays"]
-    end
-    subgraph exe["exe/slus_004_22 work variables<br/>(never overwritten by an overlay)"]
-        B["persistent block"]
-        W["g_BattlePartyBattlers rows"]
-        P["g_GameState pointer"]
-    end
-    S -- "reads,<br/>writes" --> B
-    SH -- "reads,<br/>writes" --> B
-    A -- "SYS_SetFlag<br/>on<br/>g_SceneFlags" --> B
-    H -- "rebuilds" --> W
-    W --- P
-    A ~~~ H
-```
 
 Game progress lives in the block or in the executable's work variables. An overlay's own variables, such as the load screen's `D_801ED860`, are lost when the overlay is replaced. Scenario overlays write flags through `g_SceneFlags` `[inferred]`. The writers of the block are `SAVE_RunLoadRestore`, `SAVE_BuildSlotImage` and `Scene_Start`.
 
@@ -151,19 +124,7 @@ There are four categories (item, weapon, armor, accessory), each with 128 id byt
 
 `Party_AddZenny (exe/slus_004_22@0x8016666C)` adds to `g_Zenny` and clamps at 9,999,999, returning 0 when it clamps. When its second argument is zero it also adds to `D_80145030`, a second running total whose use is not traced `[unknown]`.
 
-## Data and limits
-
-| Limit              | Value                                                      |
-| ------------------ | ---------------------------------------------------------- |
-| Block size         | 4,272 bytes at `0x801448D8`                                |
-| Party records      | 8, of 164 bytes                                            |
-| Party in the field | 3 (field and battle order arrays of 3 bytes)               |
-| Zenny              | at most 9,999,999                                          |
-| Inventory          | 4 categories of 128 stacks                                 |
-| Scenario flags     | 20 words of 8 bytes; `Scene_Start` clears the low 32 flags |
-| Event flag bits    | 40 bytes, 320 bits                                         |
-
-An edit keeps the block size and the checksum rule ([save format](../../formats/save/#checksum)). The block has no version field; a load cannot detect a changed field meaning.
+A save edit keeps the block size and the checksum rule ([save format](../../formats/save/#checksum)). The block has no version field; a load cannot detect a changed field meaning.
 
 ## Open questions
 
