@@ -29,7 +29,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | EMI container overhead (headers, TOCs, padding; 880 archives) | 9,242,257   | [emi](../../formats/emi/)           |
 | audio-bank: VAB header and body (1,020 banks)                 | 84,062,336  | [audio](../../formats/audio/)       |
 | audio-sequence: SEP packages (119)                            | 1,836,303   | [audio](../../formats/audio/)       |
-| texture, depth and palette known (202 textures)               | 52,510,720  | [graphics](../../formats/graphics/) |
+| texture, depth and palette known (245 textures)               | 54,312,960  | [graphics](../../formats/graphics/) |
 | palette: CLUT words (620)                                     | 1,121,696   | [graphics](../../formats/graphics/) |
 | area-message (200)                                            | 852,489     | [area](../../formats/area/)         |
 | area-encounters (200)                                         | 232,000     | [area](../../formats/area/)         |
@@ -46,7 +46,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | Range                                             | Bytes       | Page                                  |
 | ------------------------------------------------- | ----------- | ------------------------------------- |
 | audio-cues (904)                                  | 34,432      | [audio](../../formats/audio/)         |
-| texture, depth or palette unknown (391 textures)  | 59,801,600  | [graphics](../../formats/graphics/)   |
+| texture, depth or palette unknown (348 textures)  | 57,999,360  | [graphics](../../formats/graphics/)   |
 | character-sprites (144)                           | 18,686,544  | [character](../../formats/character/) |
 | area-map (200)                                    | 10,247,719  | [area](../../formats/area/)           |
 | area-cells (191)                                  | 955,000     | [area](../../formats/area/)           |
@@ -80,7 +80,7 @@ The total is the sum of the 887 file sizes ([disc and files](../../formats/disc/
 | Range                | Missing                                                                                                         | Details                                                                                                     |
 | -------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | audio-cues           | byte 2 low nibble of the cue record: copied to voice state, role unknown (27 records differ from `0x10`/`0x11`) | ([audio](../../formats/audio/#emi-type-8-cue-records))                                                      |
-| texture, 391 unknown | bit depth and palette: no replayed draw call pairs them with a palette                                          | 202 of 593 textures have a palette pairing ([graphics](../../formats/graphics/#texture-to-palette-pairing)) |
+| texture, 348 unknown | bit depth and palette: no replayed draw call pairs them with a palette                                          | 245 of 593 textures have a palette pairing ([graphics](../../formats/graphics/#texture-to-palette-pairing)) |
 | character-sprites    | node pixel and script formats                                                                                   | ([character](../../formats/character/#open-questions))                                                      |
 | area-map             | the `+0x1E` header field, record-list operands, byte-code names, collision meaning of cell values               | ([area](../../formats/area/#0x80104000-map-bundle))                                                         |
 | area-cells           | cell value meaning (4-bit classes)                                                                              | `[unknown]`                                                                                                 |
