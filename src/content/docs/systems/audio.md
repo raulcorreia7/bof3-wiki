@@ -125,7 +125,7 @@ XA plays speech and long effects from three disc files, selected by a key. `SND_
 
 A timer above 181 ticks returns to state 1 and counts a retry. The sixth retry, or a CD error bit, sends the machine to state 8. Streaming ends by stopping at the stop bound, not by an end marker in the data. State 7 sets the loader's ready byte to 3, so `EMI_IsReady` is false for the whole stream, and none of the callers waits for it first ([loading](../../concepts/loading/#xa-audio)).
 
-XA callers are the scene scripts (opcode `0x89` in `func_801AB458`, key from the script), `Scene_StartShopSave` (key 0), `func_801A83DC` (key 9), the shop and save screens (key 0), `commu00` (keys 8 and 10), and battle (`func_801DDF50` in `emi/battle/battle/03`, key `0x1000 + n` from an effect table).
+XA callers are the scene scripts (opcode `0x89` in `func_801AB458`, key from the script), `Scene_RunInn` (key 0), `func_801A83DC` (key 9), the shop and save screens (key 0), `commu00` (keys 8 and 10), and battle (`func_801DDF50` in `emi/battle/battle/03`, key `0x1000 + n` from an effect table).
 
 ## Data and limits
 

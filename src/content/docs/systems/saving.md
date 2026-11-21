@@ -29,9 +29,9 @@ The save staging buffer `g_SaveBuffer (emi/etc/shop/00@0x800C1A00)` is the paylo
 
 The save screen opens from the field, runs inside the main loop, and returns to the field. The driver reads and writes through `SAVE_AccessFile`.
 
-- Scene event 10 is `Scene_StartShopSave (emi/etc/game/00@0x801A802C)`, entry 10 of `g_SceneEvents (emi/etc/game/00@0x801C84BC)`. Its cases 6 and 23 set `D_8014865C = -2` and `g_GameEntryState = 7`. The scripts or objects that select event 10 are not traced `[unknown]`.
-- `g_GameStates[7]` is `Game_UpdateShop`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Shop_DispatchStep`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
-- `Shop_DispatchStep` dispatches `D_801E5144` by `D_80148650`. `func_801D0EDC` sets `D_80148650` to `D_80148698 + 2`, which is 3 for the save case. That selects `func_801D39BC`, and entry 3 of its table `D_801E52C4` is `SAVE_DispatchState (emi/etc/shop/00@0x801D46A4)`. It dispatches `D_801E530C` by `D_80148652`.
+- Scene event 10 is the inn, `Scene_RunInn (emi/etc/game/00@0x801A802C)`, entry 10 of `g_SceneEvents (emi/etc/game/00@0x801C84BC)`. Its cases 6 and 23 set `D_8014865C = -2` and `g_GameEntryState = 7`. The scripts or objects that select event 10 are not traced `[unknown]`.
+- `g_GameStates[7]` is `Game_UpdateShop`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Menu_DispatchScreen`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
+- `Menu_DispatchScreen` dispatches `D_801E5144` by `D_80148650`. `Menu_SelectScreen` sets `D_80148650` to `D_80148698 + 2`, which is 3 for the save case. That selects `Menu_RunInn`, and entry 3 of its table `D_801E52C4` is `SAVE_DispatchState (emi/etc/shop/00@0x801D46A4)`. It dispatches `D_801E530C` by `D_80148652`.
 - The overwrite path first opens the existing file with mode 1 and size 1, a read of the first 128 bytes. Success shows the file exists (`func_801D51B8`).
 - The new-file path calls `SAVE_AccessFile` with mode `0x200`. The driver creates the file, closes it, reopens it with mode 1 and issues a zero-length read.
 
