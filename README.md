@@ -36,8 +36,7 @@ npm run build    # writes dist/ (pages, search index, llms.txt, sitemap) and val
 ## Run
 
 ```sh
-npm run dev        # live preview at http://localhost:4321/bof3-wiki/
-npm run build && npm run preview   # serve the built site at http://localhost:4321/bof3-wiki/
+npm run dev      # live preview at http://localhost:4321/bof3-wiki/
 ```
 
 ## Check
