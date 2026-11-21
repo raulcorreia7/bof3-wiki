@@ -3,19 +3,17 @@ title: "Memory map"
 description: "The console has 2 MiB of main RAM at 0x80000000..0x80200000, and the game uses all of it."
 ---
 
-The console has 2 MiB of main RAM at `0x80000000..0x80200000`, and the game uses all of it. Two programs stay resident from boot to power-off; every other range is a data bank that an area load overwrites, or an overlay window that holds one overlay at a time. This page maps each range to its owner, and covers the scratchpad, stacks, CD ring, sound banks and fixed VRAM uses. [Loading](../loading/) explains how each range gets filled.
+The console has 2 MiB of main RAM at `0x80000000..0x80200000`, and the game uses all of it. Two programs stay resident from boot to power-off; every other range is a data bank that an area load overwrites, or an overlay window that holds one overlay at a time. This page maps each range to its owner. [Loading](../loading/) explains how each range gets filled.
 
 ## Three kinds of range
 
-Ranges are of three kinds.
-
 - **Fixed code.** The executable `exe/slus_004_22` (`0x80149800..0x80190C60`) and the resident game program `emi/etc/game/00` (`0x80195800..0x801CD958`) never move and are never replaced.
 - **Data banks.** Low RAM (`0x80010000..0x8003B800`) and the area band (`0x800D3800..0x80117000`) hold per-area data: text, tables, palettes, scripts and the map. Entering a new area overwrites them.
-- **Overlay windows.** Five windows hold code that other code calls by fixed address: `0x801CE400`, `0x801D0C00`, `0x801EEC00`, `0x801F2C00` and `0x801F6C00`. The boss and battle data windows `0x800C1800` and `0x80096800` work the same way.
+- **Overlay windows.** Five windows hold code that other code calls by fixed address, plus the boss and battle data windows `0x800C1800` and `0x80096800` ([overlay windows](#overlay-windows)).
 
-The persistent block at `0x801448D8..0x80145988` lies in the executable's work variables, so no overlay overwrites it ([persistent state](../../systems/state/#one-persistent-block) owns its layout). An overlay's own variables, such as the working state of a menu or a scenario, live in its window and are overwritten when the next archive loads there.
+The persistent block at `0x801448D8..0x80145988` lies in the executable's work variables, so no overlay overwrites it ([persistent state](../../systems/state/#one-persistent-block)). An overlay's own variables live in its window and are overwritten when the next archive loads there.
 
-The code does not record which overlay a window holds. Resident code calls into a window at a fixed address; the caller must have loaded the right archive. `[inferred]` The loader checks only the first word of each entry against its table. There is no unload code: a later load overwrites an earlier one.
+The code does not record which overlay a window holds; the caller must have loaded the right archive. `[inferred]` The loader checks only the first word of each entry against its table. There is no unload code: a later load overwrites an earlier one.
 
 ## The map
 
@@ -23,7 +21,7 @@ The code does not record which overlay a window holds. Resident code calls into 
 Overlay addresses are image-local. `exe/logo` and `exe/slus_004_22` are separate programs that share this one RAM.
 :::
 
-Addresses ascend. "Up to" is the largest entry over every archive on the disc; other sizes are exact. A dash means the size is not stated.
+Addresses ascend. "Up to" is the largest entry over every archive; other sizes are exact. A dash means the size is not stated.
 
 | Address                  | Size          | Owner                              | Content                                                                                                                        |
 | ------------------------ | ------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -64,8 +62,6 @@ Addresses ascend. "Up to" is the largest entry over every archive on the disc; o
 | `0x801FF000`             | -             | `SYS_StartLogo`                    | stack for the `Exec` of `LOGO.EXE`                                                                                             |
 | `0x801FF400..0x801FFC00` | 2,048         | `CallbackInitThreads`              | four 512-byte callback thread stacks                                                                                           |
 
-The area band is the busiest. A typical area archive writes, in order: the sound bank and cue table, the scene table, the script table, graphics, three palette slices, the area table, the encounter table, the text table, the map bundle and last the area program at `0x801F2C00`. [Loading](../loading/#area) walks through this.
-
 ## Overlay windows
 
 Each window holds one occupant at a time.
@@ -84,7 +80,7 @@ Resident code reaches overlay code through tables of function pointers:
 - The scene-object handler table `g_ActorHandlers` (187 entries, one per object type; [areas](../../systems/areas/#staged-scene-objects)) and the scene event table `g_SceneEvents` mix handlers in the resident program (`0x8019xxxx`, `0x801Axxxx`) with handlers in the scene window (`0x801Dxxxx`), the area program window and the scenario window.
 - `g_SceneScenes (emi/etc/game/00@0x801C8454)` holds 20 pointers into the scenario window, and `Game_UpdateScenario (emi/etc/game/00@0x801A782C)` calls `entry_00` of the selected one.
 - `g_GameModeHandlers (emi/etc/game/00@0x801C7B54)` holds `Battle_Update (emi/battle/battle/03@0x801D1014)` at index 5.
-- `battle/03` (`0x801D0C00`) and `battle/15` (`0x80096800`) come from one battle archive and coexist. `BATTLE.EMI` and `BATTLE2.EMI` are byte-identical.
+- `battle/03` (`0x801D0C00`) and `battle/15` (`0x80096800`) come from one battle archive and coexist.
 
 The logo (`0x801CE000..0x801EB800`) overlaps only the character window and the scene window. Both are empty while the logo runs, because no overlay loads before it. `[inferred]`
 
@@ -96,7 +92,7 @@ The first 733,184 bytes of the payload are zero apart from a few stamp words; th
 
 ## Scratchpad
 
-The scratchpad is the 1 KiB of fast RAM at `0x1F800000`. `g_SpadWork` is a pointer cell at `0x1F800044`, which the overlay handlers use to reach the record they step ([scheduler](../scheduler/)). `LZ77_DecodeBegin (exe/slus_004_22@0x80164028)` points the LZ77 source at scratchpad offset 6 and its limit at `0x400`, so the decoder treats the whole scratchpad as a sector window. How the two uses share the space is `[unknown]`. The decoder runs only during a load.
+The scratchpad is the 1 KiB of fast RAM at `0x1F800000`. `g_SpadWork` is a pointer cell at `0x1F800044`, which the overlay handlers use to reach the record they step ([scheduler](../scheduler/)). `LZ77_DecodeBegin (exe/slus_004_22@0x80164028)` points the LZ77 source at scratchpad offset 6 and its limit at `0x400`, so the decoder treats the whole scratchpad as a sector window during a load. How the two uses share the space is `[unknown]`.
 
 ## Stacks
 
@@ -106,21 +102,21 @@ The scratchpad is the 1 KiB of fast RAM at `0x1F800000`. `g_SpadWork` is a point
 | `LOGO.EXE` `Exec`          | `0x801FF000`                   | `SYS_StartLogo`                                    |
 | Callback slot `i` (0 to 3) | `0x801FF400 + 0x200 * (i + 1)` | `CallbackInitThreads`                              |
 
-`stup1` leaves 32,768 bytes for the main stack: the heap ends at `0x801F8004`. The range `0x801F8000..0x80200000` already holds most of the scenario window and the thread stacks. The thread stacks end at `0x801FFC00`, so the main stack has 1,024 bytes above them. A deeper main stack writes into slot 3's stack. `[inferred]` The real depth of the main stack is `[unknown]`. The `Exec` stack is used only while the logo runs.
+`stup1` leaves 32,768 bytes for the main stack: the heap ends at `0x801F8004`. The range `0x801F8000..0x80200000` already holds most of the scenario window and the thread stacks, which end at `0x801FFC00`, so the main stack has 1,024 bytes above them. A deeper main stack writes into slot 3's stack. `[inferred]` The real depth is `[unknown]`. The `Exec` stack is used only while the logo runs.
 
 ## Heap and buffers
 
 - **Heap.** `stup1` calls `InitHeap` over `0x80190C64..0x801F8004`, which overlaps the resident program and the overlay arena. The executable has no allocator thunk, so the heap is unused `[inferred]` ([boot](../../systems/boot/)).
 - **Primitive banks.** `SYS_PrepareFrame` sets `g_GfxPrimCursor` to `0x80020000 + buffer_index * 0x9000`. Two banks end at `0x80032000`. Each bank accepts primitives only up to 36,812 bytes ([frame loop](../frame-loop/)).
-- **CD ring.** `g_EmiRingBase` is `0x800E4800`. The 23 ring slots of 2,048 bytes end at `0x800F0800`, and slot 0 receives the header sector of the archive. `SYS_LoadExec` reads its header sector to the same address.
-- **Area work window.** `AREA_WORK_WINDOW` is also `0x800E4800`. It shares the range with the CD ring, so no area work data is safe there while an archive streams. `[inferred]` `D_801459FC` holds `0x800F5000`, the area code base.
-- **Palettes.** `GFX_ResetPalette` zeroes rows 28 to 31 of the 16 KiB arena at `0x80033800`, then copies 32 rows of 512 bytes to the work area at `0x80037800`. `GFX_UploadPalette` sends the rectangle (0, 0x1E0, 0x100, 0x20) from there to VRAM whenever `g_GfxPalettePending` is set.
+- **CD ring.** `g_EmiRingBase` is `0x800E4800`; slot 0 receives the header sector of the archive. `SYS_LoadExec` reads its header sector to the same address.
+- **Area work window.** `AREA_WORK_WINDOW` is also `0x800E4800`, so no area work data is safe there while an archive streams. `[inferred]` `D_801459FC` holds `0x800F5000`, the area code base.
+- **Palettes.** `GFX_ResetPalette` zeroes rows 28 to 31 of the arena, then copies 32 rows of 512 bytes to the work area. `GFX_UploadPalette` sends the rectangle (0, 0x1E0, 0x100, 0x20) from there to VRAM whenever `g_GfxPalettePending` is set.
 
 ## Sound memory
 
 `SND_SetBankLayout (exe/slus_004_22@0x80161808)` starts at `0x8011A000` and advances by two per-bank size tables, `D_8018239C` and `D_801823F0`. The SPU RAM address of each bank comes from `D_80182348[3][7]`. The sums put the end of the bank RAM at `0x8012C000` (layout 0), `0x8012B840` (layout 1) and `0x8012B5E0` (layout 2). `[inferred]`
 
-The [audio system](../../systems/audio/#ram-and-spu-budget-per-layout) lists the three layouts with their banks, window sizes and SPU addresses. All three put bank 0 at SPU address `0x1010`, so a layout change reuses SPU RAM. XA audio does not use main RAM, because the CD hardware sends it straight to the SPU.
+The [audio system](../../systems/audio/#ram-and-spu-budget-per-layout) lists the three layouts with their banks, window sizes and SPU addresses. All three put bank 0 at SPU address `0x1010`, so a layout change reuses SPU RAM. XA audio bypasses main RAM: the CD hardware sends it straight to the SPU.
 
 ## VRAM
 
@@ -132,7 +128,7 @@ The code addresses VRAM only through `LoadImage` rectangles. Three uses are fixe
 | 32 by 32 blocks at `x = column * 32`, `y = (row & 0x3F) * 32` | ring sectors              | `EMI_UploadSectorImage`, bounded to x below 1001 and y below 501 |
 | 24-wide slices                                                | logo decode buffer        | `Logo_DecodeSlice`                                               |
 
-The full split of VRAM between frame buffers, textures and palettes is `[unknown]`; see [rendering](../../systems/rendering/).
+The full split of VRAM between frame buffers, textures and palettes is `[unknown]` ([rendering](../../systems/rendering/)).
 
 ## Open questions
 

@@ -33,12 +33,10 @@ A table that splits a value into fields has a `Bits` column in the same form, fo
 ## Byte order
 
 All multi-byte values are little-endian: the low byte comes first. The CPU is a MIPS R3000A in
-little-endian mode, so a `u32` stored as the bytes `00 08 00 00` is `0x800`. The same holds on the disc: the
-first four bytes of an EMI archive are the entry count, and `FIRST.EMI` starts `0E 00 00 00`, which is 14.
+All multi-byte values are little-endian: a `u32` stored as the bytes `00 08 00 00` is `0x800`. The same holds on the disc: `FIRST.EMI` starts `0E 00 00 00`, an entry count of 14.
 
 A few fields are big-endian because they come from other file formats, such as the MIDI-like
-[SEP packages](../../formats/audio/#sep-package). A page marks each of those fields `big-endian`. A signature
-shown "in file order" lists its bytes as stored, such as `70 42 41 56` for the VAB tag `pBAV`.
+A few fields are big-endian because they come from other formats, such as the MIDI-like [SEP packages](../../formats/audio/#sep-package); a page marks each `big-endian`. A signature shown "in file order" lists its bytes as stored, such as `70 42 41 56` for the VAB tag `pBAV`.
 
 ## Field types
 
@@ -125,25 +123,18 @@ leaves out `Size`, `Name` or `Evidence` when the column adds nothing. `Type` sta
 | `0x02` |    1 | `u8`  | `count`   | how many; 0 means one   |
 | `0x03` |    1 | `u8`  | unused    | always zero             |
 
-The table is synthetic. Columns:
+Columns:
 
-- **Offset**: where the field starts, counted from the first byte of the record. Gaps between rows are
-  bytes the page does not describe. A table of RAM structures may use an **Address** column with absolute
-  RAM addresses instead.
-- **Size**: the field length in bytes. A page leaves this column out when the **Type** column already
-  fixes it.
-- **Type**: a type from the table above, or a record name. Every layout table has this column. A run of
-  bytes, or flags, is `u8[n]` or `u8`.
+- **Offset**: counted from the first byte of the record. Gaps are bytes the page does not describe. A table of RAM structures may use an **Address** column instead.
+- **Size**: the field length in bytes; left out when **Type** fixes it.
+- **Type**: a type from the table above, or a record name; `u8[n]` for a run of bytes, `u8` for flags.
 - **Name**: the name this wiki uses for the field.
 - **Meaning**: what the game does with the value, with its units and legal values.
 - **Evidence** (some pages): the functions that read or write the field, cited as above.
 
-A record that has a C struct in the decompilation also shows it as a `c` block after the table, with the
-struct's member names and an offset comment on each member. The table gives the meanings; the block is the
-compact view for code.
+A record that has a C struct in the decompilation also shows it as a `c` block after the table.
 
-In the example, the record is 4 bytes long. Reading `item_id` at record offset `0x00` from the bytes `0A 00 02 00`
-gives `item_id = 0x000A` and `count = 2`.
+In the example the record is 4 bytes; the bytes `0A 00 02 00` give `item_id = 0x000A` and `count = 2`.
 
 ## Sources and confidence
 

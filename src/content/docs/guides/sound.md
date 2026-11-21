@@ -3,7 +3,7 @@ title: "Edit sound and music"
 description: "The game plays sound by two routes."
 ---
 
-The game plays sound by two routes. The SPU synthesizes music and effects from sound banks and cue tables, and the CD hardware streams voices and long effects as XA audio. This guide covers four tasks: sound effects, music, sound banks and streamed audio. The formats are in [audio formats](../../formats/audio/) and [STR and XA](../../formats/str/), and how the game requests a sound is in [audio system](../../systems/audio/).
+The game plays sound by two routes: the SPU synthesizes music and effects from sound banks and cue tables, and the CD hardware streams voices and long effects as XA audio. Formats: [audio formats](../../formats/audio/) and [STR and XA](../../formats/str/). How the game requests a sound: [audio system](../../systems/audio/).
 
 ## Where the data is
 
@@ -12,7 +12,7 @@ The game plays sound by two routes. The SPU synthesizes music and effects from s
 | Sound effects               | An effect bank is a pair of VAB entries (types 6 and 7) plus a cue table (type 8). Banks sit in `BATTLE/COMN_SE.EMI`, `BATTLE/BATL_SE.EMI`, `ETC/A085SE2.EMI`, `ETC/A108SE2.EMI`, the 200 `BENEMY` enemy archives, the `BMAGIC` spell archives and the area archives. The disc holds 904 cue tables ([entry types](../../formats/emi/#entry-types)). |
 | Music                       | A SEP package (type 10) beside its bank in `BIN/BGM/BGMxxx.EMI`. The disc holds 119 packages: 81 in `BGM`, 35 in `BOSS`, 2 in `BATTLE` and 1 in `ETC`. Each holds 4 sequences.                                                                                                                                                                       |
 | Sound banks                 | Every audio-bearing archive holds a VAB as two entries: a header (VH, type 6) and a body (VB, type 7). The disc holds 1,020 pairs.                                                                                                                                                                                                                   |
-| Streamed voices and effects | XA audio sits in three files: `BIN/SCE_XA/S_XA00.STR`, `BIN/SCE_XA/VOICE.STR` and `BIN/BMAG_XA/MAGIC00.STR`. They are not movies. Each is a stream of 2,336-byte sectors that interleaves several channels. `LOGO/CAPCOM30.STR` is the Capcom logo movie ([files](../../formats/str/#files)).                                                        |
+| Streamed voices and effects | XA audio sits in three files: `BIN/SCE_XA/S_XA00.STR`, `BIN/SCE_XA/VOICE.STR` and `BIN/BMAG_XA/MAGIC00.STR`. Each is a stream of 2,336-byte sectors that interleaves several channels. `LOGO/CAPCOM30.STR` is the Capcom logo movie ([files](../../formats/str/#files)).                                                                             |
 
 ## What to change
 
@@ -32,7 +32,7 @@ Replace the VH and the VB as raw bytes, together. The header has 128 program rec
 
 A request is a key, `(stream << 12) | cue_index`. The cue table gives the first and last sector of the cue. The table is in the executable, as `u16` values that count periods of 8 sectors (`S_XA00.STR`) or 16 sectors (the other two). To retime or reorder a cue, edit those values ([XA cue tables](../../formats/str/#xa-cue-tables)). The counts are 880 cues for `MAGIC00.STR` and 5 for `VOICE.STR`. The 11 cues of `S_XA00.STR` are `[inferred]`, because nothing bounds the end of the array.
 
-To replace the audio of a cue, write new 4-bit ADPCM sectors at 37,800 Hz with the same channel and coding. Coding 1 is stereo and coding 0 is mono. Each sector needs its 8-byte subheader and an EDC ([sector layout](../../formats/str/#sector-layout)).
+To replace a cue's audio, write new 4-bit ADPCM sectors at 37,800 Hz with the same channel and coding (1 stereo, 0 mono). Each sector needs its 8-byte subheader and an EDC ([sector layout](../../formats/str/#sector-layout)).
 
 ## Limits and pitfalls
 
@@ -66,7 +66,7 @@ To replace the audio of a cue, write new 4-bit ADPCM sectors at 37,800 Hz with t
 
 ## Check in the game
 
-- **Sound effects:** trigger the sound in the game: a menu cursor move, a spell or an enemy action.
+- **Sound effects:** trigger the sound: a menu cursor move, a spell or an enemy action.
 - **Music:** enter the area, or start the battle, that plays the track.
 - **Sound banks:** play every cue and every sequence that uses the bank.
 - **Streamed voices and effects:** play the scene or cast the spell that uses the cue.

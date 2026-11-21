@@ -3,7 +3,7 @@ title: "Edit saves"
 description: "A save is one file on a memory card: a 512-byte header that the BIOS card menu reads, then a byte-for-byte copy of the live game state."
 ---
 
-A save is one file on a memory card: a 512-byte header that the BIOS card menu reads, then a byte-for-byte copy of the live game state. Editing a save means changing bytes of that copy and fixing one checksum. The file layout is in [memory card save](../../formats/save/), the state it holds is in [persistent state](../../systems/state/), and the field names are in [game records](../../data/records/#save-layout). Nothing on the disc holds a save.
+A save is one file on a memory card: a 512-byte header that the BIOS card menu reads, then a byte-for-byte copy of the live game state. Editing a save means changing bytes of that copy and fixing one checksum. File layout: [memory card save](../../formats/save/). State: [persistent state](../../systems/state/). Field names: [game records](../../data/records/#save-layout). Nothing on the disc holds a save.
 
 ## Where the data is
 
@@ -31,7 +31,7 @@ A save is one file on a memory card: a 512-byte header that the BIOS card menu r
 
 ## Check in the game
 
-Put the card in the slot that matches the file name. Open the continue menu and check that the save is listed with the expected summary. Load it and read the changed value on the status or inventory screen. A card error after a load means the checksum is wrong.
+Put the card in the slot that matches the file name. Open the continue menu, check that the save is listed with the expected summary, load it and read the changed value on the status or inventory screen. A card error after a load means the checksum is wrong.
 
 ## Related
 

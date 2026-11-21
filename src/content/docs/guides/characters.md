@@ -3,7 +3,7 @@ title: "Edit characters and enemies"
 description: "A playable character is one record of 164 bytes, and an enemy is one record of 136 bytes."
 ---
 
-A playable character is one record of 164 bytes, and an enemy is one record of 136 bytes. Both sit in fixed tables. Character growth comes from a level table and from master records. This guide shows where each sits and how to change it; the field layouts are in [game records](../../data/records/#character-and-master-data).
+A playable character is one record of 164 bytes, and an enemy is one record of 136 bytes. Both sit in fixed tables. Growth comes from a level table and master records. Field layouts: [game records](../../data/records/#character-and-master-data).
 
 ## Where the data is
 
@@ -25,7 +25,7 @@ A playable character is one record of 164 bytes, and an enemy is one record of 1
 
 ## Limits and pitfalls
 
-- **Counts and sizes are fixed.** The character table has 8 records, the level table 693 rows, the master tables 17 rows and each area block exactly 1,160 bytes.
+- **Counts and sizes are fixed.** 8 character records, 693 level rows, 17 rows per master table, and exactly 1,160 bytes per area block.
 - **Two copies.** Change `START.EMI#8` and `STATUS.EMI#0` together. Which copy a screen reads is `[unknown]`.
 - **New games only.** The game copies the starting table into its live state when a new game starts. A save holds its own copy of the characters, so an edit to the table does not change an existing save ([saves](../saves/)).
 - **Signed fields.** The master bonuses and the level-up modifiers are signed bytes, so write a negative value as its two's-complement byte ([masters](../../data/records/#masters)).
@@ -35,7 +35,7 @@ A playable character is one record of 164 bytes, and an enemy is one record of 1
 
 ## Check in the game
 
-Start a new game and open the status screen to read the starting stats of a character, then gain levels to check the growth rows. Fight an enemy of the edited area to check its stats and drops. A master's effect shows when a character takes the master and gains levels.
+Start a new game and open the status screen to read the starting stats, then gain levels to check the growth rows. Fight an enemy of the edited area to check its stats and drops. A master's effect shows when a character takes the master and gains levels.
 
 ## Related
 
