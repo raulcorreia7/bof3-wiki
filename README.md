@@ -10,12 +10,11 @@ The site is an [Astro Starlight](https://starlight.astro.build/) build. Pages ar
 
 ## Requirements
 
-| Tool                                  | Version  | Get it                                                       |
-| ------------------------------------- | -------- | ------------------------------------------------------------ |
-| Node.js                               | 22.23.4+ | <https://nodejs.org/en/download>                             |
-| Python                                | 3.11+    | <https://www.python.org/downloads/>                          |
-| [dprint](https://dprint.dev/install/) | any      | `cargo install dprint` or the installer on the dprint site   |
-| Chrome or Chromium (diagram check)    | any      | your package manager; set `CHROMIUM` to the binary if needed |
+| Tool                               | Version              | Get it                                                       |
+| ---------------------------------- | -------------------- | ------------------------------------------------------------ |
+| Node.js                            | 24 (`.node-version`) | <https://nodejs.org/en/download>                             |
+| Python                             | 3.11+                | <https://www.python.org/downloads/>                          |
+| Chrome or Chromium (diagram check) | any                  | your package manager; set `CHROMIUM` to the binary if needed |
 
 The wiki needs no game data and no disc image.
 
@@ -42,10 +41,8 @@ npm run dev      # live preview at http://localhost:4321/bof3-wiki/
 ## Check
 
 ```sh
-dprint check                  # Markdown and JSON format; dprint fmt fixes it
-npm run check                 # page template, titles, orphan pages
-npm run build                 # links and anchors
-npm run check:diagrams        # diagram readability; needs the build and Chrome
+npm run check                 # format, page template, build, diagrams (needs Chrome) and links
+npx dprint fmt                # fix the format
 python3 tools/check_sources.py ../bof3-decomp  # every Source: link; needs a decompilation checkout
 ```
 

@@ -6,8 +6,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "python3 tools/check_pages.py",
-    "check:diagrams": "node tools/check_diagrams.mjs"
+    "check:diagrams": "node tools/check_diagrams.mjs",
+    "check": "dprint check && python3 tools/check_pages.py && astro build && node tools/check_diagrams.mjs && tools/check_links.sh"
   },
   "dependencies": {
     "@astrojs/starlight": "0.43.1",
@@ -19,6 +19,7 @@
     "starlight-llms-txt": "0.12.0"
   },
   "devDependencies": {
+    "dprint": "0.64.3",
     "playwright-core": "1.65.1"
   },
   "engines": {
