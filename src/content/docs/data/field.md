@@ -5,11 +5,11 @@ description: "The field keeps its state in fixed RAM tables: 30 actor rows, 20 f
 
 On the field the game keeps its state in fixed RAM tables: 30 actor rows of 152 bytes at `0x80146888` for the map's objects, 20 field slots of 116 bytes at `0x80143FC8` that a scene fills, the party's inventory, zenny and play clock, and the fairy-village and fishing tables. This page lists each by address, row layout and reader. The archives that feed these rows are in [area formats](../../formats/area/), the character record is in [game records](../records/#character-and-master-data), and the use of the rows by area and scenario code is in [areas and the field](../../systems/areas/).
 
-Evidence cells name the function that reads or writes a cell, as `name (image@address)`. The executable image is `exe/slus_004_22`. Terms such as actor row and field slot are in the [glossary](../../appendix/glossary/).
+Evidence cells name the reader as `name (image@address)`; the executable image is `exe/slus_004_22`. Terms: [glossary](../../appendix/glossary/).
 
 ## Where the records are
 
-The table gives the address, row size and row count of each object. Several objects are the same data seen from different overlays, so a reader may be an overlay function and not an executable one.
+Several objects are the same data seen from different overlays, so a reader may be an overlay function.
 
 | Object                  |      Address | Size | Count | Readers                                                                                                             |
 | ----------------------- | -----------: | ---: | ----: | ------------------------------------------------------------------------------------------------------------------- |
@@ -27,23 +27,6 @@ The table gives the address, row size and row count of each object. Several obje
 | best catches            | `0x80144FE4` |    1 |    32 | `Fishing_CatchRecord (emi/world00/area030/04@0x801DB554)`, `Fishing_TotalScore (emi/world00/area030/04@0x801E0B6C)` |
 | fishing rod table       | `0x801E2748` |   10 |     - | `Fishing_SelectGear (emi/world00/area030/04@0x801DDE2C)`                                                            |
 | fishing lure table      | `0x801E2720` |   20 |     - | `Fishing_SelectGear (emi/world00/area030/04@0x801DDE2C)`                                                            |
-
-The area archive feeds these rows. The diagram shows the entries of `WORLDnn/AREAnnn.EMI` and where each one loads.
-
-```mermaid
-flowchart TD
-    A["WORLDnn/AREAnnn.EMI<br/>entries of type 0"] -->|"slot 13"| B["0x801F2C00<br/>area program"]
-    A -->|"slots 10, 12, 11"| X["0x800E4000 encounters<br/>0x80104000 map bundle<br/>0x80010000 message table"]
-    B --> F["area overlay code"]
-    F --> G["0x80146888<br/>actor rows"]
-    F --> H["0x80143FC8<br/>field slots"]
-    G --> I["func_801A06D8<br/>actor update"]
-    H --> J["Actor_FindFreeSlot,<br/>Char_SpawnActor"]
-    I --> K["draw, interaction,<br/>script dispatch"]
-```
-
-The slot numbers are the TOC indexes for `WORLD00/AREA001.EMI`. The seven world shapes move the area
-program between slots 9, 13 and 14 ([EMI](../../formats/emi/#archive-shapes)).
 
 ## Actor rows
 
