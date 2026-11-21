@@ -50,7 +50,7 @@ Track 1 holds 188,324 sectors, 188,111 of them in files ([coverage](../../append
 
 Each EMI archive has a header, a table of contents and 1 to 14 payloads ([EMI](../emi/)). `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` starts every archive read from its slot id. The sound code, not the EMI loader, reads the three XA files ([loading](../../concepts/loading/#xa-audio)). Callers that choose a slot are in [EMI slot ids](../emi/#disc-slot-ids).
 
-A scenario overlay is at slot `scenario_id + 661` (`0x295` is the base), so scenario 3 is slot 664 (`0x298`). An area archive is at slot `area + 0x2AB`, so area 5 is slot `0x2B0` in `WORLD00`.
+A scenario overlay is at slot `scenario_id + 661` (`0x295` is the base: `SCENA00`, after the five effect archives at `0x290`-`0x294`), so scenario 3 is slot 664 (`0x298`). An area archive is at slot `area + 0x2AB`, so area 5 is slot `0x2B0` in `WORLD00`.
 
 | Directory           | Files | What it holds                                                                                                                                                        | When read                                              |
 | ------------------- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
