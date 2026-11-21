@@ -3,17 +3,17 @@ title: "Battle records"
 description: "A battle runs from two overlays that share work tables in fixed RAM."
 ---
 
-A battle runs from two overlays that share work tables in fixed RAM. `emi/battle/battle/03` (loaded at `0x801D0C00`) holds the mode machines, the damage rules and the effect scheduler; `emi/battle/battle/15` (loaded at `0x80096800`) holds the entrance, the panels and the drawing. This page maps their working set: the work rows built at run time, the state words that tie them together and the tables that pick a handler. The static enemy, encounter and ability tables are in [game records](../records/#gameemi-fixed-tables), and the order of a battle is in [battle flow](../../systems/battle/).
+Two overlays share work tables in fixed RAM. `emi/battle/battle/03` (`0x801D0C00`) holds the mode machines, the damage rules and the effect scheduler; `emi/battle/battle/15` (`0x80096800`) holds the entrance, the panels and the drawing. This page maps the work rows, the state words and the handler tables. Static enemy, encounter and ability tables are in [game records](../records/#gameemi-fixed-tables); the order of a battle is in [battle flow](../../systems/battle/). Terms are in the [glossary](../../appendix/glossary/).
 
-A bare `func_XXXXXXXX` in an evidence cell lives in `emi/battle/battle/03` when its address is `0x801D0C00` or above, in `emi/battle/battle/15` when it is in `0x80096800`-`0x800BFFFF`, and in `emi/etc/game/00` for `0x801C6AEC` and `0x801C6BB4`. Terms such as work row and slot are in the [glossary](../../appendix/glossary/).
+A bare `func_XXXXXXXX` in an evidence cell lives in `emi/battle/battle/03` at `0x801D0C00` or above, in `emi/battle/battle/15` in `0x80096800`-`0x800BFFFF`, and in `emi/etc/game/00` for `0x801C6AEC` and `0x801C6BB4`.
 
 ## Dispatch model
 
-One mode byte selects a mode machine. Each mode owns a step table, and a step advances itself and may call the sub-step dispatcher. Effects run on a second track: the game queues an action slot, the slot's mode selects a stage, and the slot's handler index selects the function. Every row of the mode and entrance tables is a function pointer with no arguments and no result. The [dispatch tables](#dispatch-tables) section lists the addresses and sizes, and [battle flow](../../systems/battle/) gives the order of the calls.
+One mode byte selects a mode machine. Each mode owns a step table, and a step advances itself and may call the sub-step dispatcher. Effects run on a second track: a queued action slot's mode selects a stage, and its handler index selects the function. Every mode and entrance row is a function pointer with no arguments and no result ([dispatch tables](#dispatch-tables)).
 
 ## Where the records are
 
-All addresses are fixed RAM. The table gives the address, row size and row count of each object, and a function that reads it. Several objects are one byte wide: the mode, the step and the sub-step are three bytes in a row.
+Addresses are fixed RAM. The mode, step and sub-step are three adjacent bytes.
 
 | Object                     |      Address | Size | Count | Readers                                                     |
 | -------------------------- | -----------: | ---: | ----: | ----------------------------------------------------------- |
@@ -35,17 +35,11 @@ All addresses are fixed RAM. The table gives the address, row size and row count
 
 ### Battler slots
 
-The row count is not the battler index space. Player slots are 0 to 2 and enemy slots are 3 to 10,
-so a battle has 11 battlers at most. An enemy work row stores its slot at `+0x05` as `slot + 3`
-(`Battle_InitEnemy (emi/battle/battle/15@0x800ABCE0)`). Code addresses the enemy rows from the virtual
-base `0x801EB2E8`, which is `0x801EB630` minus three enemy strides of 280 bytes. One base then serves both sides.
-
-For example, slot 3 is the first enemy: `0x801EB2E8 + 3 * 280 = 0x801EB630`. A pointer to
-"battler n" is resolved by side first, then by slot.
+Player slots are 0 to 2 and enemy slots are 3 to 10, so a battle has 11 battlers at most. An enemy work row stores its slot at `+0x05` as `slot + 3` (`Battle_InitEnemy (emi/battle/battle/15@0x800ABCE0)`). Code addresses enemy rows from the virtual base `0x801EB2E8`, which is `0x801EB630` minus three enemy strides of 280 bytes, so one base serves both sides: slot 3 is `0x801EB2E8 + 3 * 280 = 0x801EB630`. A pointer to "battler n" resolves by side first, then by slot.
 
 ## Player work row
 
-The mode machines step the player work row. There are three rows of 320 bytes at `0x80145E90`. The table lists the fields that code reads. A field has a role only when the evidence cell names the function that shows it.
+Three rows of 320 bytes at `0x80145E90`. A field has a role only when the evidence cell names the function that shows it.
 
 |  Offset | Type                | Meaning                                                                                                                                                                                  | Evidence                                                                                                             |
 | ------: | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -122,9 +116,7 @@ them.
 
 ## Enemy work row
 
-There are eight rows of 280 bytes at `0x801EB630`. `Battle_InitEnemy (emi/battle/battle/15@0x800ABCE0)`
-and `Battle_AddEnemy (emi/battle/battle/15@0x800AC01C)` arm a slot and clear the cells from `+0x06` to
-`+0x5F` first. The table lists the confirmed fields. Widths follow the accesses.
+Eight rows of 280 bytes at `0x801EB630`. `Battle_InitEnemy` and `Battle_AddEnemy (emi/battle/battle/15@0x800AC01C)` arm a slot and clear `+0x06` to `+0x5F` first. Widths follow the accesses.
 
 |  Offset | Type                | Meaning                                                                                                                                      | Evidence                                                                |
 | ------: | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
@@ -215,7 +207,7 @@ Cells with no known role (`[unknown]`): `0x06`, `0x07`, `0x0C`-`0x24`, `0x2B`, `
 
 ## Drops
 
-A defeated enemy can drop up to two items. The two drop rows at enemy `+0x98` and `+0x9C` are the two item rows of the area's [enemy record](../records/#the-enemy-record), copied unchanged by `Battle_LoadEnemyBattler (emi/battle/battle/15@0x800AC218)`, which `Battle_AddEnemy` calls when the battle starts. Each row holds an item id and a rate index. The rate index selects a chance from the table in [drops](../records/#drops), which also gives the roll. The table gives the row as the battle code reads it.
+A defeated enemy drops up to two items. The drop rows at enemy `+0x98` and `+0x9C` are the two item rows of the area's [enemy record](../records/#the-enemy-record), copied unchanged by `Battle_LoadEnemyBattler (emi/battle/battle/15@0x800AC218)` when `Battle_AddEnemy` runs. The rate index selects a chance from the table in [drops](../records/#drops), which also gives the roll.
 
 | Offset | Type  | Meaning                                                                                                         |
 | -----: | ----- | --------------------------------------------------------------------------------------------------------------- |
@@ -268,10 +260,7 @@ Source: [`include/battle/records.h`](https://github.com/raulcorreia7/bof3-decomp
 
 ## Encounter candidates
 
-Before a wild encounter, the field overlay fills a table of eight candidate entries of 12 bytes
-at `0x801463DC`. The battle overlay walks the table and places each live enemy.
-`func_800ABC30 (emi/battle/battle/15@0x800ABC30)` reads the id, x and y of an entry and hands them to
-`Battle_InitEnemy`.
+Before a wild encounter, the field overlay fills eight 12-byte candidate entries at `0x801463DC`. `func_800ABC30 (emi/battle/battle/15@0x800ABC30)` reads the id, x and y of each live entry and hands them to `Battle_InitEnemy`.
 
 | Offset | Type          | Meaning                                                                                                                |
 | -----: | ------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -289,15 +278,11 @@ typedef struct EncounterEnemy {
 
 Source: [`include/battle/records.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/battle/records.h)
 
-The enemy record bytes `+0x82` and `+0x83` (block `+0xCA` and `+0xCB`) are the reach and height
-that `Area_BuildEncounter` and `func_801E8DD8` read. [Game records](../records/#the-enemy-record) owns
-their meaning.
+Enemy record bytes `+0x82` and `+0x83` (block `+0xCA`, `+0xCB`) are the reach and height that `Area_BuildEncounter` and `func_801E8DD8` read; [game records](../records/#the-enemy-record) owns their meaning.
 
 ## Panel tasks and queued actions
 
-A panel task draws one window of the battle interface. The 22 slots of 36 bytes at `0x80148330`
-end at `0x80148648`. `0x80148648` itself is a pointer cell that `func_800B0410` loads and reads
-through. `emi/battle/battle/15` reads only the first 12 bytes of a task and reads x and y signed.
+A panel task draws one window of the battle interface: 22 slots of 36 bytes at `0x80148330`, ending at `0x80148648`, which is a pointer cell that `func_800B0410` loads and reads through. `emi/battle/battle/15` reads only the first 12 bytes of a task and reads x and y signed.
 
 | Offset | Type  | Meaning                                                                                                                                   |
 | -----: | ----- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -332,8 +317,7 @@ Source: [`include/battle/records.h`](https://github.com/raulcorreia7/bof3-decomp
 `func_800B1728` and `func_800B0F9C (emi/battle/battle/15@0x800B0F9C)` also read the cells at `+0x12`
 and `+0x14` as bytes. `+0x12` is the box drawer's scale and `+0x14` is the number of rows it draws.
 
-The queued action slot is one of 48 rows of 120 bytes at `0x801EC330`. `emi/battle/battle/03`
-names the head fields and `emi/battle/battle/15` the tail.
+A queued action slot is one of 48 rows of 120 bytes at `0x801EC330`; `emi/battle/battle/03` names the head fields and `emi/battle/battle/15` the tail.
 
 | Offset | Type    | Meaning                                                                                                          |
 | -----: | ------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -403,8 +387,7 @@ Source: [`include/battle/records.h`](https://github.com/raulcorreia7/bof3-decomp
 
 ## State word bits
 
-`g_BattleState` (`0x801462E8`) is the shared latch that both overlays poll. The table gives the
-setter and the reader of each bit.
+`g_BattleState` (`0x801462E8`) is the latch both overlays poll.
 
 |      Bit | Name             | Set by                                  | Read as                                                            |
 | -------: | ---------------- | --------------------------------------- | ------------------------------------------------------------------ |
@@ -452,11 +435,7 @@ music (the field music replay after the battle is skipped). Any set bit forces t
 
 ## A reprisal exchange
 
-A reprisal is the struck battler's immediate physical answer. The game decides it in the hit's
-ending step, hands the turn over at the closing step and marks the answer so that it cannot be
-answered again. The player sees the target turn and strike back.
-
-The table gives the two steps. Pending is `g_BattleState` bit `0x0040`. Done is bit `0x1000`.
+A reprisal is the struck battler's immediate physical answer. The hit's ending step decides it, the closing step hands over the turn, and the answer is marked so it cannot be answered again. Pending is `g_BattleState` bit `0x0040`; done is bit `0x1000`.
 
 | Step                             | Function                         | Rule                                                                                                                                                                                                                                                                                                                                                                |
 | -------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -469,24 +448,9 @@ never lets a party member answer. The enemy roll passes when the event flags bit
 damage-word bit 15 is set or a flat 70 percent roll passes
 (`func_801E4368 (emi/battle/battle/03@0x801E4368)`).
 
-```mermaid
-stateDiagram-v2
-    [*] --> HitEnding: one battler takes the hit
-    HitEnding --> KnockedOut: HP reaches 0
-    HitEnding --> Roll: survived, one-battler target
-    KnockedOut --> TurnEnd: no answer
-    Roll --> Pending: roll passes
-    Roll --> TurnEnd: roll fails
-    Pending --> Answer: closing step swaps acting and target
-    Answer --> Done: answer lands
-    Done --> TurnEnd: closing step clears the reprisal done bit
-    TurnEnd --> [*]
-```
-
 ## Dispatch tables
 
-The battle code copies a table to the stack and indexes it. The table names follow the selector, not
-the row count. The table shows each table's address, size and reader.
+The battle code copies a table to the stack and indexes it. Names follow the selector, not the row count.
 
 | Table                           |      Address | Rows | Index selects                             | Reader                                                      |
 | ------------------------------- | -----------: | ---: | ----------------------------------------- | ----------------------------------------------------------- |
@@ -512,7 +476,7 @@ battle effects read the same shape from their own module head. The boss-battle e
 
 An ability's effect module is found through three tables. `g_BattleActionSelection` (`emi/battle/battle/03`, `0x800B6510`, 232 bytes) maps the ability index, the low byte of `g_BattleActionId`, to a row of `g_BattleSelections` (`0x800B65F8`, 8-byte rows). The row's `id` is an EMI slot id; `g_EmiSlotLbas[slot]` gives its start sector, which names the `BIN/BMAGIC/MAGICnnn.EMI` file. `Battle_LoadSelectionEffect (emi/battle/battle/15@0x800AE1F8)` runs this chain.
 
-The table below lists every ability with an effect module, read from the retail data. The selection table is zero in `SLUS_004.22` and is filled from the battle overlay at runtime, so the rows come from `emi/battle/battle/15`. Four ability indices (`0x7F`, `0x80`, `0x8B`, `0xD9`) use the empty row `0xFFFF`.
+The table lists every ability with an effect module. The selection table is zero in `SLUS_004.22` and is filled from the battle overlay at runtime, so the rows come from `emi/battle/battle/15`. Four ability indices (`0x7F`, `0x80`, `0x8B`, `0xD9`) use the empty row `0xFFFF`.
 
 | Ability | Name         | Selection row | EMI slot | Effect module |
 | ------: | ------------ | ------------: | -------: | ------------- |
@@ -741,8 +705,6 @@ The table below lists every ability with an effect module, read from the retail 
 |  `0xE3` | MeteorStrike |           147 |  `0x1B1` | MAGIC227      |
 
 ## Data and limits
-
-The battle code reads these fixed values. The table lists the source and the meaning of each.
 
 | Value                  | Source                                          | Meaning                                                                  |
 | ---------------------- | ----------------------------------------------- | ------------------------------------------------------------------------ |

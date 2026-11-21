@@ -337,15 +337,16 @@ The only movie code is in `LOGO.EXE`, which [boot](../../systems/boot/#the-logo-
 
 ## Open questions
 
-| Question                                                                                               | What would settle it                                                                                    |
-| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Whether anything awaits the completion of a `LoadImage`                                                | Read the draw and loader code for a `DrawSync` after the upload                                         |
-| Whether a wider game state keeps `SND_StartXAStream` from starting during an EMI stream                | No check exists in its callers; trace a run that plays XA during a load                                 |
-| Callers of `0x263` (`MTEST`) and `0x264` (`RTEST`)                                                     | No constant or table holds them; they may be unused test archives                                       |
-| Where `COMMU00` first loads on entry to the Fairy Village                                              | The menu close handlers reload it; the first load is in no caller read                                  |
-| What `COMMU01` to `COMMU05` are in the village                                                         | Read the event code at `0x801D0C00` in each archive                                                     |
-| Which pointer table picks each battle form archive (`D_800B4A64`, `D_800B4A68`) and what the forms are | Find where the two pointers are set, and read the `BRT`, `CRYU`, `DRG`, `PAPY`, `RT` and `RYU` archives |
-| The conditions in `func_8019FAA0` that choose a world or area change                                   | The function branches on state values not yet traced                                                    |
+| Question                                                                                               | What would settle it                                                                                     |
+| ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| What restores the non-audio data after a battle                                                        | `Battle_ReloadAreaAudio` reloads only area audio, and `BATTLE.EMI` writes the text table at `0x8001A000` |
+| Whether anything awaits the completion of a `LoadImage`                                                | Read the draw and loader code for a `DrawSync` after the upload                                          |
+| Whether a wider game state keeps `SND_StartXAStream` from starting during an EMI stream                | No check exists in its callers; trace a run that plays XA during a load                                  |
+| Callers of `0x263` (`MTEST`) and `0x264` (`RTEST`)                                                     | No constant or table holds them; they may be unused test archives                                        |
+| Where `COMMU00` first loads on entry to the Fairy Village                                              | The menu close handlers reload it; the first load is in no caller read                                   |
+| What `COMMU01` to `COMMU05` are in the village                                                         | Read the event code at `0x801D0C00` in each archive                                                      |
+| Which pointer table picks each battle form archive (`D_800B4A64`, `D_800B4A68`) and what the forms are | Find where the two pointers are set, and read the `BRT`, `CRYU`, `DRG`, `PAPY`, `RT` and `RYU` archives  |
+| The conditions in `func_8019FAA0` that choose a world or area change                                   | The function branches on state values not yet traced                                                     |
 
 ## Sources and confidence
 

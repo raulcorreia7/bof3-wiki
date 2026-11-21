@@ -3,11 +3,9 @@ title: "Game text"
 description: "Every string the game prints is a byte string in one custom encoding: ASCII-ordered digits and letters, a few punctuation marks in odd slots, and low bytes as control codes for the message window."
 ---
 
-Every string the game prints is a byte string in one custom encoding: digits and letters in ASCII order, a few punctuation marks in odd slots, the space at `0xFF`, and low bytes as control codes that drive the message window. This page covers the encoding, the control codes, the containers that hold strings and the ways that code and data refer to a string. Dialogue lives in the area message tables ([Game records](../records/#archive-index) says which archive holds what). The message window itself belongs to the [field](../field/) and [battle](../battle/) screens.
+Every string is a byte string in one custom encoding: digits and letters in ASCII order, a few punctuation marks in odd slots, the space at `0xFF`, and low bytes as control codes that drive the message window. This page covers the encoding, the control codes, the containers and the references. Dialogue lives in the area message tables ([Game records](../records/#archive-index) says which archive holds what). The message window itself belongs to the [field](../field/) and [battle](../battle/) screens.
 
 ## Byte classes
-
-The encoding has five classes of byte. The table shows which bytes belong to each class.
 
 | Class          | Bytes                                                         | Meaning                             |
 | -------------- | ------------------------------------------------------------- | ----------------------------------- |
@@ -71,12 +69,7 @@ the string: `0x48` is `H`, `0x69` is `i`, `0x5D` is `!`, `0x01` starts a new lin
 
 ## Control codes
 
-Both text drawers switch on the same byte. `UI_DrawTextGlyphs (exe/slus_004_22@0x8014F84C)` draws a
-line. The message engine, `func_8015083C (exe/slus_004_22@0x8015083C)` with `UI_DrawMessageScript`
-(exe/slus_004_22@0x80150470), steps the window state. This page writes a control byte as a tag such as
-`{NEWLINE}`; an operand byte follows the tag as `{COLOR:03}`.
-
-The table lists each code, how many operand bytes it takes and what it does.
+Both text drawers switch on the same byte. `UI_DrawTextGlyphs (exe/slus_004_22@0x8014F84C)` draws a line; the message engine, `func_8015083C (exe/slus_004_22@0x8015083C)` with `UI_DrawMessageScript` (exe/slus_004_22@0x80150470), steps the window state. A control byte is written as a tag such as `{NEWLINE}`; an operand byte follows as `{COLOR:03}`.
 
 | Byte     | Tag           | Behavior                                                                                                    |
 | -------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -122,8 +115,6 @@ operand `1` selects. It stops early at an `{END}` byte, then reading resumes aft
 
 ## Containers
 
-Strings live in three kinds of container. The kind decides how the bytes are found.
-
 ### Message table
 
 A payload that opens with a little-endian `u16` offset table describes itself. The first entry,
@@ -163,9 +154,6 @@ text.
 
 ## References
 
-Code and data reach a string in four ways. The table lists each kind, how wide the reference is,
-where it sits and what it reaches.
-
 | Kind           | Width | Where                                                | Reaches                                            |
 | -------------- | ----- | ---------------------------------------------------- | -------------------------------------------------- |
 | `table-index`  | `u16` | the message table's offsets, at `payload + slot * 2` | the record that the slot selects                   |
@@ -195,6 +183,7 @@ entry 8 of `BOSS` (5 times) and entry 0 of `ETC/AFLDKWA` (1). The ids are local 
 - `[unknown]` Which payload sits at `0x8001A000` when a given `text-id` resolves. A trace of the
   resolver call would settle it.
 - `[unknown]` The effect of `{SKIP12}` and `{SKIP13}` beyond advancing one byte.
+- `[unknown]` The other 16 of the 165 text tables' 10,510 messages that are short or start with a zero byte (10,494 are strings). Reading those 16 messages would settle it.
 
 ## Sources and confidence
 
@@ -203,8 +192,8 @@ entry 8 of `BOSS` (5 times) and entry 0 of `ETC/AFLDKWA` (1). The ids are local 
 
 ## Related
 
-- [Game records](../records/): the fixed tables whose rows hold names and text ids.
-- [UI and text drawing](../../systems/ui/): how the message window runs these codes.
-- [Asset kinds](../../formats/assets/): where message tables sit among the disc content.
-- [Edit text and dialogue](../../guides/text/): the steps to change a string.
+- [Game records](../records/): fixed tables with names and text ids.
+- [UI and text drawing](../../systems/ui/): the message window.
+- [Asset kinds](../../formats/assets/): message tables among the disc content.
+- [Edit text and dialogue](../../guides/text/): changing a string.
 - [Glossary](../../appendix/glossary/): table, record, slot and text id.

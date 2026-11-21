@@ -139,6 +139,7 @@ The full split of VRAM between frame buffers, textures and palettes is `[unknown
 | The final VRAM split                                                                                   | A VRAM dump during play                                                                            |
 | The field that each per-bank size block feeds; the real end of used SPU RAM; the real main stack depth | A trace of `SND_SetBankLayout` users, an SPU dump, a stack watermark                               |
 | Whether anything between `0x8012C000` and `0x80143B40` is in use                                       | `g_AreaCellPrims`, the cell-row pool, is the one symbol seen there; search the assembly for others |
+| Whether a load into a window can start while its previous overlay still runs                           | No guard was found; a runtime watch on the loader                                                  |
 | Which occupant of a shared window is live at a given moment                                            | The code does not record it; a runtime watch on the loader                                         |
 | Callers of the `BOSS` slot `0x1B3`                                                                     | No immediate use of `0x1B3` exists in the assembly; find where a caller builds the slot id         |
 

@@ -3,11 +3,11 @@ title: "Game records"
 description: "The game keeps its numeric data in fixed-size rows: items, equipment, abilities, shops and level growth in GAME.EMI entry 0, party and master data in the camp-menu archives, and enemies in each area archive."
 ---
 
-The game keeps its numeric data in fixed-size rows: items, equipment, abilities, shops and level growth in `GAME.EMI` entry 0 (resident at `0x80195800`), party starting stats and master data in the camp-menu archives, and enemies and encounters in each area archive. This page gives each table's location, row size, fields and value ranges, and the map of the save file, for the US release (`SLUS-00422`). The live copies of these rows are in [battle records](../battle/) and [field and party records](../field/), and names are text in the game's encoding ([text](../text/)).
+Numeric data sits in fixed-size rows: items, equipment, abilities, shops and level growth in `GAME.EMI` entry 0 (resident at `0x80195800`), party starting stats and master data in the camp-menu archives, enemies and encounters in each area archive. This page gives each table's location, row size, fields and value ranges, and the save-file map, for the US release (`SLUS-00422`). Live copies are in [battle records](../battle/) and [field and party records](../field/); names are text ([text](../text/)).
 
 ## `GAME.EMI` fixed tables
 
-Entry 0 of `BIN/ETC/GAME.EMI` is 229,720 bytes and loads at `0x80195800`. It holds eight tables. A row's runtime address is `0x80195800` plus its payload offset, and its archive offset is the payload offset plus `0x800`. The table shows where each table sits and how many rows it has.
+Entry 0 of `BIN/ETC/GAME.EMI` is 229,720 bytes and loads at `0x80195800`. A row's runtime address is `0x80195800` plus its payload offset; its archive offset is the payload offset plus `0x800`.
 
 | Table        |   Archive |   Payload |      Runtime | Rows × size |
 | ------------ | --------: | --------: | -----------: | ----------: |
@@ -24,18 +24,9 @@ The tables follow each other with one gap. A 232-byte block at runtime `0x801CA6
 
 The item, vital item, weapon, armor and accessory tables each start with a `Nothing` row, and ability 0 is zeroed. A name is 12 bytes of text in the game's encoding ([text](../text/#byte-classes)). It needs no terminator when it uses the whole field: `Healing Herb` is 12 bytes in a 12-byte field.
 
-```mermaid
-flowchart TD
-    E["BIN/ETC/GAME.EMI#0, load 0x80195800"] -->|"type 0 copy"| T["eight fixed tables"]
-    T --> D["item dispatcher 0x80165D48"]
-    T --> M["shop, menu and battle readers"]
-    A["WORLDnn/AREAnnn.EMI"] -->|"entry loaded at 0x800E4000"| B["encounters and enemies"]
-    B --> W["area overlays and battle mode"]
-```
-
 ### Row layouts
 
-The table gives each row's size and the offset of each field. Each field carries its type. A `description` is a little-endian `u16` resource id in the `0x4000`-based id space of `Message_GetText` ([text](../text/#references)).
+A `description` is a little-endian `u16` resource id in the `0x4000`-based id space of `Message_GetText` ([text](../text/#references)).
 
 | Table        | Type          | Size | Fields (offset)                                                                                                                                                                                                                                |
 | ------------ | ------------- | ---: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -153,7 +144,7 @@ The item dispatcher (`Item_GetRecord`, `exe/slus_004_22@0x80165D48`) masks an it
 
 ## Character and master data
 
-A party member is one `Character` record of 164 bytes. The game keeps eight of them at `g_Characters` (`0x80144968`): Ryu, Nina, Garr, Teepo, Rei, Momo, Peco and Whelp. The starting values come from a table in the camp-menu archive, and a new game copies it into `g_Characters` (`Party_InitDefaults`, `emi/etc/start/08@0x801D15C0`). The status archive carries a byte-identical second copy.
+A party member is one 164-byte `Character` record. Eight sit at `g_Characters` (`0x80144968`): Ryu, Nina, Garr, Teepo, Rei, Momo, Peco and Whelp. A new game copies the starting values from a camp-menu archive table into `g_Characters` (`Party_InitDefaults`, `emi/etc/start/08@0x801D15C0`). The status archive carries a byte-identical second copy.
 
 | Table             | Archive               |    Offset |             Rows × size |
 | ----------------- | --------------------- | --------: | ----------------------: |
@@ -169,7 +160,7 @@ The base-stat table is entry 8 of `START.EMI` (payload `0x1A914`, load address `
 
 ### The character record
 
-The runtime record at `g_Characters` has the same layout as the archive row. The table gives the offset, type and meaning of each field. The block's header byte at `0x80144952` (22 bytes before the first record) holds the window style.
+The runtime record has the same layout as the archive row. The block's header byte at `0x80144952` (22 bytes before the first record) holds the window style.
 
 | Offset | Type      | Name                                                                                 | Meaning                                       |
 | -----: | --------- | ------------------------------------------------------------------------------------ | --------------------------------------------- |
@@ -252,7 +243,7 @@ The level-growth table has 693 rows: seven blocks of 99, one for each of charact
 
 ### Masters
 
-A master is a trainer that changes a character's stat growth and teaches skills. Master ids index the master tables: 0 Bunyan, 1 Mygas, 2 Yggdrasil, 3 D'lonzo, 4 Fahl, 5 Durandal, 6 Giotto, 7 Hondara, 8 Emitai, 9 Deis, 10 Hachio, 11 Bais, 12 Lang, 13 Lee, 14 Wynn, 15 Ladon and 16 Meryleep. Runtime code assigns a master to a character. No record starts with one.
+A master is a trainer that changes stat growth and teaches skills. Master ids index the master tables: 0 Bunyan, 1 Mygas, 2 Yggdrasil, 3 D'lonzo, 4 Fahl, 5 Durandal, 6 Giotto, 7 Hondara, 8 Emitai, 9 Deis, 10 Hachio, 11 Bais, 12 Lang, 13 Lee, 14 Wynn, 15 Ladon and 16 Meryleep. Runtime code assigns a master to a character. No record starts with one.
 
 - `MasterSkills` rows are six pairs of `level | ability << 8`. A high byte of `0xFF` marks an empty pair and a low byte of `0x63` marks an unused level. The first row, for example, begins level 2 with ability `0xAA`, level 5 with ability `0x27`.
 - `MasterStats` rows are six `s8` bonuses: HP, AP, power, defense, agility and intellect.
@@ -279,9 +270,9 @@ Seven area programs hold a `g_PartyMemberMessages` table. Each row is 12 bytes: 
 
 ### Save layout
 
-The save file is a 1-block memory-card file ([memory card save](../../formats/save/)). Its payload is a copy of one block of RAM, so a save offset maps to a RAM address by a fixed bias: RAM address = save offset + `0x801446D8` for every offset from `0x200`. The frame origin `0x801446D8` is virtual. Only the part from `+0x200` exists in live RAM, as the block at `0x801448D8`. The file header, the checksum and the load and save routines are in [memory card save](../../formats/save/#checksum) and [saving and loading](../../systems/saving/).
+The save file is a 1-block memory-card file ([memory card save](../../formats/save/)) whose payload copies one block of RAM: RAM address = save offset + `0x801446D8` for every offset from `0x200`. The origin `0x801446D8` is virtual; only the part from `+0x200` exists in live RAM, as the block at `0x801448D8`. The header, checksum and routines are in [memory card save](../../formats/save/#checksum) and [saving and loading](../../systems/saving/).
 
-Community save editors use a second origin that starts at the zenny field, so an editor offset is the save offset minus `0x878`. The table lists both. Rows with no tag have a named global at that address. `[inferred]` rows rest on community notes only.
+Community save editors use a second origin at the zenny field: editor offset = save offset minus `0x878`. Rows with no tag have a named global at that address; `[inferred]` rows rest on community notes only.
 
 | Save offset       | Editor offset | Meaning                                                                                | Tag          |
 | ----------------- | ------------: | -------------------------------------------------------------------------------------- | ------------ |
@@ -310,7 +301,7 @@ Community save editors use a second origin that starts at the zenny field, so an
 
 ## Area data
 
-Each `WORLDn/AREAnnn.EMI` is the only source for its area. Its entry loaded at `0x800E4000` is the encounter block: 1,160 bytes in all 200 archives. The block begins with eight encounters of 9 bytes (72 bytes), followed by eight enemy records of 136 bytes. A slot, 0 to 7, addresses a row. The other record families sit in other entries of the area archive. The table lists the families, their record sizes and what is established about their number.
+Each `WORLDn/AREAnnn.EMI` is the only source for its area. Its entry loaded at `0x800E4000` is the encounter block: 1,160 bytes in all 200 archives. The block begins with eight encounters of 9 bytes (72 bytes), followed by eight enemy records of 136 bytes. A slot, 0 to 7, addresses a row. Other record families sit in other entries of the area archive.
 
 | Family        | Record size | Rows                                                         |
 | ------------- | ----------: | ------------------------------------------------------------ |
@@ -328,8 +319,6 @@ The chest, gene, chrysm and Manillo counts are `[inferred]`; the entries that ho
 An encounter is eight enemy slots (`+0x00`-`+0x07`, `0xFF` empty) and an appearance rate (`+0x08`). In the retail data only slots 0 to 6 occur. A boss is an enemy that no encounter with a nonzero rate uses.
 
 ### The enemy record
-
-The table gives the offset, type and meaning of each field of the 136-byte enemy record.
 
 | Offset | Type              | Name                                                   | Meaning                                                                       |
 | -----: | ----------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
@@ -400,8 +389,6 @@ The fairy roster (9-byte rows) is separate from the reward tables. The `COMMU00`
 
 ## Masks and value ranges
 
-The first table gives the numeric namespaces in these tables. The second table gives the bit layout of each mask.
-
 | Namespace                  | Width | Values                                                             | Where                |
 | -------------------------- | ----: | ------------------------------------------------------------------ | -------------------- |
 | item category              |  `u8` | 0 item, 1 weapon, 2 armor, 3 accessory, 4 vital item, `0xFF` empty | dispatcher           |
@@ -435,7 +422,7 @@ The item flags byte (item `+0x0C`, read through `Item_GetFlags`, `exe/slus_004_2
 
 ### Ability targeting
 
-The targeting byte of an ability row selects who the ability can hit. Bit `0x01` is the usable-in-field switch and bit `0x10` gates the all-targets sets. The table gives the values in the retail data. The side names are `[inferred]` from the abilities that use them.
+The targeting byte of an ability row selects who it can hit. Bit `0x01` is the usable-in-field switch and bit `0x10` gates the all-targets sets. The side names are `[inferred]` from the abilities that use them.
 
 | Value                  | Targets                         |
 | ---------------------- | ------------------------------- |
@@ -484,8 +471,6 @@ A passed roll on a non-zero item adds one of it to the inventory (`Item_Add`, `e
 
 ## Archive index
 
-The table lists which archive holds each kind of data.
-
 | Data                                             | Archive                                             |
 | ------------------------------------------------ | --------------------------------------------------- |
 | items, equipment, abilities, shops, level growth | `ETC/GAME.EMI` entry 0                              |
@@ -500,7 +485,7 @@ The table lists which archive holds each kind of data.
 
 ## Community RAM map
 
-Community notes agree with the retail code on a set of live-RAM records. They confirm an address or stride and never prove a field's role. The sources are the `bof3-notes` repository, a memory-card save editor, and the DuckStation, Almar's Guides, Game Buster and GameShark cheat lists ([sources](../../appendix/sources/)). The table lists the records and what the cheats confirm.
+Community notes agree with the retail code on some live-RAM records. They confirm an address or stride, never a field's role. Sources: the `bof3-notes` repository, a memory-card save editor, and the DuckStation, Almar's Guides, Game Buster and GameShark cheat lists ([sources](../../appendix/sources/)).
 
 | Record            | Address and stride                                                                           | What the cheats confirm                                                                      |
 | ----------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -520,9 +505,9 @@ The community notes give 320 bytes as the enemy row stride. That is the player r
 
 ## Related
 
-- [Battle records](../battle/): the live player and enemy rows built from these records.
-- [Field and party records](../field/): the inventory, money and actor rows in RAM.
-- [Game text](../text/): the encoding of names and the `description` resource ids.
-- [Memory card save](../../formats/save/): the save file around the offsets listed here.
-- [Area formats](../../formats/area/): the area archives that hold encounters and enemies.
-- [Edit items, skills and shops](../../guides/items/): the limits of editing these tables.
+- [Battle records](../battle/): live player and enemy rows.
+- [Field and party records](../field/): inventory, money and actor rows.
+- [Game text](../text/): name encoding and `description` ids.
+- [Memory card save](../../formats/save/): the save file around these offsets.
+- [Area formats](../../formats/area/): archives that hold encounters and enemies.
+- [Edit items, skills and shops](../../guides/items/): limits of editing these tables.

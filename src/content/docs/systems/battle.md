@@ -3,7 +3,7 @@ title: "Battle flow"
 description: "A battle is a request from the field: the field sets request code 3, the main state machine enters its battle state, and that state loads the battle overlay and hands every frame to Battle_Update."
 ---
 
-A battle is a request from the field: the field sets request code 3, the main state machine enters its battle state, and that state loads the battle overlay and hands every frame to `Battle_Update`. This page covers what triggers a battle, the code and archives that run it each frame, and how it ends. The record layouts that the flow reads (battler rows, enemy records, status words, the reprisal exchange) are in [battle records](../../data/battle/).
+The field sets request code 3, the main state machine enters its battle state, and that state loads the battle overlay and hands every frame to `Battle_Update`. This page covers the triggers, the per-frame code and archives, and the exit. Battler rows, enemy records, status words and the reprisal exchange are in [battle records](../../data/battle/).
 
 ## Terms
 
@@ -50,7 +50,7 @@ A base of 0 means no encounters. Higher `rate` values give shorter walks between
 
 ### Formation and enemies
 
-`Area_BuildEncounter (emi/etc/game/00@0x801C60E0)` builds the field-side description of the battle. It rolls a formation, copies the enemy list, tests each party cell, and clears every enemy that does not fit. It returns 1 only when the gate passes and at least one enemy remains.
+`Area_BuildEncounter (emi/etc/game/00@0x801C60E0)` rolls a formation, copies the enemy list, tests each party cell and clears every enemy that does not fit. It returns 1 only when the gate passes and at least one enemy remains.
 
 1. `Area_PickEncounter` rolls `(rand() & 0xF) + 1` and walks the eight 9-byte formation records at `0x800E4000`, adding byte 8 (the weight) until the running sum reaches the roll. A roll past all eight weights gives formation 0.
 2. `Area_RollEncounterEnemies` copies the record's 8 enemy ids into `D_801463DC` (8 `EncounterEnemy` of 12 bytes). An id other than `0xFF` stays when `(rand() & 0xF) + 1 <= s_EntitySpawnChances[slot]`. The chances are `16, 16, 16, 10, 8, 6, 4, 2`, so slots 0 to 2 always stay and slot 7 stays 2 times in 16. If no enemy stays, there is no battle.
@@ -62,9 +62,7 @@ The enemy record layout (`0x800E4048 + id * 0x88`, 8 records) is in the [area fo
 
 `Battle_StartScripted (emi/etc/game/00@0x801C7A54)` takes a record index. It stores it in `g_BattleEncounter`, clears `g_BattleSurprise`, copies byte 0 of `s_BattleModeRecords[index * 4]` to `g_BattleOptions`, and sets bit 12 (`0x1000`) of `g_AreaWalkFlags`. The table has 56 records of 4 bytes at `0x801CD78C`. Byte 3 of the record is the archive column used at stream time (see the next section). The caller then sets `g_GameStateIndex = 3` `[inferred]`.
 
-The known caller is `func_801FA7D8` in `emi/scenario/scena00/00`; other scenario overlays are not searched.
-
-The entry and exit substates test these bits of `g_BattleOptions` (masks `0x01`, `0x02`, `0x10` and `0x40`):
+The known caller is `func_801FA7D8` in `emi/scenario/scena00/00`; other scenario overlays are not searched. The entry and exit substates test these `g_BattleOptions` bits:
 
 | Bits | Meaning                                             |
 | ---: | --------------------------------------------------- |
@@ -75,7 +73,7 @@ The entry and exit substates test these bits of `g_BattleOptions` (masks `0x01`,
 
 ## Entry state 5
 
-`Game_UpdateField` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_UpdateBattle (emi/etc/game/00@0x80197A24)` then calls `g_GameModeHandlers[g_GameEntrySubstate]` once per frame. The eight substates wrap the battle on the field side:
+`Game_UpdateField` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_UpdateBattle (emi/etc/game/00@0x80197A24)` then calls `g_GameModeHandlers[g_GameEntrySubstate]` once per frame:
 
 | Substate | Function (`emi/etc/game/00`)                      | Work                                                                                                                                  |
 | -------: | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -106,26 +104,7 @@ Unless `g_BattleOptions & 0x40` is set, substate 3 copies 1,376 bytes of the seq
 
 `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)` first calls `g_BossBattleEventHook(3)` when `g_BattleEncounter != 0` and the mode is not 0. Then it calls `g_BattlePhases[g_BattleMode]`. Mode 0 calls `Battle_DispatchStep`. Modes 1 to 5 read a step table by `g_BattleStep`, and some steps read a sub-table by `g_BattleSubStep`.
 
-A battle runs set-up and entrance once, then rounds of commands, ordering, actions and round end, then the result.
-
-```mermaid
-stateDiagram-v2
-    direction TB
-    [*] --> M0: entry substate 3 zeroes the bytes
-    state "mode 0: reset and entrance" as M0
-    state "mode 1: party commands" as M1
-    state "mode 2: turn order" as M2
-    state "mode 3: actions" as M3
-    state "mode 4: round end" as M4
-    state "mode 5: result" as M5
-    M0 --> M1: Battle_EnterIntro
-    M1 --> M2: func_801D1D10 or armed command
-    M2 --> M3: func_801D2A24
-    M3 --> M4: func_801D43EC or func_801D2B58
-    M4 --> M1: func_801D656C, result 0
-    M4 --> M5: func_801D656C, result nonzero
-    M5 --> [*]: Battle_WriteBackParty to entry substate 6
-```
+A battle runs set-up and entrance once, then rounds of commands (mode 1), turn order (2), actions (3) and round end (4), then the result (5). Mode 0 goes to 1 in `Battle_EnterIntro`; 1 to 2 in `func_801D1D10` or on an armed command; 2 to 3 in `func_801D2A24`; 3 to 4 in `func_801D43EC` or `func_801D2B58`; 4 goes back to 1 in `func_801D656C` when the result is 0 and to 5 otherwise; 5 ends in `Battle_WriteBackParty`, which moves the entry substate to 6.
 
 | Mode | Handler (`emi/battle/battle/03`) | Steps | Step table                                                                                     |
 | ---: | -------------------------------- | ----: | ---------------------------------------------------------------------------------------------- |
@@ -136,7 +115,7 @@ stateDiagram-v2
 |    4 | `Battle_UpdateRoundEnd`          |     3 | `D_801EACBC`. Sub-table `D_801EACC8[3]`.                                                       |
 |    5 | `Battle_UpdateResult`            |     5 | `D_801EACD4`. Sub-tables `D_801EACE8`, `D_801EACF4`, `D_801EAD00`, `D_801EAD0C`, `D_801EAD20`. |
 
-The mode names in the diagram are `[inferred]` from the step shapes and from `func_801D656C`, which returns to mode 1 or leaves for mode 5. Mode 3 also clears `g_BattleState` bit `0x0010` (command armed) when a button in `D_80145AC4` is held. Some step functions, for example `Battle_WaitUiMode` and `Battle_ReloadMusicBank`, advance their sub-step through a pointer that is written during the wait.
+The mode names are `[inferred]` from the step shapes and from `func_801D656C`, which returns to mode 1 or leaves for mode 5. Mode 3 also clears `g_BattleState` bit `0x0010` (command armed) when a button in `D_80145AC4` is held. Some step functions, for example `Battle_WaitUiMode` and `Battle_ReloadMusicBank`, advance their sub-step through a pointer that is written during the wait.
 
 ### Mode 0: reset and entrance
 
@@ -151,11 +130,11 @@ Step 1, `Battle_DispatchEntrance (emi/battle/battle/03@0x801D17C4)`, runs four s
 
 ### Modes 1 to 4: one round
 
-Mode 1 collects party commands, mode 2 orders the actors, mode 3 runs each action, and mode 4 closes the round `[inferred]`. The mode 1 sub-table `D_801EABE4` points partly into the second battle overlay at `0x800968xx` (`func_80096A74`, `func_80096F00`, `func_8009834C`, `func_800980A8`), so the command menus live in `battle/battle/15`. That the entries are menus is `[inferred]`.
+The mode 1 sub-table `D_801EABE4` points partly into the second battle overlay at `0x800968xx` (`func_80096A74`, `func_80096F00`, `func_8009834C`, `func_800980A8`), so the command menus live in `battle/battle/15` `[inferred]`.
 
-`func_801D656C` ends mode 4. It waits until the 8 bytes `D_8018E140[16..23]` are zero. In a scripted battle it then calls `g_BossBattleEventHook(2)`, and returns early while the hook answers `0xFF`. A nonzero `g_BattleResult` sets mode 5, step 0. Otherwise it streams slot 8 (`COMN_SE`, when no command is armed), marks free party slots as step 2, clears `g_BattleSurprise`, and returns to mode 1.
+`func_801D656C` ends mode 4: it waits until the 8 bytes `D_8018E140[16..23]` are zero. In a scripted battle it then calls `g_BossBattleEventHook(2)`, and returns early while the hook answers `0xFF`. A nonzero `g_BattleResult` sets mode 5, step 0. Otherwise it streams slot 8 (`COMN_SE`, when no command is armed), marks free party slots as step 2, clears `g_BattleSurprise`, and returns to mode 1.
 
-The boss hook is called with seven event codes. The call sites are known; what each code means is `[unknown]`.
+The boss hook takes seven event codes; their meaning is `[unknown]`.
 
 | Code | Caller                                              |
 | ---: | --------------------------------------------------- |
@@ -168,8 +147,6 @@ The boss hook is called with seven event codes. The call sites are known; what e
 |    6 | `func_801D1228` (reset)                             |
 
 ### Mode 5: result and exit
-
-Mode 5 has five steps, each with a sub-table in `D_801EACD4`.
 
 | Step | Sub-table    | Role                                                                                                             |
 | ---: | ------------ | ---------------------------------------------------------------------------------------------------------------- |
@@ -219,11 +196,11 @@ Installer addresses in the boss window, by module. A module that has more than o
 | `BATL_END` 1 or `BATL_OVR` 2             | `Battle_LoadEndOverlay`                              | `0x801EEC00`                                |
 | `AREA` `0x2AB + area`, `AFLDKWA` `0x256` | mode 5 steps 3 and 4                                 | area image, field sound                     |
 
-The loader streams one archive at a time, and callers wait on `EMI_IsReady` ([loading](../../concepts/loading/)). The overlay windows are in [memory](../../concepts/memory/).
+The loader streams one archive at a time ([loading](../../concepts/loading/)); the windows are in [memory](../../concepts/memory/).
 
 ## Data and limits
 
-The battler rows and the enemy record fields are in [battle records](../../data/battle/). The encounter block layout is in the [area format](../../formats/area/). The table lists the limits that the battle code enforces and that this page does not give elsewhere.
+Battler rows and enemy record fields are in [battle records](../../data/battle/); the encounter block is in the [area format](../../formats/area/).
 
 | Limit                    | Value                                                          | Source                                                                |
 | ------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------- |
@@ -235,7 +212,7 @@ The battler rows and the enemy record fields are in [battle records](../../data/
 | Target pick tables       | Partial party `{9,7}, {12,4}, {8,8}`; full party six rows of 3 | `s_BattlePartialPartyTargetWeights`, `s_BattleFullPartyTargetWeights` |
 | Random ability pools     | 32 slots each (`Recall`, `MagicShuffle`)                       | `g_BattleRecallAbilities`, `g_BattleMagicShuffleAbilities`            |
 
-An edit must keep these limits.
+An edit must keep these limits:
 
 - **Formation weights.** Make the eight weights total 16. A lower total sends high rolls to formation 0. A higher total makes the last formations unreachable.
 - **Enemy slots.** A formation with no enemy id in slots 0 to 2 can roll no active enemy, and the field step then continues without a battle.
@@ -263,8 +240,8 @@ An edit must keep these limits.
 
 ## Related
 
-- [Battle records](../../data/battle/): the battler rows, enemy records and status words that this flow reads.
-- [Game phases](../phases/): the entry states and request codes that start and end a battle.
-- [Areas and the field](../areas/): the zone list that sets the encounter step threshold.
-- [Area formats](../../formats/area/): the encounter block and the enemy record layout.
-- [Loading](../../concepts/loading/): the archive streaming that every step waits on.
+- [Battle records](../../data/battle/): battler rows, enemy records, status words.
+- [Game phases](../phases/): entry states and request codes.
+- [Areas and the field](../areas/): the zone list behind the step threshold.
+- [Area formats](../../formats/area/): the encounter block and enemy record.
+- [Loading](../../concepts/loading/): archive streaming.
