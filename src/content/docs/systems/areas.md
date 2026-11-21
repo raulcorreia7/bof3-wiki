@@ -3,7 +3,7 @@ title: "Areas and the field"
 description: "An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp."
 ---
 
-An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp. The game has 200 areas, one `WORLDnn/AREAnnn.EMI` archive each. The resident engine in `emi/etc/game/00` runs all of them with the data and the small code overlay from the archive. This page covers the area record, the load, the per-frame update, exits and the setup stream; byte layouts are in the [area format](../../formats/area/), entity rows in [field](../../data/field/) and map-kind flags in [programs](../../data/programs/#map-kinds).
+An area is one place the party can stand: a town, a dungeon, the world map, a battlefield, the fishing pond, the fairy village or the camp. The game has 200 areas, one `WORLDnn/AREAnnn.EMI` archive each. The resident engine in `emi/etc/game/00` runs all of them with the data and the small code overlay from the archive. Byte layouts: [area format](../../formats/area/). Entity rows: [field](../../data/field/). Map-kind flags: [programs](../../data/programs/#map-kinds).
 
 ## Area record
 
@@ -41,36 +41,9 @@ Source: [`include/area/map.h`](https://github.com/raulcorreia7/bof3-decomp/blob/
 
 ## Load and transition
 
-Under the fade, the game frees the old area's objects, streams the new archive, builds the characters from the setup stream and lets the active [scenario](../scenario/) react to the arrival.
-
 An area change starts when the party steps on an exit cell or code calls `Game_RequestAreaChange (emi/etc/game/00@0x8019FA28)`. Either stages a destination and sets the request code `g_GameStateIndex` to 5. The staged destination is four values: `g_GameContextSeed` (the area id), `g_GameEntryPosX` and `g_GameEntryPosY` (16.16 positions) and `g_GameContextKind`.
 
 On the next frame `Game_UpdateField (emi/etc/game/00@0x80197378)` sees request 5, sets the arrival effect with `UI_SetMode(g_GameEntryMode)` and moves to entry state 1, `Game_UpdateAreaLoad (emi/etc/game/00@0x801971E8)`, which passes the staged values to `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)`, the only function that loads an area.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant S as func_801B0E44<br/>step test
-    participant X as func_801A0048<br/>exit lookup
-    participant F as Game_UpdateField<br/>field state
-    participant L as Game_UpdateAreaLoad<br/>load state
-    participant A as func_8019FAA0<br/>area load
-    participant E as EMI loader
-    participant R as scenario<br/>entry_00
-    S->>X: door cell reached
-    X-->>S: 0 and stages seed, X,<br/>Y, kind
-    S->>F: g_GameStateIndex = 5
-    F->>F: UI_SetMode(g_GameEntryMode),<br/>g_GameEntryState = 1
-    F->>L: next frame,<br/>g_GameStates[1]
-    L->>A: seed, X, Y, kind
-    A->>A: Actor_ClearAll,<br/>GFX_ResetPaletteFades
-    A->>E: EMI_LoadArchive(seed<br/>+ 0x2AB)
-    A->>A: CallbackWait(1)<br/>until EMI_IsReady
-    A->>A: bind AreaLoad, flags,<br/>party, palette matrix
-    A->>A: Area_RunSetupStream(entry->handler),<br/>entry->callback()
-    A->>R: mode_02 = 1,<br/>Game_UpdateScenario
-    L->>L: g_GameStateIndex = 0,<br/>g_GameEntryState = 2
-```
 
 `func_8019FAA0` runs these steps in order.
 
@@ -109,15 +82,7 @@ A hit returns 0, `func_801B0E44` sets `g_GameStateIndex = 5`, and the transition
 
 ## Per-frame update
 
-In entry state 2, `Game_UpdateField` first runs `Game_UpdateScenario` (the scenario's `entry_00`, then the event stage; see [scenario](../scenario/)). Then it runs `Area_RunFrame (emi/etc/game/00@0x801991B8)`. Last, it maps the request code `g_GameStateIndex` to the next entry state:
-
-| Request code | 1 | 2 | 3          | 4 | 5             | 6 | 7 | 8  | 9  |
-| ------------ | - | - | ---------- | - | ------------- | - | - | -- | -- |
-| Entry state  | 3 | 4 | 5 (battle) | 6 | 1 (area load) | 7 | 9 | 10 | 11 |
-
-Roles of the states are in [phases](../phases/).
-
-`Area_RunFrame` calls these functions in order each frame.
+In entry state 2, `Game_UpdateField` first runs `Game_UpdateScenario` ([scenario](../scenario/)), then `Area_RunFrame (emi/etc/game/00@0x801991B8)`, then maps the request code `g_GameStateIndex` to the next entry state ([request codes](../phases/#the-request-code)). `Area_RunFrame` calls these functions in order each frame.
 
 | Order | Call                          | Role                                                                                           |
 | ----: | ----------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -173,17 +138,9 @@ Each area has a zone list in the executable, `D_80181164[area]`. It is a list of
 
 ## Data and limits
 
-Counts and ranges that the code enforces. Other limits are in the [area format](../../formats/area/) and [memory](../../concepts/memory/).
+Limits the code enforces: 200 areas at EMI slot `0x2AB + id` (`g_AreaLoads[200]`, `exe/slus_004_22@0x8017F974`); scene object types 0 to 186; exit coordinates are 8-bit, so at most 256 entries per area; an exit destination is 0 to 255 whole cells plus an optional half cell. Other limits: [area format](../../formats/area/), [memory](../../concepts/memory/).
 
-| Item                  | Value                                                        | Source                                                           |
-| --------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
-| Area count and slot   | 200 areas, EMI slot `0x2AB + id`                             | `g_AreaLoads[200] (exe/slus_004_22@0x8017F974)`, `func_8019FAA0` |
-| Area record address   | One absolute pointer per area, into `0x801F2C00..0x801F6C00` | `g_AreaLoads` is constant data in the executable                 |
-| Scene object types    | 0 to 186                                                     | `Actor_FindFreeSlot`, `g_ActorHandlers`                          |
-| Exit cell coordinates | 8-bit x and y; at most 256 entries per area                  | `func_801A0048`                                                  |
-| Exit destination      | 0 to 255 whole cells plus an optional half cell              | `(idx << 8) & 0xFF8000`                                          |
-
-The staged destination is stored in `exe/slus_004_22` at `0x80143F10..0x80143F1F`. [Phases](../phases/) lists the state variables that the transition also uses.
+The staged destination is stored in `exe/slus_004_22` at `0x80143F10..0x80143F1F`.
 
 | Address      | Type          | Name                  | Meaning                                                                                         |
 | ------------ | ------------- | --------------------- | ----------------------------------------------------------------------------------------------- |

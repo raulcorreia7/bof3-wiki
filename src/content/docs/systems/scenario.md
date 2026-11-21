@@ -3,9 +3,9 @@ title: "Scenario engine"
 description: "The story runs as 20 small overlay programs, SCENA00 to SCENA19, and one of them is active at a time."
 ---
 
-The story runs as 20 overlay programs, `SCENA00` to `SCENA19`, and one is active at a time. The active scenario sets how each area behaves and what each step into a cell does. A story flag set by the scenario opens a door in [areas and the field](../areas/). The resident field code in `emi/etc/game/00` loads the scenario into a fixed RAM window and calls it at fixed points of the [frame loop](../../concepts/frame-loop/); the story meaning of each scenario is not established.
+The story runs as 20 overlay programs, `SCENA00` to `SCENA19`, and one is active at a time. The active scenario sets how each area behaves and what each step into a cell does; a story flag it sets opens a door in [areas and the field](../areas/). The resident field code in `emi/etc/game/00` loads the scenario into a fixed RAM window and calls it at fixed points of the [frame loop](../../concepts/frame-loop/). The story meaning of each scenario is not established.
 
-The event stage, a smaller layer, runs one-off handlers selected by an event id. This page covers both layers and the story flags. Overlay placement is in [memory](../../concepts/memory/) and [loading](../../concepts/loading/).
+The event stage, a smaller layer, runs one-off handlers selected by an event id. This page covers both layers and the story flags. Overlay placement: [memory](../../concepts/memory/), [loading](../../concepts/loading/).
 
 ## Starting a scenario
 
@@ -16,27 +16,7 @@ The event stage, a smaller layer, runs one-off handlers selected by an event id.
 3. Streams the scenario's code from EMI slot `n + 0x295` (`Scene_LoadOverlay`), waiting with `CallbackWait(1)` until `EMI_IsReady` reports done. During the wait it calls `func_801992B8` each frame once an area is loaded and the game state index is not 5.
 4. Runs `Game_UpdateScenario` once.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant C as caller
-    participant S as Scene_Start
-    participant E as EMI loader
-    participant R as Game_UpdateScenario
-    participant O as controller<br/>entry_00
-    participant U as Game_UpdateScene
-    C->>S: scenario id n
-    S->>S: reset g_SceneState,<br/>clear flag word n
-    S->>E: EMI_LoadArchive(n<br/>+ 0x295)
-    S->>S: CallbackWait(1)<br/>until EMI_IsReady
-    S->>R: stream complete
-    R->>O: g_SceneScenes[n]->entry_00()
-    O->>O: table[mode_02]()
-    R->>U: g_SceneStates[D_801448EA]()
-    Note over R,U: the same pair runs<br/>every field frame from<br/>Game_UpdateField
-```
-
-After the first entry, `Game_UpdateField (emi/etc/game/00@0x80197378)` runs `Game_UpdateScenario` once per field frame. `func_80199230` and `Game_UpdateMenuFrame` also call it.
+`Game_UpdateField (emi/etc/game/00@0x80197378)` runs `Game_UpdateScenario` once per field frame, then `g_SceneStates[D_801448EA]()` runs the event stage. `func_80199230` and `Game_UpdateMenuFrame` also call it. `Game_UpdateScenario` calls `g_SceneScenes[n]->entry_00()`.
 
 Three places start a scenario:
 
@@ -95,15 +75,15 @@ typedef struct SceneState {
 
 Source: [`include/scenario/state.h`](https://github.com/raulcorreia7/bof3-decomp/blob/main/include/scenario/state.h)
 
-`SAVE_RunLoadRestore (emi/etc/start/08@0x801E5FD4)` copies 16 bytes from `D_801448D8` into `g_SceneState` on load. The flag words (block `+0x5B0`) and the event-flag block (block `+0x650`) lie inside the 4,272-byte persistent block that boot zeroes from `D_801448D8` ([boot](../boot/), [state](../state/#one-persistent-block)). A save copies the whole block, so the card file carries both ([saving](../saving/#saving)). `g_SceneState` itself lies outside the block; the save copies it into the block's first 16 bytes.
+`SAVE_RunLoadRestore (emi/etc/start/08@0x801E5FD4)` copies 16 bytes from `D_801448D8` into `g_SceneState` on load. The flag words (block `+0x5B0`) and the event-flag block (block `+0x650`) lie inside the persistent block ([state](../state/#one-persistent-block)), so the card file carries both ([saving](../saving/#saving)). `g_SceneState` itself lies outside the block; the save copies it into the block's first 16 bytes.
 
 ## Chapter advance
 
-`Scene_RequestChapterAdvance (emi/etc/game/00@0x801A78F8)` sets bit `0x80` of `flags_01`. A controller calls it when its chapter is done. Nothing happens at once. On the next area load, `func_8019FAA0` sees the bit, increments `scenario_id` (a result of 16 becomes 17), and calls `Scene_Start` with it. `Scene_Start` clears `flags_01`, so one request advances one chapter. The test is at `0x8019FD18..0x8019FD68`.
+`Scene_RequestChapterAdvance (emi/etc/game/00@0x801A78F8)` sets bit `0x80` of `flags_01`; a controller calls it when its chapter is done. On the next area load, `func_8019FAA0` sees the bit, increments `scenario_id` (16 becomes 17), and calls `Scene_Start`, which clears `flags_01`, so one request advances one chapter. The test is at `0x8019FD18..0x8019FD68`.
 
 `func_8019FAA0` also sets `mode_02 = 1` just before it calls `Game_UpdateScenario`, so a controller sees mode 1 on every arrival in a new area.
 
-`SCENA00` to `SCENA15` each contain a call to `Scene_RequestChapterAdvance`; `SCENA16` to `SCENA19` do not. The result is a linear chain `SCENA00` to `SCENA15`, then `SCENA17`. `SCENA16` is outside the chain; the title selection starts it directly.
+`SCENA00` to `SCENA15` each call `Scene_RequestChapterAdvance`; `SCENA16` to `SCENA19` do not. The result is a linear chain `SCENA00` to `SCENA15`, then `SCENA17`. The title selection starts `SCENA16` directly.
 
 ## Scenarios on the disc
 
@@ -158,12 +138,8 @@ A scenario word has 64 bits. The test does not check the bit against the word, s
 
 ## Limits on an edit
 
-A rebuilt or relocated scenario keeps these limits.
-
-- **Handler block address.** `g_SceneScenes[n]` holds an absolute address. The block must sit at that address, or the table must change. The first word of the image must stay `0x105 + n`.
-- **Window size.** The image must fit 32,384 bytes ([memory](../../concepts/memory/)).
-- **Fallback signals.** `entry_08` and `entry_0C` return zero to let the resident fallback run. `entry_10` returns a negative value for the same.
-- **Flag budget.** 64 bits per scenario word, as above.
+- **Handler block address.** `g_SceneScenes[n]` holds an absolute address: the block must sit there, or the table must change. The first word of the image stays `0x105 + n`.
+- **Window size.** The image fits 32,384 bytes.
 - **Handler addresses.** A handler address in `g_SceneEvents` or `g_SceneObjects` that lies in the area window runs whatever the loaded area program places there ([area](../areas/#data-and-limits)).
 - **Slot range.** Scenario code uses EMI slots `0x295-0x2A8`. The effect overlays use `0x290-0x294`.
 - **Save compatibility.** `scenario_id`, the flag words and the event flags are part of the saved block and are restored on load ([saving](../saving/)).

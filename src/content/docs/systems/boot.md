@@ -3,7 +3,7 @@ title: "Boot"
 description: "Boot is the path from the BIOS handoff to the first title frame."
 ---
 
-Boot is the path from the BIOS handoff to the first title frame. A C runtime stub prepares the CPU, `SYS_Main` initializes the console, `LOGO.EXE` plays the Capcom movie, and two callbacks load the first two archives and start the title. The [frame loop](../../concepts/frame-loop/) then runs until power-off. This page does not cover the title's states ([game phases](../phases/)) or the loader's steps ([loading](../../concepts/loading/)).
+Boot is the path from the BIOS handoff to the first title frame. A C runtime stub prepares the CPU, `SYS_Main` initializes the console, `LOGO.EXE` plays the Capcom movie, and two callbacks load the first two archives and start the title. The [frame loop](../../concepts/frame-loop/) then runs until power-off. Title states: [game phases](../phases/). Loader steps: [loading](../../concepts/loading/).
 
 :::note
 `exe/logo` and `exe/slus_004_22` are separate programs with separate symbols. They share one RAM, so the same address can mean different things in each ([memory map](../../concepts/memory/)).
@@ -11,9 +11,9 @@ Boot is the path from the BIOS handoff to the first title frame. A C runtime stu
 
 ## Executable header and C runtime
 
-The BIOS reads `SYSTEM.CNF`, loads `SLUS_004.22` and jumps to its entry address. The BIOS copies `t_size` bytes to `t_addr` and jumps to the start address (BIOS behavior). `[inferred]` The header fields are in [executables and boot files](../../formats/exe/#ps-x-exe-header).
+The BIOS reads `SYSTEM.CNF`, loads `SLUS_004.22` and jumps to its entry address (copies `t_size` bytes to `t_addr`, then jumps to the start address; BIOS behavior `[inferred]`). Header fields: [executables and boot files](../../formats/exe/#ps-x-exe-header).
 
-The payload is far larger than the resident code. The rest is zero fill apart from a few stamp words; it reserves RAM that later loads of overlays and the resident game program overwrite ([memory map](../../concepts/memory/#the-executable-image)).
+The payload is far larger than the resident code; the rest is zero fill that reserves RAM for later loads ([memory map](../../concepts/memory/#the-executable-image)).
 
 Three stubs prepare the CPU and start the game. The header's start address is `stup2`.
 
@@ -23,7 +23,7 @@ Three stubs prepare the CPU and start the game. The header's start address is `s
 | `stup1 (exe/slus_004_22@0x8014AA30)` | sets `sp` to `0x80200000`, `gp` to `0x8018B2B4`, copies `sp` to `fp`, calls `InitHeap(0x80190C64, 0x673A0)`          |
 | `stup0 (exe/slus_004_22@0x8014AAAC)` | `jal SYS_Main`, followed by a `break` that is never reached                                                          |
 
-`stup1` sets the stack top to `0x80200000` (top of RAM) and ends the heap 32,768 bytes below it, at `0x801F8004`. The heap range overlaps the resident game program at `0x80195800` and the overlay arena at `0x801CE000`. The executable has no `malloc`, `free`, `calloc` or `realloc`, so the heap is declared and never used. `[inferred]` The missing thunks are visible in the assembly; that no PsyQ library code allocates from it is not shown. `__main (exe/slus_004_22@0x8014AA04)` is a bare `jr $ra`.
+`stup1` sets the stack top to `0x80200000` (top of RAM) and ends the heap 32,768 bytes below it, at `0x801F8004`. The heap range overlaps the resident game program at `0x80195800` and the overlay arena at `0x801CE000`. The executable has no `malloc`, `free`, `calloc` or `realloc`, so the heap is declared and never used. `[inferred]` `__main (exe/slus_004_22@0x8014AA04)` is a bare `jr $ra`.
 
 ## `SYS_Main` sequence
 
@@ -50,15 +50,15 @@ Three stubs prepare the CPU and start the game. The header's start address is `s
 
 `SYS_StartLogo (exe/slus_004_22@0x8014AEE0)` loads `LOGO.EXE` and runs it as a separate PlayStation program:
 
-1. `SYS_LoadExec (exe/slus_004_22@0x8014E0FC)` finds the file with `CdSearchFile`, reads its header sector into the buffer at `0x800E4800`, and copies the ten header words to `D_80143E70`. It then reads `t_size` bytes from the next sector to `t_addr`. A failed read retries, up to ten attempts, and then returns -1. `SYS_ReadCd (exe/slus_004_22@0x8014E0A8)` blocks: no callback thread runs and no frame is drawn while it reads.
+1. `SYS_LoadExec (exe/slus_004_22@0x8014E0FC)` finds the file with `CdSearchFile`, reads its header sector into the buffer at `0x800E4800`, copies the ten header words to `D_80143E70`, then reads `t_size` bytes from the next sector to `t_addr` ([executable load](../../concepts/loading/#executable-load)).
 2. It sets the stack address of the exec block at `0x80143E80` (`D_80143EA0`) to `0x801FF000`, stops the callback, pad and card services, and calls `Exec` inside a critical section.
 3. When `Exec` returns, it runs `SYS_InitHardware` again, clears the display and the VRAM, and turns the display on.
 
-`LOGO.EXE` loads at `0x801CE000` and runs to `0x801ECEC0` with its BSS. The payload of the main executable is zero over that range, apart from two stamp words, so the logo overwrites no resident byte. No overlay is loaded yet. The first `EMI_LoadArchive` call comes later, in `SYS_StartFrontend`.
+`LOGO.EXE` loads at `0x801CE000` and runs to `0x801ECEC0` with its BSS. The payload of the main executable is zero over that range, apart from two stamp words, so the logo overwrites no resident byte. No overlay is loaded yet.
 
-`exe/logo` starts at `__SN_ENTRY_POINT (exe/logo@0x801CE724)`, which zeroes its BSS (`0x801EB430..0x801ECEC0`), sets `gp` and jumps to `Logo_Main (exe/logo@0x801CEDFC)`. The logo carries its own copy of the PsyQ libraries and does not link against the main executable. `Logo_Main` calls `CdInit` and `Logo_Init`, then loops until the stream ends or the Start button is held. At the end it fades the audio out, stops the stream, the callbacks and the pad, and returns. The return resumes `SYS_StartLogo` per the BIOS `Exec` contract. `[inferred]`
+`exe/logo` starts at `__SN_ENTRY_POINT (exe/logo@0x801CE724)`, which zeroes its BSS (`0x801EB430..0x801ECEC0`), sets `gp` and jumps to `Logo_Main (exe/logo@0x801CEDFC)`. The logo carries its own copy of the PsyQ libraries. `Logo_Main` calls `CdInit` and `Logo_Init`, then loops until the stream ends or the Start button is held. At the end it fades the audio out, stops the stream, the callbacks and the pad, and returns to `SYS_StartLogo` per the BIOS `Exec` contract. `[inferred]`
 
-The movie is read by sector number, not by name. `Logo_Init` receives the literal LBA `0x2D78C`. That LBA is the start of disc file slot `0x373`, and slot `0x374` starts 1,155 sectors later, so the file is 2,365,440 bytes long. This is the size of `LOGO/CAPCOM30.STR`. [Disc and files](../../formats/disc/) lists the slots, and [loading](../../concepts/loading/#movie) describes the movie code.
+The movie is read by sector number. `Logo_Init` receives the literal LBA `0x2D78C`, the start of disc file slot `0x373`; slot `0x374` starts 1,155 sectors later, so the file is 2,365,440 bytes, the size of `LOGO/CAPCOM30.STR`. Slots: [disc and files](../../formats/disc/). Movie code: [loading](../../concepts/loading/#movie).
 
 ## The first two callbacks
 
@@ -72,9 +72,9 @@ After the logo, the first pass of the loop opens slot 0, which runs `SYS_StartFr
 6. Reset the panel tasks, palette fades, palette slots, draw flags and script table. Set the area draw mode to 6 and request a palette upload.
 7. `CallbackRegister(1, SYS_EnterFrontend)`, then `CallbackExit`, which ends slot 0's own thread.
 
-`SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)` starts in slot 1 in the pass where slot 0 registers it, because the walk reaches slot 1 after slot 0. It streams `GAME.EMI` (slot `0x262`), waits for `EMI_IsReady`, and calls `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`. The `GAME.EMI` stream carries two programs. Entry 0 is the resident game program at `0x80195800`, which stays in RAM until power-off. Entry 1 is the title overlay at `0x801D0C00`, which `Game_UpdateTitle` belongs to.
+`SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)` starts in slot 1 in the pass where slot 0 registers it. It streams `GAME.EMI` (slot `0x262`), waits for `EMI_IsReady`, and calls `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`. Entry 0 of `GAME.EMI` is the resident game program at `0x80195800`; entry 1 is the title overlay at `0x801D0C00`, which holds `Game_UpdateTitle`.
 
-`Game_UpdateTitle` clears its state and loops forever on slot 1's thread. Each pass it yields with `CallbackWait(1)`, handles the Start button, runs one of eight title handlers that `g_UiTitleState` selects, and updates the banner and fades. The first handler, `Game_BeginTitle (emi/etc/game/01@0x801D0C90)`, selects sound bank layout 2, streams `DEMO` (slot `0x25F`), resets the palette stage and starts music cue `0x8D`. The title and its exits are in [phases](../phases/).
+`Game_UpdateTitle` clears its state and loops forever on slot 1's thread. Each pass it yields with `CallbackWait(1)`, handles the Start button, runs one of eight title handlers that `g_UiTitleState` selects, and updates the banner and fades. The first handler, `Game_BeginTitle (emi/etc/game/01@0x801D0C90)`, selects sound bank layout 2, streams `DEMO` (slot `0x25F`), resets the palette stage and starts music cue `0x8D`. Title exits: [phases](../phases/).
 
 ```mermaid
 sequenceDiagram
@@ -100,19 +100,7 @@ sequenceDiagram
     T->>E: Game_BeginTitle:<br/>stream DEMO
 ```
 
-The first frame with the title drawn and input enabled is the first playable frame. The fade and input gate states between `Game_BeginTitle` and that frame are in [phases](../phases/).
-
-## Boot functions
-
-| Function                                         | Role                                                     |
-| ------------------------------------------------ | -------------------------------------------------------- |
-| `SYS_Main (exe/slus_004_22@0x8014AAC8)`          | boot sequence, then the permanent frame loop             |
-| `SYS_InitRuntime (exe/slus_004_22@0x8014ACA0)`   | hardware, display records, callback threads, first frame |
-| `SYS_InitHardware (exe/slus_004_22@0x8014AD28)`  | SDK and BIOS init; runs before and after the logo        |
-| `SYS_StartLogo (exe/slus_004_22@0x8014AEE0)`     | load, `Exec` and recover from `LOGO.EXE`                 |
-| `SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` | first callback: sound, `FIRST.EMI`, state clear          |
-| `SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)` | second callback: `GAME.EMI`, then the title              |
-| `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`  | the title loop, the first game mode                      |
+The first frame with the title drawn and input enabled is the first playable frame ([phases](../phases/)).
 
 ## Open questions
 
@@ -125,7 +113,7 @@ The first frame with the title drawn and input enabled is the first playable fra
 
 ## Sources and confidence
 
-- **Confidence:** medium. The steps of the boot path are read in the code of the executable, the title overlay and `LOGO.EXE`, but the BIOS behavior at load and at `Exec`, and the heap use, are `[inferred]` or `[unknown]`.
+- **Confidence:** medium. The boot steps are read in the executable, the title overlay and `LOGO.EXE`; the BIOS behavior at load and at `Exec`, and the heap use, are `[inferred]` or `[unknown]`.
 - **Evidence:** the code of `stup2`, `stup1`, `stup0`, `SYS_Main`, `SYS_InitRuntime`, `SYS_InitHardware`, `SYS_StartLogo`, `SYS_LoadExec`, `SYS_StartFrontend`, `SYS_EnterFrontend` and `Game_UpdateTitle`; the entry code of `LOGO.EXE`; the logo's literal movie LBA against the disc file table.
 
 ## Related
