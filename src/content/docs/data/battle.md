@@ -476,233 +476,153 @@ battle effects read the same shape from their own module head. The boss-battle e
 
 An ability's effect module is found through three tables. `g_BattleActionSelection` (`emi/battle/battle/03`, `0x800B6510`, 232 bytes) maps the ability index, the low byte of `g_BattleActionId`, to a row of `g_BattleSelections` (`0x800B65F8`, 8-byte rows). The row's `id` is an EMI slot id; `g_EmiSlotLbas[slot]` gives its start sector, which names the `BIN/BMAGIC/MAGICnnn.EMI` file. `Battle_LoadSelectionEffect (emi/battle/battle/15@0x800AE1F8)` runs this chain.
 
-The table lists every ability with an effect module. The selection table is zero in `SLUS_004.22` and is filled from the battle overlay at runtime, so the rows come from `emi/battle/battle/15`. Four ability indices (`0x7F`, `0x80`, `0x8B`, `0xD9`) use the empty row `0xFFFF`.
+The table lists every ability with an effect module, grouped by shared module. The selection table is zero in `SLUS_004.22` and is filled from the battle overlay at runtime, so the rows come from `emi/battle/battle/15`. Four ability indices (`0x7F`, `0x80`, `0x8B`, `0xD9`) use the empty row `0xFFFF`.
 
-| Ability | Name         | Selection row | EMI slot | Effect module |
-| ------: | ------------ | ------------: | -------: | ------------- |
-|  `0x01` | Nue Stomp    |             1 |  `0x125` | MAGIC001      |
-|  `0x02` | Gambit       |            42 |  `0x12B` | MAGIC008      |
-|  `0x03` | Super Combo  |             3 |  `0x127` | MAGIC003      |
-|  `0x04` | ThundrStrike |            88 |  `0x128` | MAGIC004      |
-|  `0x05` | Flame Strike |            98 |  `0x129` | MAGIC005      |
-|  `0x06` | Mind Sword   |           109 |  `0x12A` | MAGIC006      |
-|  `0x07` | Mind Flay    |            42 |  `0x12B` | MAGIC008      |
-|  `0x08` | Blind        |            42 |  `0x12B` | MAGIC008      |
-|  `0x09` | Chlorine     |            51 |  `0x12C` | MAGIC009      |
-|  `0x0A` | Unmotivate   |             9 |  `0x12D` | MAGIC010      |
-|  `0x0B` | Multistrike  |            68 |  `0x133` | MAGIC018      |
-|  `0x0C` | Blitz        |            71 |  `0x12E` | MAGIC012      |
-|  `0x0D` | Snap         |            50 |  `0x12F` | MAGIC013      |
-|  `0x0E` | Flying Kick  |            55 |  `0x130` | MAGIC015      |
-|  `0x0F` | Charge       |             4 |  `0x130` | MAGIC015      |
-|  `0x10` | Air Raid     |            58 |  `0x131` | MAGIC016      |
-|  `0x11` | Astral Warp  |            43 |  `0x132` | MAGIC017      |
-|  `0x12` | Giant Growth |             5 |  `0x133` | MAGIC018      |
-|  `0x13` | Aura         |             6 |  `0x134` | MAGIC019      |
-|  `0x14` | Disembowel   |             8 |  `0x135` | MAGIC020      |
-|  `0x15` | Bonebreak    |            33 |  `0x136` | MAGIC021      |
-|  `0x16` | Spirit Blast |            53 |  `0x133` | MAGIC018      |
-|  `0x17` | Bad back     |             9 |  `0x12D` | MAGIC010      |
-|  `0x18` | Watch Enemy  |             9 |  `0x12D` | MAGIC010      |
-|  `0x19` | Noting       |             9 |  `0x12D` | MAGIC010      |
-|  `0x1A` | Counter      |            81 |  `0x13C` | MAGIC042      |
-|  `0x1B` | Hypnotize    |            25 |  `0x178` | MAGIC108      |
-|  `0x1C` | Devour       |            42 |  `0x12B` | MAGIC008      |
-|  `0x1D` | Wind Strike  |           100 |  `0x137` | MAGIC029      |
-|  `0x1E` | Molasses     |            29 |  `0x166` | MAGIC088      |
-|  `0x1F` | Tarbaby      |            29 |  `0x166` | MAGIC088      |
-|  `0x20` | Absorb       |            44 |  `0x156` | MAGIC070      |
-|  `0x21` | Healing Herb |            45 |  `0x157` | MAGIC071      |
-|  `0x22` | Steroids     |            32 |  `0x162` | MAGIC082      |
-|  `0x23` | Magic Belt   |            32 |  `0x162` | MAGIC082      |
-|  `0x24` | Recall       |            27 |  `0x160` | MAGIC080      |
-|  `0x25` | MagicShuffle |            27 |  `0x160` | MAGIC080      |
-|  `0x26` | War Shout    |           121 |  `0x138` | MAGIC038      |
-|  `0x27` | Focus        |            78 |  `0x139` | MAGIC039      |
-|  `0x28` | Enlighten    |            79 |  `0x13A` | MAGIC040      |
-|  `0x29` | Berserk      |            80 |  `0x13B` | MAGIC041      |
-|  `0x2A` | Minds Eye   |            81 |  `0x13C` | MAGIC042      |
-|  `0x2B` | WardOfLight  |           110 |  `0x13D` | MAGIC043      |
-|  `0x2C` | Evil Eye     |            96 |  `0x13E` | MAGIC044      |
-|  `0x2D` | Bone Dart    |            61 |  `0x13F` | MAGIC045      |
-|  `0x2E` | Firebreath   |            62 |  `0x140` | MAGIC046      |
-|  `0x2F` | Icebreath    |            63 |  `0x141` | MAGIC047      |
-|  `0x30` | Dream Breath |            41 |  `0x142` | MAGIC048      |
-|  `0x31` | Frost Strike |            99 |  `0x143` | MAGIC049      |
-|  `0x32` | Pollen       |            31 |  `0x144` | MAGIC050      |
-|  `0x33` | Venom Breath |            31 |  `0x144` | MAGIC050      |
-|  `0x34` | Ovum         |           107 |  `0x145` | MAGIC052      |
-|  `0x35` | Lavaburst    |           134 |  `0x146` | MAGIC053      |
-|  `0x36` | Howling      |            56 |  `0x147` | MAGIC054      |
-|  `0x37` | Ebonfire     |            65 |  `0x148` | MAGIC055      |
-|  `0x38` | Sacrifice    |           112 |  `0x149` | MAGIC056      |
-|  `0x39` | Bone Dance   |            84 |  `0x14A` | MAGIC057      |
-|  `0x3A` | Sanctuary    |            82 |  `0x14B` | MAGIC058      |
-|  `0x3B` | Tornado      |            83 |  `0x14C` | MAGIC059      |
-|  `0x3C` | Identify     |            39 |  `0x14D` | MAGIC060      |
-|  `0x3D` | Target       |            42 |  `0x12B` | MAGIC008      |
-|  `0x3E` | Celerity     |            95 |  `0x14E` | MAGIC062      |
-|  `0x3F` | SuddenDeath  |           143 |  `0x14F` | MAGIC063      |
-|  `0x40` | Weretiger    |            77 |  `0x150` | MAGIC064      |
-|  `0x41` | Pilfer       |            70 |  `0x151` | MAGIC065      |
-|  `0x42` | Tsunami      |            17 |  `0x152` | MAGIC066      |
-|  `0x43` | Chill        |            18 |  `0x153` | MAGIC067      |
-|  `0x44` | Foretell     |            40 |  `0x154` | MAGIC068      |
-|  `0x45` | Influence    |            75 |  `0x155` | MAGIC069      |
-|  `0x46` | Heal         |            44 |  `0x156` | MAGIC070      |
-|  `0x47` | Rejuvenate   |            45 |  `0x157` | MAGIC071      |
-|  `0x48` | Restore      |           113 |  `0x158` | MAGIC072      |
-|  `0x49` | Vitalize     |            47 |  `0x159` | MAGIC073      |
-|  `0x4A` | Vigor        |           114 |  `0x15A` | MAGIC074      |
-|  `0x4B` | Purify       |            46 |  `0x15B` | MAGIC075      |
-|  `0x4C` | Raise Dead   |            30 |  `0x15D` | MAGIC077      |
-|  `0x4D` | Resurrect    |            30 |  `0x15D` | MAGIC077      |
-|  `0x4E` | Leech Power  |            15 |  `0x15E` | MAGIC078      |
-|  `0x4F` | Drain        |            52 |  `0x15F` | MAGIC079      |
-|  `0x50` | Noting       |            27 |  `0x160` | MAGIC080      |
-|  `0x51` | RottenBreath |            85 |  `0x161` | MAGIC081      |
-|  `0x52` | Protect      |            32 |  `0x162` | MAGIC082      |
-|  `0x53` | Shield       |            94 |  `0x163` | MAGIC083      |
-|  `0x54` | Speed        |            32 |  `0x162` | MAGIC082      |
-|  `0x55` | Might        |            32 |  `0x162` | MAGIC082      |
-|  `0x56` | Barrier      |            28 |  `0x164` | MAGIC086      |
-|  `0x57` | Silence      |            48 |  `0x165` | MAGIC087      |
-|  `0x58` | Slow         |            29 |  `0x166` | MAGIC088      |
-|  `0x59` | Blunt        |            29 |  `0x166` | MAGIC088      |
-|  `0x5A` | Weaken       |            29 |  `0x166` | MAGIC088      |
-|  `0x5B` | Flare        |            21 |  `0x167` | MAGIC091      |
-|  `0x5C` | Fireblast    |            49 |  `0x168` | MAGIC092      |
-|  `0x5D` | Inferno      |           103 |  `0x169` | MAGIC093      |
-|  `0x5E` | Frost        |            20 |  `0x16A` | MAGIC094      |
-|  `0x5F` | Iceblast     |            22 |  `0x16B` | MAGIC095      |
-|  `0x60` | Blizzard     |           102 |  `0x16C` | MAGIC096      |
-|  `0x61` | Jolt         |            19 |  `0x16D` | MAGIC097      |
-|  `0x62` | Lightning    |            37 |  `0x16E` | MAGIC098      |
-|  `0x63` | Myollnir     |            36 |  `0x16F` | MAGIC099      |
-|  `0x64` | Cyclone      |            13 |  `0x170` | MAGIC100      |
-|  `0x65` | Typhoon      |            26 |  `0x171` | MAGIC101      |
-|  `0x66` | Quake        |            69 |  `0x172` | MAGIC102      |
-|  `0x67` | Simoon       |            57 |  `0x173` | MAGIC103      |
-|  `0x68` | Sirocco      |            14 |  `0x174` | MAGIC104      |
-|  `0x69` | Kyrie        |            64 |  `0x175` | MAGIC105      |
-|  `0x6A` | Death        |           104 |  `0x176` | MAGIC106      |
-|  `0x6B` | Sleep        |            24 |  `0x177` | MAGIC107      |
-|  `0x6C` | Confuse      |            25 |  `0x178` | MAGIC108      |
-|  `0x6D` | Depress      |            12 |  `0x179` | MAGIC109      |
-|  `0x6E` | Ragnarok     |            38 |  `0x17A` | MAGIC110      |
-|  `0x6F` | Noting       |            27 |  `0x160` | MAGIC080      |
-|  `0x70` | Noting       |            27 |  `0x160` | MAGIC080      |
-|  `0x71` | Noting       |            10 |  `0x17D` | MAGIC113      |
-|  `0x72` | Fire Whip    |            11 |  `0x17E` | MAGIC114      |
-|  `0x73` | Remedy       |           115 |  `0x17F` | MAGIC115      |
-|  `0x74` | UtmostAttack |            59 |  `0x180` | MAGIC116      |
-|  `0x75` | Rest         |            73 |  `0x181` | MAGIC117      |
-|  `0x76` | Burn         |            60 |  `0x182` | MAGIC118      |
-|  `0x77` | Double Blow  |            54 |  `0x133` | MAGIC018      |
-|  `0x78` | Whelp Breath |            16 |  `0x183` | MAGIC120      |
-|  `0x79` | DragonBreath |           122 |  `0x184` | MAGIC121      |
-|  `0x7A` | Flame Breath |            74 |  `0x185` | MAGIC122      |
-|  `0x7B` | Frost Breath |            76 |  `0x186` | MAGIC123      |
-|  `0x7C` | ThundrBreath |           124 |  `0x187` | MAGIC124      |
-|  `0x7D` | DivineBreath |           125 |  `0x188` | MAGIC125      |
-|  `0x7E` | ShadowBreath |           127 |  `0x189` | MAGIC126      |
-|  `0x81` | Holocaust    |           145 |  `0x18A` | MAGIC129      |
-|  `0x82` | Venom        |           141 |  `0x18B` | MAGIC130      |
-|  `0x83` | KaiserBreath |           144 |  `0x18C` | MAGIC131      |
-|  `0x84` | Doom Breath  |           139 |  `0x18D` | MAGIC132      |
-|  `0x85` | Flame Claw   |           129 |  `0x18E` | MAGIC133      |
-|  `0x86` | Frost Claw   |           130 |  `0x18F` | MAGIC134      |
-|  `0x87` | Thunder Claw |           131 |  `0x190` | MAGIC135      |
-|  `0x88` | Shining Claw |           132 |  `0x191` | MAGIC136      |
-|  `0x89` | Corona       |           101 |  `0x192` | MAGIC137      |
-|  `0x8A` | Main Cannon  |           118 |  `0x193` | MAGIC138      |
-|  `0x8C` | Trump        |            27 |  `0x160` | MAGIC080      |
-|  `0x8D` | Triple Blow  |            68 |  `0x133` | MAGIC018      |
-|  `0x8E` | Syphon       |            42 |  `0x12B` | MAGIC008      |
-|  `0x8F` | Thunder Clap |            66 |  `0x194` | MAGIC143      |
-|  `0x90` | Wall of Fire |            67 |  `0x195` | MAGIC144      |
-|  `0x91` | Noting       |           149 |  `0x196` | MAGIC145      |
-|  `0x92` | Noting       |           150 |  `0x197` | MAGIC146      |
-|  `0x93` | Noting       |            27 |  `0x160` | MAGIC080      |
-|  `0x94` | Noting       |            27 |  `0x160` | MAGIC080      |
-|  `0x95` | Douse        |           106 |  `0x181` | MAGIC117      |
-|  `0x96` | Eye Beam     |            72 |  `0x198` | MAGIC150      |
-|  `0x97` | Accession    |            86 |  `0x199` | MAGIC151      |
-|  `0x98` | Snooze       |            73 |  `0x181` | MAGIC117      |
-|  `0x99` | Resist       |           110 |  `0x13D` | MAGIC043      |
-|  `0x9A` | Mighty Chop  |            35 |  `0x19A` | MAGIC154      |
-|  `0x9B` | Pyrokinesis  |            98 |  `0x129` | MAGIC005      |
-|  `0x9C` | Holy Strike  |            92 |  `0x19B` | MAGIC156      |
-|  `0x9D` | Demonbane    |            93 |  `0x19C` | MAGIC157      |
-|  `0x9E` | Charm        |            89 |  `0x19D` | MAGIC158      |
-|  `0x9F` | Gloom        |           120 |  `0x19E` | MAGIC159      |
-|  `0xA0` | Jump         |           105 |  `0x125` | MAGIC001      |
-|  `0xA1` | Timed Blow   |           111 |  `0x19F` | MAGIC161      |
-|  `0xA2` | Transfer     |           116 |  `0x1A0` | MAGIC162      |
-|  `0xA3` | Meditation   |            78 |  `0x139` | MAGIC039      |
-|  `0xA4` | Feign Swing  |            42 |  `0x12B` | MAGIC008      |
-|  `0xA5` | Backhand     |            42 |  `0x12B` | MAGIC008      |
-|  `0xA6` | Monopolize   |            90 |  `0x1A1` | MAGIC166      |
-|  `0xA7` | Last Resort  |            91 |  `0x1A2` | MAGIC167      |
-|  `0xA8` | Cure         |           117 |  `0x1A3` | MAGIC168      |
-|  `0xA9` | Benediction  |            97 |  `0x1A4` | MAGIC169      |
-|  `0xAA` | Risky Blow   |            42 |  `0x12B` | MAGIC008      |
-|  `0xAB` | Shadowwalk   |            43 |  `0x132` | MAGIC017      |
-|  `0xAC` | Magic Ball   |            23 |  `0x1A5` | MAGIC172      |
-|  `0xAD` | Intimidate   |            34 |  `0x1A6` | MAGIC173      |
-|  `0xAE` | Heal         |            44 |  `0x156` | MAGIC070      |
-|  `0xAF` | Rejuvenate   |            45 |  `0x157` | MAGIC071      |
-|  `0xB0` | Restore      |           113 |  `0x158` | MAGIC072      |
-|  `0xB1` | Vitalize     |            47 |  `0x159` | MAGIC073      |
-|  `0xB2` | Vigor        |           114 |  `0x15A` | MAGIC074      |
-|  `0xB3` | Purify       |            46 |  `0x15B` | MAGIC075      |
-|  `0xB4` | Raise Dead   |            30 |  `0x15D` | MAGIC077      |
-|  `0xB5` | Resurrect    |            30 |  `0x15D` | MAGIC077      |
-|  `0xB6` | Leech Power  |            15 |  `0x15E` | MAGIC078      |
-|  `0xB7` | Drain        |            52 |  `0x15F` | MAGIC079      |
-|  `0xB8` | Protect      |            32 |  `0x162` | MAGIC082      |
-|  `0xB9` | Shield       |            94 |  `0x163` | MAGIC083      |
-|  `0xBA` | Speed        |            32 |  `0x162` | MAGIC082      |
-|  `0xBB` | Might        |            32 |  `0x162` | MAGIC082      |
-|  `0xBC` | Barrier      |            28 |  `0x164` | MAGIC086      |
-|  `0xBD` | Silence      |            48 |  `0x165` | MAGIC087      |
-|  `0xBE` | Slow         |            29 |  `0x166` | MAGIC088      |
-|  `0xBF` | Blunt        |            29 |  `0x166` | MAGIC088      |
-|  `0xC0` | Weaken       |            29 |  `0x166` | MAGIC088      |
-|  `0xC1` | Flare        |            21 |  `0x167` | MAGIC091      |
-|  `0xC2` | Fireblast    |            49 |  `0x168` | MAGIC092      |
-|  `0xC3` | Inferno      |           103 |  `0x169` | MAGIC093      |
-|  `0xC4` | Frost        |            20 |  `0x16A` | MAGIC094      |
-|  `0xC5` | Iceblast     |            22 |  `0x16B` | MAGIC095      |
-|  `0xC6` | Blizzard     |           102 |  `0x16C` | MAGIC096      |
-|  `0xC7` | Jolt         |            19 |  `0x16D` | MAGIC097      |
-|  `0xC8` | Lightning    |            37 |  `0x16E` | MAGIC098      |
-|  `0xC9` | Myollnir     |            36 |  `0x16F` | MAGIC099      |
-|  `0xCA` | Cyclone      |            13 |  `0x170` | MAGIC100      |
-|  `0xCB` | Typhoon      |            26 |  `0x171` | MAGIC101      |
-|  `0xCC` | Quake        |            69 |  `0x172` | MAGIC102      |
-|  `0xCD` | Simoon       |            57 |  `0x173` | MAGIC103      |
-|  `0xCE` | Sirocco      |            14 |  `0x174` | MAGIC104      |
-|  `0xCF` | Kyrie        |            64 |  `0x175` | MAGIC105      |
-|  `0xD0` | Death        |           104 |  `0x176` | MAGIC106      |
-|  `0xD1` | Sleep        |            24 |  `0x177` | MAGIC107      |
-|  `0xD2` | Confuse      |            25 |  `0x178` | MAGIC108      |
-|  `0xD3` | Depress      |            12 |  `0x179` | MAGIC109      |
-|  `0xD4` | Ragnarok     |            38 |  `0x17A` | MAGIC110      |
-|  `0xD5` | Noting       |           148 |  `0x1A7` | MAGIC213      |
-|  `0xD6` | Noting       |            27 |  `0x160` | MAGIC080      |
-|  `0xD7` | Remedy       |           115 |  `0x17F` | MAGIC115      |
-|  `0xD8` | Steal        |            87 |  `0x1A8` | MAGIC216      |
-|  `0xDA` | Aura Breath  |           142 |  `0x1A9` | MAGIC218      |
-|  `0xDB` | Magma Breath |           138 |  `0x1AA` | MAGIC219      |
-|  `0xDC` | Geo Breath   |           136 |  `0x1AB` | MAGIC220      |
-|  `0xDD` | GaeasBreath |           146 |  `0x1AC` | MAGIC221      |
-|  `0xDE` | Combustion   |           133 |  `0x1AD` | MAGIC222      |
-|  `0xDF` | Tempest      |           137 |  `0x1AE` | MAGIC223      |
-|  `0xE0` | Hurricane    |           137 |  `0x1AE` | MAGIC223      |
-|  `0xE1` | Temptation   |           140 |  `0x1AF` | MAGIC225      |
-|  `0xE2` | MeteorStrike |           135 |  `0x1B0` | MAGIC226      |
-|  `0xE3` | MeteorStrike |           147 |  `0x1B1` | MAGIC227      |
+| Selection row | EMI slot | Effect module | Abilities                                                                                                                                          |
+| ------------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1             | `0x125`  | MAGIC001      | `0x01` Nue Stomp                                                                                                                                   |
+| 42            | `0x12B`  | MAGIC008      | `0x02` Gambit, `0x07` Mind Flay, `0x08` Blind, `0x1C` Devour, `0x3D` Target, `0x8E` Syphon, `0xA4` Feign Swing, `0xA5` Backhand, `0xAA` Risky Blow |
+| 3             | `0x127`  | MAGIC003      | `0x03` Super Combo                                                                                                                                 |
+| 88            | `0x128`  | MAGIC004      | `0x04` ThundrStrike                                                                                                                                |
+| 98            | `0x129`  | MAGIC005      | `0x05` Flame Strike, `0x9B` Pyrokinesis                                                                                                            |
+| 109           | `0x12A`  | MAGIC006      | `0x06` Mind Sword                                                                                                                                  |
+| 51            | `0x12C`  | MAGIC009      | `0x09` Chlorine                                                                                                                                    |
+| 9             | `0x12D`  | MAGIC010      | `0x0A` Unmotivate, `0x17` Bad back, `0x18` Watch Enemy, `0x19` Noting                                                                              |
+| 68            | `0x133`  | MAGIC018      | `0x0B` Multistrike, `0x8D` Triple Blow                                                                                                             |
+| 71            | `0x12E`  | MAGIC012      | `0x0C` Blitz                                                                                                                                       |
+| 50            | `0x12F`  | MAGIC013      | `0x0D` Snap                                                                                                                                        |
+| 55            | `0x130`  | MAGIC015      | `0x0E` Flying Kick                                                                                                                                 |
+| 4             | `0x130`  | MAGIC015      | `0x0F` Charge                                                                                                                                      |
+| 58            | `0x131`  | MAGIC016      | `0x10` Air Raid                                                                                                                                    |
+| 43            | `0x132`  | MAGIC017      | `0x11` Astral Warp, `0xAB` Shadowwalk                                                                                                              |
+| 5             | `0x133`  | MAGIC018      | `0x12` Giant Growth                                                                                                                                |
+| 6             | `0x134`  | MAGIC019      | `0x13` Aura                                                                                                                                        |
+| 8             | `0x135`  | MAGIC020      | `0x14` Disembowel                                                                                                                                  |
+| 33            | `0x136`  | MAGIC021      | `0x15` Bonebreak                                                                                                                                   |
+| 53            | `0x133`  | MAGIC018      | `0x16` Spirit Blast                                                                                                                                |
+| 81            | `0x13C`  | MAGIC042      | `0x1A` Counter, `0x2A` Minds Eye                                                                                                                  |
+| 25            | `0x178`  | MAGIC108      | `0x1B` Hypnotize, `0x6C` Confuse, `0xD2` Confuse                                                                                                   |
+| 100           | `0x137`  | MAGIC029      | `0x1D` Wind Strike                                                                                                                                 |
+| 29            | `0x166`  | MAGIC088      | `0x1E` Molasses, `0x1F` Tarbaby, `0x58` Slow, `0x59` Blunt, `0x5A` Weaken, `0xBE` Slow, `0xBF` Blunt, `0xC0` Weaken                                |
+| 44            | `0x156`  | MAGIC070      | `0x20` Absorb, `0x46` Heal, `0xAE` Heal                                                                                                            |
+| 45            | `0x157`  | MAGIC071      | `0x21` Healing Herb, `0x47` Rejuvenate, `0xAF` Rejuvenate                                                                                          |
+| 32            | `0x162`  | MAGIC082      | `0x22` Steroids, `0x23` Magic Belt, `0x52` Protect, `0x54` Speed, `0x55` Might, `0xB8` Protect, `0xBA` Speed, `0xBB` Might                         |
+| 27            | `0x160`  | MAGIC080      | `0x24` Recall, `0x25` MagicShuffle, `0x50` Noting, `0x6F` Noting, `0x70` Noting, `0x8C` Trump, `0x93` Noting, `0x94` Noting, `0xD6` Noting         |
+| 121           | `0x138`  | MAGIC038      | `0x26` War Shout                                                                                                                                   |
+| 78            | `0x139`  | MAGIC039      | `0x27` Focus, `0xA3` Meditation                                                                                                                    |
+| 79            | `0x13A`  | MAGIC040      | `0x28` Enlighten                                                                                                                                   |
+| 80            | `0x13B`  | MAGIC041      | `0x29` Berserk                                                                                                                                     |
+| 110           | `0x13D`  | MAGIC043      | `0x2B` WardOfLight, `0x99` Resist                                                                                                                  |
+| 96            | `0x13E`  | MAGIC044      | `0x2C` Evil Eye                                                                                                                                    |
+| 61            | `0x13F`  | MAGIC045      | `0x2D` Bone Dart                                                                                                                                   |
+| 62            | `0x140`  | MAGIC046      | `0x2E` Firebreath                                                                                                                                  |
+| 63            | `0x141`  | MAGIC047      | `0x2F` Icebreath                                                                                                                                   |
+| 41            | `0x142`  | MAGIC048      | `0x30` Dream Breath                                                                                                                                |
+| 99            | `0x143`  | MAGIC049      | `0x31` Frost Strike                                                                                                                                |
+| 31            | `0x144`  | MAGIC050      | `0x32` Pollen, `0x33` Venom Breath                                                                                                                 |
+| 107           | `0x145`  | MAGIC052      | `0x34` Ovum                                                                                                                                        |
+| 134           | `0x146`  | MAGIC053      | `0x35` Lavaburst                                                                                                                                   |
+| 56            | `0x147`  | MAGIC054      | `0x36` Howling                                                                                                                                     |
+| 65            | `0x148`  | MAGIC055      | `0x37` Ebonfire                                                                                                                                    |
+| 112           | `0x149`  | MAGIC056      | `0x38` Sacrifice                                                                                                                                   |
+| 84            | `0x14A`  | MAGIC057      | `0x39` Bone Dance                                                                                                                                  |
+| 82            | `0x14B`  | MAGIC058      | `0x3A` Sanctuary                                                                                                                                   |
+| 83            | `0x14C`  | MAGIC059      | `0x3B` Tornado                                                                                                                                     |
+| 39            | `0x14D`  | MAGIC060      | `0x3C` Identify                                                                                                                                    |
+| 95            | `0x14E`  | MAGIC062      | `0x3E` Celerity                                                                                                                                    |
+| 143           | `0x14F`  | MAGIC063      | `0x3F` SuddenDeath                                                                                                                                 |
+| 77            | `0x150`  | MAGIC064      | `0x40` Weretiger                                                                                                                                   |
+| 70            | `0x151`  | MAGIC065      | `0x41` Pilfer                                                                                                                                      |
+| 17            | `0x152`  | MAGIC066      | `0x42` Tsunami                                                                                                                                     |
+| 18            | `0x153`  | MAGIC067      | `0x43` Chill                                                                                                                                       |
+| 40            | `0x154`  | MAGIC068      | `0x44` Foretell                                                                                                                                    |
+| 75            | `0x155`  | MAGIC069      | `0x45` Influence                                                                                                                                   |
+| 113           | `0x158`  | MAGIC072      | `0x48` Restore, `0xB0` Restore                                                                                                                     |
+| 47            | `0x159`  | MAGIC073      | `0x49` Vitalize, `0xB1` Vitalize                                                                                                                   |
+| 114           | `0x15A`  | MAGIC074      | `0x4A` Vigor, `0xB2` Vigor                                                                                                                         |
+| 46            | `0x15B`  | MAGIC075      | `0x4B` Purify, `0xB3` Purify                                                                                                                       |
+| 30            | `0x15D`  | MAGIC077      | `0x4C` Raise Dead, `0x4D` Resurrect, `0xB4` Raise Dead, `0xB5` Resurrect                                                                           |
+| 15            | `0x15E`  | MAGIC078      | `0x4E` Leech Power, `0xB6` Leech Power                                                                                                             |
+| 52            | `0x15F`  | MAGIC079      | `0x4F` Drain, `0xB7` Drain                                                                                                                         |
+| 85            | `0x161`  | MAGIC081      | `0x51` RottenBreath                                                                                                                                |
+| 94            | `0x163`  | MAGIC083      | `0x53` Shield, `0xB9` Shield                                                                                                                       |
+| 28            | `0x164`  | MAGIC086      | `0x56` Barrier, `0xBC` Barrier                                                                                                                     |
+| 48            | `0x165`  | MAGIC087      | `0x57` Silence, `0xBD` Silence                                                                                                                     |
+| 21            | `0x167`  | MAGIC091      | `0x5B` Flare, `0xC1` Flare                                                                                                                         |
+| 49            | `0x168`  | MAGIC092      | `0x5C` Fireblast, `0xC2` Fireblast                                                                                                                 |
+| 103           | `0x169`  | MAGIC093      | `0x5D` Inferno, `0xC3` Inferno                                                                                                                     |
+| 20            | `0x16A`  | MAGIC094      | `0x5E` Frost, `0xC4` Frost                                                                                                                         |
+| 22            | `0x16B`  | MAGIC095      | `0x5F` Iceblast, `0xC5` Iceblast                                                                                                                   |
+| 102           | `0x16C`  | MAGIC096      | `0x60` Blizzard, `0xC6` Blizzard                                                                                                                   |
+| 19            | `0x16D`  | MAGIC097      | `0x61` Jolt, `0xC7` Jolt                                                                                                                           |
+| 37            | `0x16E`  | MAGIC098      | `0x62` Lightning, `0xC8` Lightning                                                                                                                 |
+| 36            | `0x16F`  | MAGIC099      | `0x63` Myollnir, `0xC9` Myollnir                                                                                                                   |
+| 13            | `0x170`  | MAGIC100      | `0x64` Cyclone, `0xCA` Cyclone                                                                                                                     |
+| 26            | `0x171`  | MAGIC101      | `0x65` Typhoon, `0xCB` Typhoon                                                                                                                     |
+| 69            | `0x172`  | MAGIC102      | `0x66` Quake, `0xCC` Quake                                                                                                                         |
+| 57            | `0x173`  | MAGIC103      | `0x67` Simoon, `0xCD` Simoon                                                                                                                       |
+| 14            | `0x174`  | MAGIC104      | `0x68` Sirocco, `0xCE` Sirocco                                                                                                                     |
+| 64            | `0x175`  | MAGIC105      | `0x69` Kyrie, `0xCF` Kyrie                                                                                                                         |
+| 104           | `0x176`  | MAGIC106      | `0x6A` Death, `0xD0` Death                                                                                                                         |
+| 24            | `0x177`  | MAGIC107      | `0x6B` Sleep, `0xD1` Sleep                                                                                                                         |
+| 12            | `0x179`  | MAGIC109      | `0x6D` Depress, `0xD3` Depress                                                                                                                     |
+| 38            | `0x17A`  | MAGIC110      | `0x6E` Ragnarok, `0xD4` Ragnarok                                                                                                                   |
+| 10            | `0x17D`  | MAGIC113      | `0x71` Noting                                                                                                                                      |
+| 11            | `0x17E`  | MAGIC114      | `0x72` Fire Whip                                                                                                                                   |
+| 115           | `0x17F`  | MAGIC115      | `0x73` Remedy, `0xD7` Remedy                                                                                                                       |
+| 59            | `0x180`  | MAGIC116      | `0x74` UtmostAttack                                                                                                                                |
+| 73            | `0x181`  | MAGIC117      | `0x75` Rest, `0x98` Snooze                                                                                                                         |
+| 60            | `0x182`  | MAGIC118      | `0x76` Burn                                                                                                                                        |
+| 54            | `0x133`  | MAGIC018      | `0x77` Double Blow                                                                                                                                 |
+| 16            | `0x183`  | MAGIC120      | `0x78` Whelp Breath                                                                                                                                |
+| 122           | `0x184`  | MAGIC121      | `0x79` DragonBreath                                                                                                                                |
+| 74            | `0x185`  | MAGIC122      | `0x7A` Flame Breath                                                                                                                                |
+| 76            | `0x186`  | MAGIC123      | `0x7B` Frost Breath                                                                                                                                |
+| 124           | `0x187`  | MAGIC124      | `0x7C` ThundrBreath                                                                                                                                |
+| 125           | `0x188`  | MAGIC125      | `0x7D` DivineBreath                                                                                                                                |
+| 127           | `0x189`  | MAGIC126      | `0x7E` ShadowBreath                                                                                                                                |
+| 145           | `0x18A`  | MAGIC129      | `0x81` Holocaust                                                                                                                                   |
+| 141           | `0x18B`  | MAGIC130      | `0x82` Venom                                                                                                                                       |
+| 144           | `0x18C`  | MAGIC131      | `0x83` KaiserBreath                                                                                                                                |
+| 139           | `0x18D`  | MAGIC132      | `0x84` Doom Breath                                                                                                                                 |
+| 129           | `0x18E`  | MAGIC133      | `0x85` Flame Claw                                                                                                                                  |
+| 130           | `0x18F`  | MAGIC134      | `0x86` Frost Claw                                                                                                                                  |
+| 131           | `0x190`  | MAGIC135      | `0x87` Thunder Claw                                                                                                                                |
+| 132           | `0x191`  | MAGIC136      | `0x88` Shining Claw                                                                                                                                |
+| 101           | `0x192`  | MAGIC137      | `0x89` Corona                                                                                                                                      |
+| 118           | `0x193`  | MAGIC138      | `0x8A` Main Cannon                                                                                                                                 |
+| 66            | `0x194`  | MAGIC143      | `0x8F` Thunder Clap                                                                                                                                |
+| 67            | `0x195`  | MAGIC144      | `0x90` Wall of Fire                                                                                                                                |
+| 149           | `0x196`  | MAGIC145      | `0x91` Noting                                                                                                                                      |
+| 150           | `0x197`  | MAGIC146      | `0x92` Noting                                                                                                                                      |
+| 106           | `0x181`  | MAGIC117      | `0x95` Douse                                                                                                                                       |
+| 72            | `0x198`  | MAGIC150      | `0x96` Eye Beam                                                                                                                                    |
+| 86            | `0x199`  | MAGIC151      | `0x97` Accession                                                                                                                                   |
+| 35            | `0x19A`  | MAGIC154      | `0x9A` Mighty Chop                                                                                                                                 |
+| 92            | `0x19B`  | MAGIC156      | `0x9C` Holy Strike                                                                                                                                 |
+| 93            | `0x19C`  | MAGIC157      | `0x9D` Demonbane                                                                                                                                   |
+| 89            | `0x19D`  | MAGIC158      | `0x9E` Charm                                                                                                                                       |
+| 120           | `0x19E`  | MAGIC159      | `0x9F` Gloom                                                                                                                                       |
+| 105           | `0x125`  | MAGIC001      | `0xA0` Jump                                                                                                                                        |
+| 111           | `0x19F`  | MAGIC161      | `0xA1` Timed Blow                                                                                                                                  |
+| 116           | `0x1A0`  | MAGIC162      | `0xA2` Transfer                                                                                                                                    |
+| 90            | `0x1A1`  | MAGIC166      | `0xA6` Monopolize                                                                                                                                  |
+| 91            | `0x1A2`  | MAGIC167      | `0xA7` Last Resort                                                                                                                                 |
+| 117           | `0x1A3`  | MAGIC168      | `0xA8` Cure                                                                                                                                        |
+| 97            | `0x1A4`  | MAGIC169      | `0xA9` Benediction                                                                                                                                 |
+| 23            | `0x1A5`  | MAGIC172      | `0xAC` Magic Ball                                                                                                                                  |
+| 34            | `0x1A6`  | MAGIC173      | `0xAD` Intimidate                                                                                                                                  |
+| 148           | `0x1A7`  | MAGIC213      | `0xD5` Noting                                                                                                                                      |
+| 87            | `0x1A8`  | MAGIC216      | `0xD8` Steal                                                                                                                                       |
+| 142           | `0x1A9`  | MAGIC218      | `0xDA` Aura Breath                                                                                                                                 |
+| 138           | `0x1AA`  | MAGIC219      | `0xDB` Magma Breath                                                                                                                                |
+| 136           | `0x1AB`  | MAGIC220      | `0xDC` Geo Breath                                                                                                                                  |
+| 146           | `0x1AC`  | MAGIC221      | `0xDD` GaeasBreath                                                                                                                                |
+| 133           | `0x1AD`  | MAGIC222      | `0xDE` Combustion                                                                                                                                  |
+| 137           | `0x1AE`  | MAGIC223      | `0xDF` Tempest, `0xE0` Hurricane                                                                                                                   |
+| 140           | `0x1AF`  | MAGIC225      | `0xE1` Temptation                                                                                                                                  |
+| 135           | `0x1B0`  | MAGIC226      | `0xE2` MeteorStrike                                                                                                                                |
+| 147           | `0x1B1`  | MAGIC227      | `0xE3` MeteorStrike                                                                                                                                |
 
 ## Data and limits
 

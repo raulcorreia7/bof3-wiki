@@ -188,7 +188,7 @@ entry 8 of `BOSS` (5 times) and entry 0 of `ETC/AFLDKWA` (1). The ids are local 
 ## Sources and confidence
 
 - **Confidence:** medium. The encoding, the control codes and the containers are read in the code and checked on every table, but the payload behind a `text-id` and the effect of two control codes are not established.
-- **Evidence:** `UI_DrawTextGlyphs`, `UI_DrawTextString`, `UI_DrawGlyphString`, `UI_DrawMessageScript` and `Message_GetText`, for the glyph atlas, the control cases and the references, and a check of every message table and name table on the disc.
+- **Evidence:** the drawers, `UI_DrawMessageScript` and `Message_GetText`, and a check of every message and name table on the disc.
 
 ## Related
 

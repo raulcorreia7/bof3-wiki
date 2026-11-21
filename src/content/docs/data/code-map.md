@@ -186,7 +186,7 @@ Per class: the function that loads, parses and uses it. Layouts are in the [file
 ## Sources and confidence
 
 - **Confidence:** medium. The family, range and asset-class roles are read from the names, callers and call counts of the images, but many ranges are address-named and have no identified role.
-- **Evidence:** the function names and address ranges of all 428 images, the callees and call-site counts of each unnamed range, the handler tables that name callees of `jalr` calls, and the load, parse and use functions of each asset class.
+- **Evidence:** function names and address ranges of all 428 images, callees and call-site counts of each unnamed range, the handler tables behind `jalr` calls, and each asset class's load, parse and use functions.
 
 ## Related
 

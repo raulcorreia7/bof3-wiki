@@ -236,7 +236,7 @@ An edit must keep these limits:
 ## Sources and confidence
 
 - **Confidence:** medium. The start paths, the entry substates, the mode dispatch, the formation roll and the exit are read in the code. The mode names, the boss event codes, the reward payout and most boss-module links are `[inferred]` or `[unknown]`.
-- **Evidence:** the field functions in `emi/etc/game/00`, the battle overlay `emi/battle/battle/03`, the `BATL_END` and `BATL_OVR` overlays, the installers in the boss modules, and the encounter block read from RAM.
+- **Evidence:** `emi/etc/game/00`, `emi/battle/battle/03`, `BATL_END`, `BATL_OVR`, the boss module installers, and the encounter block read from RAM.
 
 ## Related
 
