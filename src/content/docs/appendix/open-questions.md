@@ -31,7 +31,7 @@ Each page lists its open questions in its own Open questions section, with what 
 
 ## Audio
 
-[audio runtime](../../systems/audio/#open-questions), [audio formats](../../formats/audio/#open-questions), [STR and XA](../../formats/str/).
+[audio runtime](../../systems/audio/#open-questions), [audio formats](../../formats/audio/#open-questions), [STR and XA](../../formats/str/#open-questions).
 
 ## Saving and persistent state
 
