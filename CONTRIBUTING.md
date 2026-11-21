@@ -9,9 +9,9 @@ runtime behavior. A change needs evidence: a game address, bytes, or a cited sou
 assets or game text. To check a claim yourself, dump your own US disc (Redump-verified CUE sheet and
 BIN tracks).
 
-The wiki holds game and format facts only. Pages contain no tool output, progress reports or project
-history. The one code form is the `c` struct block, and the one repository path is its `Source:` link,
-both described under [Record layouts](#record-layouts).
+Pages state game and format facts only: no tool output, progress reports or project history. The one
+code form is the `c` struct block, and the one repository path is its `Source:` link
+([Record layouts](#record-layouts)).
 
 ## Repository layout
 
@@ -178,27 +178,18 @@ old URL keeps working. When you rename a heading, search for links to its old sl
   decimal. [Notation and conventions](src/content/docs/concepts/notation.md) has the full rules.
 - Name a function as `Name (image@0xADDR)`. A name is a label from this research and not a name that
   the game stores.
-- Remove filler, restatement and transitions. Keep a sentence only if a reader would miss it.
+- Cut filler, restatement and transitions. Keep a sentence only if a reader would miss it.
 - State what is known. Mark the rest `[inferred]` or `[unknown]`.
 
 ## Build and check
 
-Install the tools and set up the repository as the [README](README.md#requirements) describes. CI runs
-the same commands. A pull request that changes only docs still builds the site, because the build
-checks the content.
+Install the tools and run the checks as the [README](README.md#requirements) describes. CI runs the
+same commands. A pull request that changes only docs still builds the site, because the build checks
+the content. Run `npm run dev` for a live preview.
 
-```sh
-dprint check                    # Markdown format; dprint fmt fixes it
-python3 tools/check_pages.py    # page template, titles, orphan pages
-python3 tools/check_sources.py ../bof3-decomp  # every Source: link, needs a decompilation checkout
-npm run build                   # builds dist/ and validates internal links and anchors
-npm run check:diagrams          # diagram readability, after npm run build
-npm run dev                     # live preview at http://localhost:4321/bof3-wiki/
-```
-
-`tools/check_sources.py` is optional because the wiki checkout does not include the
-decompilation. It reads each `Source:` URL and asks the checkout whether the path exists at
-`origin/main`; pass `--ref` when the checkout tracks another ref.
+`tools/check_sources.py` is optional because the wiki checkout does not include the decompilation.
+It reads each `Source:` URL and asks the checkout whether the path exists at `origin/main`; pass
+`--ref` when the checkout tracks another ref.
 
 The build also writes the search index, `llms.txt`, `llms-full.txt`, the sitemap and a redirect
 page for every URL in `redirects.json`. CI then checks internal links and anchors offline with
