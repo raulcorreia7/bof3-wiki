@@ -26,15 +26,14 @@ lives on one page.
 - Link a page by its site URL, relative to the page's own URL (`../formats/emi/#header`), not by
   file name. A file-path link checker reports these links as broken; they are not. `npm run build`
   validates every link.
-- Before you push, run `dprint check`, `npm run check` and `npm run build`, plus
-  `npm run check:diagrams` after a diagram change ([checks](README.md#check)).
+- Before you push, run `npm run check` ([checks](README.md#check)).
 - Keep game data, disc images and extracted assets out of the repository.
 
 ## Index
 
 - Skills: none.
-- Tools: [tools/check_pages.py](tools/check_pages.py) (`npm run check`) and
-  [tools/check_diagrams.mjs](tools/check_diagrams.mjs) (`npm run check:diagrams`).
+- Tools: [tools/check_pages.py](tools/check_pages.py) and
+  [tools/check_diagrams.mjs](tools/check_diagrams.mjs); `npm run check` runs both.
 - CI: [.github/workflows/pages.yml](.github/workflows/pages.yml) builds and publishes the site.
 - Published: [site](https://raulcorreia7.github.io/bof3-wiki/). For a model:
   [llms.txt](https://raulcorreia7.github.io/bof3-wiki/llms.txt) (index),

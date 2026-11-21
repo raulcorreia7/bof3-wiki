@@ -25,6 +25,7 @@ code form is the `c` struct block, and the one repository path is its `Source:` 
 | `astro.config.mjs`         | Site, search, link validation, diagrams and `llms.txt` settings.            |
 | `tools/check_pages.py`     | The page template check.                                                    |
 | `tools/check_diagrams.mjs` | The diagram readability check.                                              |
+| `tools/check_links.sh`     | The offline link and anchor check (lychee).                                 |
 
 ## Record layouts
 
@@ -132,7 +133,7 @@ characters. Do not rely on automatic wrapping: it splits words with hyphens. Sho
 self-call as one message, not as a `loop` frame around it. In a flowchart with subgraphs, use `LR`
 when edges would cross a subgraph title.
 
-After a diagram change, run `npm run build && npm run check:diagrams`. It renders every diagram at
+`npm run check` renders every diagram at
 1440 and 390 pixels in both themes and fails on overlapping text, a label larger than its shape,
 a line across a label, clipped text, text under 12 px and contrast under 4.5:1. Set `CHROMIUM` to
 a Chrome or Chromium binary when Google Chrome is not installed.
@@ -192,14 +193,9 @@ It reads each `Source:` URL and asks the checkout whether the path exists at `or
 `--ref` when the checkout tracks another ref.
 
 The build also writes the search index, `llms.txt`, `llms-full.txt`, the sitemap and a redirect
-page for every URL in `redirects.json`. CI then checks internal links and anchors offline with
-[lychee](https://github.com/lycheeverse/lychee) 0.24.2. To run it, download that release, then:
-
-```sh
-site=$(mktemp -d) && ln -sfn "$PWD/dist" "$site/bof3-wiki"
-lychee --offline --include-fragments --index-files index.html \
-  --root-dir "$site" --exclude-path 404.html "$site/bof3-wiki"
-```
+page for every URL in `redirects.json`. `tools/check_links.sh` then checks internal links and
+anchors offline with [lychee](https://github.com/lycheeverse/lychee); it installs the pinned release
+when none is on `PATH`.
 
 Check the result in a browser at phone width and at desktop width, in the light and the dark theme.
 
