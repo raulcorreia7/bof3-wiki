@@ -3,11 +3,11 @@ title: "Screens"
 description: "Besides the field, the game runs full-screen modes: the in-game menu, shops, the save screen, the fishing pond, the fairy village, the master menu, the world map, and the BATE and SHISU screens."
 ---
 
-Besides the field, the game runs full-screen modes: the in-game menu, shops, the save screen, the fishing pond, the fairy village, the master menu, the world map, and the BATE and SHISU screens. Most stream their code from the disc into a shared window and run inside the main loop. This page maps each screen to its request code or flag, entry state, overlay and return path to the field. Save and load card paths are in [saving](../saving/), window and panel drawing in [UI and text drawing](../ui/), and the codes in [phases](../phases/).
+Besides the field, the game runs full-screen modes. Most stream their code from the disc into a shared window and run inside the main loop. This page maps each screen to its request code or flag, entry state, overlay and return path to the field. Card paths are in [saving](../saving/), panel drawing in [UI and text drawing](../ui/), the codes in [phases](../phases/).
 
 ## Terms
 
-The [glossary](../../appendix/glossary/) defines request code and entry state. This page also uses:
+The [glossary](../../appendix/glossary/) defines request code and entry state.
 
 | Term            | Meaning                                                                                                                                                                      |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -17,7 +17,7 @@ The [glossary](../../appendix/glossary/) defines request code and entry state. T
 
 ## From request to screen
 
-`Game_UpdateField (emi/etc/game/00@0x80197378)` is entry state 2. Each frame it maps the request code to the next entry state ([phases](../phases/) covers codes 2 to 5: message wait, battle, camera and area change). The table lists the screens.
+`Game_UpdateField (emi/etc/game/00@0x80197378)` is entry state 2. Each frame it maps the request code to the next entry state ([phases](../phases/) covers codes 2 to 5).
 
 | Request or trigger                                                 | Entry state | Overlay (slot)                   | Screen                                                          |
 | ------------------------------------------------------------------ | ----------: | -------------------------------- | --------------------------------------------------------------- |
@@ -33,25 +33,7 @@ The [glossary](../../appendix/glossary/) defines request code and entry state. T
 | Area load flag `0x10`                                              |   2 (stays) | COMMU00 (`0x258`), COMMU01 to 05 | The fairy village.                                              |
 | Area load flag `0x01`                                              |  2, mode 10 | World area overlay               | The world map. The map code is `[inferred]`.                    |
 
-```mermaid
-flowchart TD
-    A["actor kind 5 or<br/>scene event 10"] -->|"g_GameEntryState = 7"| S["state 7: shop and save<br/>SHOP 0x266"]
-    F["state 2: field<br/>Game_UpdateField"]
-    F <-->|"enter: code 6<br/>return: Game_ReturnFromShop"| S
-    F <-->|"enter: code 1<br/>return: Game_ReturnFromMenu"| M["state 3: menu<br/>STATUS 0x269"]
-    F <-->|"enter: code 9<br/>return: code 0"| C["state 11:<br/>scene camera"]
-```
-
-```mermaid
-flowchart TD
-    F["state 2: field<br/>Game_UpdateField"]
-    F <-->|"enter: code 7<br/>return: map load<br/>handshake"| B["state 9:<br/>BATE 0x257"]
-    F <-->|"enter: code 8<br/>return: map load<br/>handshake"| H["state 10:<br/>SHISU 0x265"]
-    F <-->|"enter: code 5<br/>return: else"| L["state 1: area load<br/>Game_UpdateAreaLoad"]
-    L <-->|"enter: flag 0x08<br/>return: func_801985C8"| P["state 8: fishing<br/>area030/04"]
-```
-
-Every screen state has the same three substates. Substate 0 starts the overlay stream and waits for `EMI_IsReady`. The middle substate runs one frame of the screen and `Menu_UpdatePanelTasks`. The last substate re-streams the character sprites (`EMI_GetArchiveId` with the `PL` family) and returns to state 2 with `g_GameEntrySubstate = 0` and `g_GameStateIndex = 0`.
+Every screen state has three substates: 0 starts the overlay stream and waits for `EMI_IsReady`; the middle one runs one screen frame and `Menu_UpdatePanelTasks`; the last re-streams the character sprites (`EMI_GetArchiveId`, `PL` family) and returns to state 2 with `g_GameEntrySubstate = 0` and `g_GameStateIndex = 0`. Return calls: `Game_ReturnFromMenu` (state 3), `Game_ReturnFromShop` (7), `GameRunMapLoadHandshake` (9, 10), `func_801985C8` (8, back to state 1); code 9 returns by code 0.
 
 The state functions are `Game_UpdateMenu (emi/etc/game/00@0x801975E4)` (state 3), `Game_UpdateShop (emi/etc/game/00@0x80198234)` (7), `Game_UpdateFishing (emi/etc/game/00@0x801984AC)` (8), `Game_UpdateAbilityMenu (emi/etc/game/00@0x80198744)` (9), `Game_UpdateStatusMenu (emi/etc/game/00@0x80198904)` (10) and `Game_UpdateSceneCamera (emi/etc/game/00@0x80198AC4)` (11).
 
@@ -98,7 +80,7 @@ Each overlay starts with an `OverlayHeader`, then a step entry that dispatches a
 
 ### BATE: equipment and tally for record 7
 
-BATE works on `g_Characters[7]` (`0x80144DE4`), the eighth [character record](../../data/records/#character-and-master-data). `func_801D0D9C (emi/etc/bate/00@0x801D0D9C)` runs `D_801D86E0[D_80148650]`, a table of four steps:
+BATE works on `g_Characters[7]` (`0x80144DE4`), the eighth [character record](../../data/records/#character-and-master-data). `func_801D0D9C (emi/etc/bate/00@0x801D0D9C)` runs the four-step table `D_801D86E0[D_80148650]`:
 
 | Step | Function           | Work                                                                                    |
 | ---: | ------------------ | --------------------------------------------------------------------------------------- |
@@ -130,7 +112,7 @@ It then raises the record's stats at once. Target 3 goes to defense and base def
 
 ### SHISU: the item minigame
 
-`func_801D0D80 (emi/etc/shisu/00@0x801D0D80)` runs `D_801D96DC[D_80148650]`, a table of five steps:
+`func_801D0D80 (emi/etc/shisu/00@0x801D0D80)` runs the five-step table `D_801D96DC[D_80148650]`:
 
 | Step | Function        | Work                                                                                                      |
 | ---: | --------------- | --------------------------------------------------------------------------------------------------------- |
@@ -216,7 +198,7 @@ The world-map code is in the `world*` area overlays `[unknown]`.
 
 ## Data and limits
 
-The table lists the limits that the screen code enforces. Counts of entry states, request codes, battle substates, scene events and panel tasks are in [phases](../phases/), [battle flow](../battle/), [scenario](../scenario/) and [scheduler](../../concepts/scheduler/).
+Counts of entry states, request codes, battle substates, scene events and panel tasks are in [phases](../phases/), [battle flow](../battle/), [scenario](../scenario/) and [scheduler](../../concepts/scheduler/).
 
 | Limit                           | Value                                                                                                                                                         | Source                                                                 |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -249,13 +231,13 @@ The dispatch indexes the step byte into the owning overlay's table with no bound
 
 ## Sources and confidence
 
-- **Confidence:** medium. The entry-state routes, the substate tables and the return paths are read in the code. The BATE and SHISU steps and the SHISU score are read in the code. The roles of the STATUS and SHOP steps, the sources of the BATE tally, the SHISU prizes, and the world-map and master triggers are `[inferred]` or `[unknown]`.
-- **Evidence:** the state functions in `emi/etc/game/00`, the heads and step tables of the STATUS, SHOP, BATE, SHISU, SISYOU, COMMU and `area030` overlays, the BATE functions `func_801D1FA0`, `func_801D1E8C` and `func_801D259C`, the SHISU functions `func_801D1018`, `func_801D1E60` and `func_801D1EE8`, and the writers of the request codes in the scenario overlays.
+- **Confidence:** medium. The entry-state routes, substate tables, return paths, BATE and SHISU steps and the SHISU score are read in the code. The roles of the STATUS and SHOP steps, the sources of the BATE tally, the SHISU prizes, and the world-map and master triggers are `[inferred]` or `[unknown]`.
+- **Evidence:** the state functions in `emi/etc/game/00`; the heads and step tables of the STATUS, SHOP, BATE, SHISU, SISYOU, COMMU and `area030` overlays; the BATE functions `func_801D1FA0`, `func_801D1E8C`, `func_801D259C`; the SHISU functions `func_801D1018`, `func_801D1E60`, `func_801D1EE8`; the request-code writers in the scenario overlays.
 
 ## Related
 
-- [Game phases](../phases/): the entry states and request codes that route to each screen.
-- [UI and text drawing](../ui/): the panels and text that every screen draws.
-- [Saving and loading](../saving/): the save and load screens that run inside the menu and shop overlays.
-- [Areas and the field](../areas/): the area load that opens the fishing pond, the fairy village and the world map.
-- [Field and party records](../../data/field/): the fishing and fairy village records.
+- [Game phases](../phases/): entry states and request codes.
+- [UI and text drawing](../ui/): panels and text.
+- [Saving and loading](../saving/): the save and load screens.
+- [Areas and the field](../areas/): the area load behind the pond, village and world map.
+- [Field and party records](../../data/field/): fishing and fairy village records.

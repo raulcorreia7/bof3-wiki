@@ -3,7 +3,7 @@ title: "Programs and load addresses"
 description: "The game is one resident program, SLUS_004.22, plus code and data that the loader streams from EMI archives into fixed RAM windows."
 ---
 
-The game is one resident program, `SLUS_004.22`, plus code and data that the loader streams from EMI archives into fixed RAM windows. Each program loads at one address, and programs that share an address replace one another. This page names the programs, lists the load address of each family, describes the module windows and the reserved space in the executable, and shows how the single map engine tells a world map from a town. The path from power-on to the title, the load sequence and the RAM map are on other pages.
+The game is one resident program, `SLUS_004.22`, plus code and data that the loader streams from EMI archives into fixed RAM windows. Each program loads at one address, and programs that share an address replace one another. This page names the programs, lists the load address of each family, describes the module windows and the executable's reserved space, and shows how the single map engine tells a world map from a town. Boot, loading and the RAM map are on other pages.
 
 ## Images
 
@@ -13,7 +13,7 @@ Names belong to one owner: the SDK libraries, the BIOS, the main executable `exe
 
 ## Load addresses
 
-Each image loads at one address. Images that share an address share a RAM window, and the loader replaces the previous occupant when it loads the next one. The table lists the retail families.
+Images that share an address share a RAM window; the loader replaces the previous occupant.
 
 | Load address | Images                                                                                                                                                                                          |
 | -----------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -64,7 +64,7 @@ A battle-effect module starts with its id and then a table of callbacks, which a
 
 The game has one resident map engine. The world map and the town and dungeon maps are all area images that this engine runs. A flag in each area's load entry selects the world-map variant.
 
-`g_AreaLoads (exe/slus_004_22@0x8017F974)` holds 200 pointers, one per area. Each points to an `AreaLoad` entry inside that area's own program. Byte `+0x32` of the entry is the map-kind flag, which the game copies to `g_GameRequestFlags` when it loads the area. The table gives the kinds over all 200 areas.
+`g_AreaLoads (exe/slus_004_22@0x8017F974)` holds 200 pointers, one per area. Each points to an `AreaLoad` entry inside that area's own program. Byte `+0x32` of the entry is the map-kind flag, copied to `g_GameRequestFlags` when the area loads.
 
 | Value  | Kind                        | Areas                                       |
 | ------ | --------------------------- | ------------------------------------------- |
@@ -78,18 +78,7 @@ The game has one resident map engine. The world map and the town and dungeon map
 
 Area 000 is McNeil, not the world map. Bit `0x20` appears only on two world maps and its effect is `[unknown]`. Each world map pairs with a battlefield through a table in `emi/etc/game/00` (`D_801CD224`): ten rows of two `u16`, world-map area then battlefield area. The pairs are 16 to 20, 33 to 29, 45 to 63, 65 to 64, 87 to 72, 88 to 73, 115 to 110, 121 to 20, 151 to 124 and 152 to 125.
 
-```mermaid
-flowchart TD
-    A["AREAnnn loads: AreaLoad +0x32"] --> B{"bit 0 set?"}
-    B -- yes --> C["world map: one party row,<br/>icon by Ryu form,<br/>two columns skipped,<br/>shade flag 0x80"]
-    B -- no --> D["other area: party size rows,<br/>full party on screen"]
-    C --> E["Area_DrawScene: one engine"]
-    D --> E
-    E --> F["Area_UpdateParty, Area_DrawActors, Area_DrawCellLayer"]
-    G["Battle_Update"] --> E
-```
-
-The flag changes three behaviors:
+Bit 0 (world map) changes three behaviors; Area_DrawScene then runs one engine for both kinds:
 
 - **Party rows.** `func_801BFF9C (emi/etc/game/00@0x801BFF9C)` sets the party to one row when the map is not loading and the area is a world map or fishing area, is area 187 or 189 (`0xBB`, `0xBD`), or is a camp scene while event flag `0x77` is clear. On a world map it then looks up a scene record by Ryu's form (`character_id` 0 gives record `0x52`, 9 gives `0xCB`, 7 gives `0x27A`, and any other form gives none). Otherwise the row count is the whole party.
 - **Cell layer.** With bit 0 set, `Area_DrawCellLayer (exe/slus_004_22@0x80155B40)` and `func_801530D0 (exe/slus_004_22@0x801530D0)` skip the column count minus 2 columns, never fewer than 0.
@@ -99,7 +88,7 @@ One renderer draws both map kinds and battle: GTE-rotated textured quads. `Area_
 
 ## PsyQ SDK
 
-The retail link used PsyQ 3.7 for every runtime library. Both `slus_004_22` and `logo` link all their SDK code, and carry the SCE 3.7 version word `DA 94 37 00` at `0x8017ED10` (`0x801D7940` in `LOGO.EXE`). The EMI overlays link no SDK code and call the main executable instead. Four SDK units do not match any 3.7 library member: `2MBYTE.OBJ`, `NONE3.OBJ` and the LIBGTE `MSC01` and `MSC02` span. The table gives the evidence for each library.
+The retail link used PsyQ 3.7 for every runtime library. Both `slus_004_22` and `logo` link all their SDK code, and carry the SCE 3.7 version word `DA 94 37 00` at `0x8017ED10` (`0x801D7940` in `LOGO.EXE`). The EMI overlays link no SDK code and call the main executable instead. Four SDK units do not match any 3.7 library member: `2MBYTE.OBJ`, `NONE3.OBJ` and the LIBGTE `MSC01` and `MSC02` span.
 
 | Library                                 | Evidence for 3.7                                                         |
 | --------------------------------------- | ------------------------------------------------------------------------ |
@@ -125,9 +114,9 @@ The retail build has `checkRECT(char *, RECT *)` at `0x8017B438` and an argument
 
 ## Related
 
-- [Memory](../../concepts/memory/): the full RAM map that these windows sit in.
+- [Memory](../../concepts/memory/): the RAM map.
 - [Loading](../../concepts/loading/): how the loader fills a window.
-- [EMI container](../../formats/emi/): the load argument and entry types.
-- [Executables and boot files](../../formats/exe/): the PS-X headers and the disc file table.
+- [EMI container](../../formats/emi/): load argument and entry types.
+- [Executables and boot files](../../formats/exe/): PS-X headers, disc file table.
 - [Code map](../code-map/): which code owns which job.
-- [Areas and the field](../../systems/areas/): the area load sequence that reads the map-kind flag.
+- [Areas and the field](../../systems/areas/): the area load that reads the map-kind flag.

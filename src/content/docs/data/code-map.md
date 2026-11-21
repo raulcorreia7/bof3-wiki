@@ -3,11 +3,11 @@ title: "Code map"
 description: "The game's code is 428 images: the resident executable, the logo program and 426 EMI overlays."
 ---
 
-The game's code is 428 images: the resident executable, the logo program and 426 EMI overlays. This page maps each image family, each address range of the executable and of the resident game layer, and each asset class to the job it does and the functions that do it. The pages that own each mechanism are linked from Related, and roles that no reader or caller establishes are listed as not identified.
+The game's code is 428 images: the resident executable, the logo program and 426 EMI overlays. This page maps each image family, each address range of the executable and resident game layer, and each asset class to its job and functions. The pages that own each mechanism are under Related; roles that no reader or caller establishes are "not identified".
 
 ## Terms
 
-Names are labels from this research. An address name such as `func_80158F80` means the function has no readable name, and a range with no entry points is listed by address only. `slus` is the main executable `exe/slus_004_22`. A citation reads `Name (image@0xADDR)`, and an address is meaningful only inside its image, because overlays share addresses. A role that no reader or caller establishes is called not identified.
+Names are labels from this research. An address name such as `func_80158F80` means the function has no readable name; a range with no entry points is listed by address only. `slus` is `exe/slus_004_22`. A citation reads `Name (image@0xADDR)`; an address is meaningful only inside its image, because overlays share addresses.
 
 ## Memory map
 
@@ -15,7 +15,7 @@ The RAM map is in [Memory](../../concepts/memory/), and the load address of each
 
 ## Image families
 
-The 428 images are 1 executable, 1 logo program and 426 EMI overlays. 21 images hold no functions. The table gives each family with its load address and role.
+21 of the 428 images hold no functions.
 
 | Family                        | Images / load                         | Role                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ----------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,9 +160,7 @@ actor record is in [field](../field/#actor-rows).
 
 ## Asset classes
 
-For each class: the function that loads it, the one that parses it, the one that uses it. Layouts
-and byte formats are in the [file format pages](../../formats/assets/) and the [editing guides](../../guides/); the disc side in
-[disc and files](../../formats/disc/).
+Per class: the function that loads, parses and uses it. Layouts are in the [file format pages](../../formats/assets/) and [editing guides](../../guides/); the disc side is in [disc and files](../../formats/disc/).
 
 | Class                 | Load                                                                                                                                                                                                                                           | Parse                                                                                                                                                                                                                                                         | Use                                                                                                                                                                                                                                                                                                                   | Format                                                                        |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -192,9 +190,9 @@ and byte formats are in the [file format pages](../../formats/assets/) and the [
 
 ## Related
 
-- [Architecture overview](../../concepts/architecture/): the structure that these images implement.
-- [Programs and load addresses](../programs/): where each image family loads.
+- [Architecture overview](../../concepts/architecture/): the structure these images implement.
+- [Programs and load addresses](../programs/): where each family loads.
 - [Memory](../../concepts/memory/): the RAM map.
 - [Loading](../../concepts/loading/): how the loader fills the windows.
-- [Asset kinds](../../formats/assets/): the formats that the asset classes read.
+- [Asset kinds](../../formats/assets/): formats the asset classes read.
 - [Game phases](../../systems/phases/): how the resident layer sequences the game.

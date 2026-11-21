@@ -113,10 +113,11 @@ The effect table holds screen transitions, not game phases. Phase code calls `UI
 
 ## Open questions
 
-| Question                                                 | What would settle it                                                                                               |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Whether 512 bytes of stack suffice for the deepest chain | Worst-case stack analysis, or a run with stack watermarks                                                          |
-| Any writer of the `SWITCH` state, and any use of slot 3  | Search the overlays for stores of 4 to a slot state halfword, and for stores into the slot at `D_80143B40 + 0x180` |
+| Question                                                                 | What would settle it                                                                                               |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Whether 512 bytes of stack suffice for the deepest chain                 | Worst-case stack analysis, or a run with stack watermarks                                                          |
+| Callers of `CallbackRegister` and `CallbackReplace` in overlays not read | Search those overlays for calls to the two functions                                                               |
+| Any writer of the `SWITCH` state, and any use of slot 3                  | Search the overlays for stores of 4 to a slot state halfword, and for stores into the slot at `D_80143B40 + 0x180` |
 
 ## Sources and confidence
 

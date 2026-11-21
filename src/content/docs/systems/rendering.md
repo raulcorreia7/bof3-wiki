@@ -3,7 +3,7 @@ title: "Rendering"
 description: "The game draws each frame by writing GPU primitives into a fixed RAM arena, threading them into eight depth layers of an ordering table and handing the table to the GPU."
 ---
 
-The game draws each frame by writing GPU primitives into a fixed RAM arena, threading them into eight depth layers of an ordering table and handing the table to the GPU. Textures and palettes sit in VRAM, and each primitive names the texture page and palette row it samples. This page covers the primitive arena, the VRAM layout, how textures and palettes reach VRAM and how a sprite picks its colors. The order of a whole frame, text drawing and the loader that fills VRAM are on other pages.
+Each frame, the game writes GPU primitives into a fixed RAM arena, threads them into eight depth layers of an ordering table and hands the table to the GPU. Each primitive names the VRAM texture page and palette row it samples. This page covers the arena, the VRAM layout, how textures and palettes reach VRAM and how a sprite picks its colors. Frame order, text drawing and the loader are on other pages.
 
 ## Terms
 
@@ -24,28 +24,15 @@ The game draws each frame by writing GPU primitives into a fixed RAM arena, thre
 3. `SYS_SubmitFrame (exe/slus_004_22@0x8014B0F0)` calls the PsyQ `AddPrims` once per layer. Ordering-table entry `i` of the render record (`record + 0x70 + 4 * i`) links to layer `i`'s chain.
 4. On the next loop pass `SYS_Main` calls `DrawOTag(record + 0x8C)`, which is entry 7. Entry 7 starts the chain, so layer 7 draws first (at the back) and layer 0 last (in front). That ordering follows PsyQ `ClearOTagR` semantics, where each entry links to the one below it `[inferred]`.
 
-```mermaid
-flowchart TD
-    A["game code builds a primitive at g_GfxPrimCursor"] --> B["GFX_AddPrim(layer, size)"]
-    B -->|"fits in arena"| C["CatPrim to D_801459D0[layer], cursor += size"]
-    B -->|"arena full"| D["dropped, no signal"]
-    C --> E["SYS_SubmitFrame: AddPrims, 8 layers into the OT"]
-    E --> F["next pass: DrawOTag(entry 7)"]
-    F --> G["GPU: layer 7 first, layer 0 last"]
-    H["GFX_UploadPalette, GFX_UpdateTransferQueue"] -->|"LoadImage, before DrawOTag"| G
-```
-
-`LoadImage` calls run in the loop step before `DrawOTag`. Whether the GPU finishes each copy before the draw starts is `[unknown]`.
+A full arena drops the primitive with no signal. `LoadImage` calls run in the loop step before `DrawOTag`; whether the GPU finishes each copy before the draw starts is `[unknown]`.
 
 ### Layers in use
 
-Calls to `GFX_AddPrim` with a literal layer: about 200 for layer 1, about 30 for layer 2, a handful for layers 3, 6 and 7. Text and menu sprites use layer 1. Scene sprites take their layer from sprite record byte `+0x29`, and the map engine takes it from `g_AreaDrawMode`. The ordering meaning of each layer, such as which layer is the HUD, is `[unknown]` beyond "1 is in front of 2".
+`GFX_AddPrim` calls with a literal layer: about 200 for layer 1, about 30 for layer 2, a handful for layers 3, 6 and 7. Text and menu sprites use layer 1. Scene sprites take their layer from sprite record byte `+0x29`, the map engine from `g_AreaDrawMode`. The meaning of each layer is `[unknown]` beyond "1 is in front of 2".
 
 ## Display and VRAM
 
 `SYS_InitDisplay (exe/slus_004_22@0x8014AE08)` sets two 320 by 240 draw and display environments. Record 0 draws to (0, 0) and shows (0, 240). Record 1 draws to (0, 240) and shows (0, 0). `SYS_InitHardware` sets `SetGeomScreen(0x3E8)` and `SetGeomOffset(0xA0, 0x78)`: projection distance 1,000 and screen center (160, 120).
-
-The code names these regions of VRAM.
 
 | VRAM region (x, y, w, h)    | Use                                                                      | Evidence                      |
 | --------------------------- | ------------------------------------------------------------------------ | ----------------------------- |
@@ -58,26 +45,11 @@ The code names these regions of VRAM.
 
 Text uses CLUT word `0x7800 | n`, which is VRAM row `0x7800 >> 6 = 480` and column `n * 16`: the first cells of stage palette row 0. The texture page word `0x2F` is column 15 (x 960), row 0, semi-transparency mode 1, 4 bits per pixel. That decoding follows the PsyQ `tpage` layout, which is outside the game files `[inferred]`.
 
-No table lists the allocation of the page area between area sheets, character sheets, battle sheets and the font. Each payload names its own rectangle `[unknown]`. See [memory](../../concepts/memory/) for RAM.
+Each payload names its own rectangle, so the page allocation between area, character, battle and font sheets is `[unknown]`.
 
 ## Textures, TIMs and palettes
 
-Payloads carry no TIM header and go to VRAM as raw 16-bit words. The only TIM data is the memory-card save icon, which is never uploaded ([graphics formats](../../formats/graphics/)).
-
-```mermaid
-flowchart TD
-    D["disc archive (EMI entry)"]
-    D -->|"type 0"| P["CLUT block<br/>arena 0x80033800<br/>+ offset"]
-    D -->|"type 3"| V["graphics, 32 by 32 blocks: VRAM texture pages, LoadImage per block"]
-    D -->|"sprite sheet"| Q["area or character data: transfer queue, 20 entries"]
-    Q -->|"LoadImage, RGB555<br/>expand or LZSS"| V
-    P -->|"GFX_ResetPalette or<br/>GFX_CopyPalette"| W["working copy<br/>0x80037800"]
-    F["fades and animations<br/>edit the working copy"] --> W
-    W -->|"GFX_UploadPalette,<br/>rect 0,0x1E0,0x100,0x20"| S["VRAM stage palette<br/>rows 480-511"]
-    V --> X["POLY_FT4 / SPRT: tpage + CLUT word"]
-    S --> X
-    X --> G["pixel colour"]
-```
+Payloads carry no TIM header and go to VRAM as raw 16-bit words. The only TIM data is the memory-card save icon, never uploaded ([graphics formats](../../formats/graphics/)). A type-0 EMI entry is a CLUT block (arena `0x80033800` plus offset); a type-3 entry is graphics in 32 by 32 blocks (`LoadImage` per block); a sprite sheet goes through the 20-entry transfer queue (RGB555 expand or LZSS, then `LoadImage`).
 
 ### The chain for one color
 
@@ -113,18 +85,11 @@ with `x = (page % 16) << 6` and `y = (page / 16) << 8`. `v` is the cell `v` plus
 
 `Actor_SelectScriptBank (exe/slus_004_22@0x8014DC08)` queues the sheet for the record unless record flag `0x02` is set. For `level = +0x25` up to `0x10`, x is `level << 6`. Above that, x is `(level - 0x10) << 6` and y gains `0x100`. Y is otherwise record byte `+0x26`. Page `0x10` gives x = 1024 in this formula, but the draw code maps page 16 to x = 0 and y = 256. Which of the two shipped data uses is `[unknown]`.
 
-### Causes of wrong texture colors
-
-Wrong texture colors come from one of these `[inferred]`:
-
-- The CLUT block is at a different arena offset.
-- The CLUT word names a different row or column.
-- The bit depth (4 or 8) differs from the pixel data.
-- A fade or animation overwrote the working copy after the upload.
+Wrong texture colors come from one of these `[inferred]`: the CLUT block is at a different arena offset; the CLUT word names a different row or column; the bit depth (4 or 8) differs from the pixel data; a fade or animation overwrote the working copy after the upload.
 
 ## Palette runtime
 
-The last four stage palette rows are allocated at run time to sprites that need their own colors, such as fading or recolored characters. Three tables track them.
+The last four stage palette rows go at run time to sprites that need their own colors, such as fading or recolored characters.
 
 | Object          | Address      | Size                              | Role                                                                              |
 | --------------- | ------------ | --------------------------------- | --------------------------------------------------------------------------------- |
@@ -156,8 +121,6 @@ Palette animations read 4-byte steps (`dst`, `src`, `count`, `wait`) and copy `c
 
 ## Key data
 
-State of the frame pipeline:
-
 | Object                | Address         | Type        | Role                                                                         |
 | --------------------- | --------------- | ----------- | ---------------------------------------------------------------------------- |
 | `g_GfxPrimCursor`     | `0x8014598C`    | `u8*`       | Next free primitive byte.                                                    |
@@ -168,8 +131,6 @@ State of the frame pipeline:
 | `g_SpriteSizes`       | `0x8017F53C`    | `u8[16][2]` | 16 cell width and height pairs.                                              |
 
 ## Data and limits
-
-Each row gives a limit, its source in the code and what an asset must stay within.
 
 | Limit                 | Value                                              | Source                                     | Asset must stay within                                                                           |
 | --------------------- | -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
@@ -203,13 +164,13 @@ Each row gives a limit, its source in the code and what an asset must stay withi
 ## Sources and confidence
 
 - **Confidence:** medium. The pipeline, the palette chain and the limits are read in the code. The layer meanings, the VRAM allocation and the scene-object merge are `[unknown]` or `[inferred]`.
-- **Evidence:** the frame functions `SYS_PrepareFrame`, `GFX_AddPrim` and `SYS_SubmitFrame`, the palette functions `GFX_ResetPalette`, `GFX_UploadPalette` and `Area_BuildClut`, the sprite draw functions `Area_DrawObjectSprite` and `Area_DrawScene`, and the queue function `GFX_UpdateTransferQueue`, all in `exe/slus_004_22`. Layer usage comes from the layer literals at the call sites.
+- **Evidence:** `SYS_PrepareFrame`, `GFX_AddPrim`, `SYS_SubmitFrame`, `GFX_ResetPalette`, `GFX_UploadPalette`, `Area_BuildClut`, `Area_DrawObjectSprite`, `Area_DrawScene` and `GFX_UpdateTransferQueue` in `exe/slus_004_22`; layer usage from the literals at call sites.
 
 ## Related
 
-- [Frame loop](../../concepts/frame-loop/): where each frame step runs, including the draw and upload.
-- [UI and text drawing](../ui/): how text and menu sprites use the layers and the stage palette.
+- [Frame loop](../../concepts/frame-loop/): where the draw and upload run.
+- [UI and text drawing](../ui/): text and menu layers and palette use.
 - [Loading](../../concepts/loading/): how the loader fills VRAM and the palette arena.
-- [Graphics formats](../../formats/graphics/): the texture, palette and sheet payloads.
-- [Memory map](../../concepts/memory/): the RAM blocks for the arena and the palette copies.
-- [Character sprites](../../formats/character/): the container and palette layers that the sheet queue uploads.
+- [Graphics formats](../../formats/graphics/): texture, palette and sheet payloads.
+- [Memory map](../../concepts/memory/): the arena and palette copies in RAM.
+- [Character sprites](../../formats/character/): what the sheet queue uploads.
