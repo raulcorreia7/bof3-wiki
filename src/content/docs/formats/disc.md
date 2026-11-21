@@ -87,7 +87,7 @@ Counts of all 6,344 EMI entries (250,503,535 bytes) by [kind](../assets/) and di
 | `audio-sequence`    |      2 |      - |  81 |      - |   35 |       - |   1 |      - |        - |       - |       - |       - |       - |       - |     119 |   1,836,303 |
 | `battle-script`     |      2 |      - |   - |      - |   40 |       - |   - |      - |        - |       - |       - |       - |       - |       - |      42 |     155,064 |
 | `bmagic-script`     |      - |      - |   - |     37 |    - |       - |   - |      - |        - |       - |       - |       - |       - |       - |      37 |      30,762 |
-| `character-sprites` |      - |      - |   - |      3 |    - |     121 |   1 |     19 |        - |       - |       - |       - |       - |       - |     144 |  18,686,544 |
+| `character-sprites` |      - |      - |   - |      - |    - |     121 |   1 |     19 |        - |       - |       - |       - |       - |       - |     141 |  18,581,772 |
 | `code`              |      6 |      - |   - |    141 |  120 |       - |  20 |     19 |       25 |      40 |      38 |      40 |      40 |      59 |     548 |  14,694,370 |
 | `palette`           |     10 |      - |   - |     93 |   80 |       - |  29 |      - |        2 |      78 |      76 |      78 |      78 |      96 |     620 |   1,121,696 |
 | `reserve`           |      - |      - |   - |      - |    - |      44 |   - |      - |        - |       3 |       - |       1 |       2 |       3 |      53 |     765,896 |
@@ -102,6 +102,7 @@ A bare function name is in `exe/slus_004_22`.
 | Kind                | Format                                                            | Reader (function, image, address)                                                                                                               | Read when                   |
 | ------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
 | `texture`           | [graphics](../graphics/)                                          | `EMI_LoadToVram (exe/slus_004_22@0x80162698)` and `EMI_UploadSectorImage (exe/slus_004_22@0x80163378)`: `LoadImage` of 32x32-word rectangles    | archive load, type 3        |
+| `unclassified`      | -                                                                 | -                                                                                                                                               | -                           | 3 | - | - | - | - | - | - | - | - | - | - | 3 | 104,772 |
 | `palette`           | [graphics](../graphics/#palettes), [area](../area/#palette-arena) | `EMI_LoadToRam` to the palette arena; row upload by the draw code                                                                               | archive load, type 0        |
 | `audio-bank`        | [audio](../audio/#vab-bank)                                       | `EMI_LoadVabHeader`, `EMI_LoadVabBody` (`SsVabOpenHeadSticky`, `SsVabTransBodyPartly`)                                                          | archive load, types 6 and 7 |
 | `audio-cues`        | [audio](../audio/#emi-type-8-cue-records)                         | `EMI_LoadSoundCues` to `0x801486A0 + 124 * bank`                                                                                                | archive load, type 8        |
@@ -129,12 +130,13 @@ A bare function name is in `exe/slus_004_22`.
 
 ## Unidentified
 
-| Item                                         |      Bytes | Why                                                                              |
-| -------------------------------------------- | ---------: | -------------------------------------------------------------------------------- |
-| Form 1 filler sectors in `S_XA00.STR`        | 59,623,424 | 29,113 sectors with non-zero data; the CD filter never delivers them to the game |
-| Form 1 filler sectors in `MAGIC00.STR`       |  1,130,496 | 552 sectors, same                                                                |
-| `bmagic-script` (37 entries at `0x800C3800`) |     30,762 | no reader found                                                                  |
-| `reserve` (53 entries)                       |    765,896 | all-zero fill; no consumer                                                       |
+| Item                                                       |      Bytes | Why                                                                              |
+| ---------------------------------------------------------- | ---------: | -------------------------------------------------------------------------------- |
+| Form 1 filler sectors in `S_XA00.STR`                      | 59,623,424 | 29,113 sectors with non-zero data; the CD filter never delivers them to the game |
+| Form 1 filler sectors in `MAGIC00.STR`                     |  1,130,496 | 552 sectors, same                                                                |
+| `bmagic-script` (37 entries at `0x800C3800`)               |     30,762 | no reader found                                                                  |
+| `reserve` (53 entries)                                     |    765,896 | all-zero fill; no consumer                                                       |
+| `unclassified` (3 entries, `KAIZAR_D`, `_F`, `_N` entry 0) |    104,772 | `u32 4` head record stream at `0x8003B800`; no reader found                      |
 
 Bytes by documentation level are in [coverage](../../appendix/coverage/).
 

@@ -7,22 +7,21 @@ Character sprites are one container that the game loads to `0x8003B800`. It hold
 
 ## Load arguments
 
-144 entries are character-sprites entries: 66 whole containers (45 + 1 + 19 + 1), 75 standalone section entries and 3 `BMAGIC` blocks. 44 more `BPLCHAR` type-0 entries at `0x8003B800` are 16,384-byte zero fillers, classed `reserve`. The load argument tells which part of the container an entry holds ([EMI load argument](../emi/#load-argument)).
+141 entries are character-sprites entries: 66 whole containers (45 + 1 + 19 + 1) and 75 standalone section entries. 44 more `BPLCHAR` type-0 entries at `0x8003B800` are 16,384-byte zero fillers, classed `reserve`. The load argument tells which part of the container an entry holds ([EMI load argument](../emi/#load-argument)).
 
-| Family          | Type | Load argument | Entries | Payload                                                                         |
-| --------------- | ---: | ------------- | ------: | ------------------------------------------------------------------------------- |
-| `BPLCHAR`       |    1 | `0x8003B800`  |      45 | whole container, LZ77                                                           |
-| `BPLCHAR`       |    0 | `0x8003B800`  |       1 | whole container (raw)                                                           |
-| `BPLCHAR`       |    0 | `0x8003B80C`  |      19 | section 0                                                                       |
-| `BPLCHAR`       |    0 | `0x8005680C`  |      13 | section 1 (section 0 is 110,592 bytes)                                          |
-| `BPLCHAR`       |    0 | `0x8005F80C`  |      17 | section 1 (section 0 is 147,456 bytes)                                          |
-| `BPLCHAR`       |    0 | `0x8007180C`  |      13 | section 2 (sections 0 and 1 are 110,592 bytes each)                             |
-| `BPLCHAR`       |    0 | `0x8007A80C`  |      13 | section 2 (section 1 is `0x24000`)                                              |
-| `BPLCHAR`       |    0 | `0x8003B800`  |      44 | filler of zeros, 16,384 bytes (`reserve`)                                       |
-| `PLCHAR`        |    1 | `0x8003B800`  |      19 | whole container, LZ77, per-character sizes                                      |
-| `ETC` (`START`) |    1 | `0x8003B800`  |       1 | whole container, LZ77, per-character sizes                                      |
-| `BMAGIC`        |    0 | `0x8003B800`  |       3 | one 34,924-byte block with head `u32 4`; identical in `KAIZAR_D`, `_F` and `_N` |
-| `PLCHAR`        |    0 | `0x801CE400`  |      19 | not sprite data: 4,676 to 9,932 bytes of MIPS code                              |
+| Family          | Type | Load argument | Entries | Payload                                             |
+| --------------- | ---: | ------------- | ------: | --------------------------------------------------- |
+| `BPLCHAR`       |    1 | `0x8003B800`  |      45 | whole container, LZ77                               |
+| `BPLCHAR`       |    0 | `0x8003B800`  |       1 | whole container (raw)                               |
+| `BPLCHAR`       |    0 | `0x8003B80C`  |      19 | section 0                                           |
+| `BPLCHAR`       |    0 | `0x8005680C`  |      13 | section 1 (section 0 is 110,592 bytes)              |
+| `BPLCHAR`       |    0 | `0x8005F80C`  |      17 | section 1 (section 0 is 147,456 bytes)              |
+| `BPLCHAR`       |    0 | `0x8007180C`  |      13 | section 2 (sections 0 and 1 are 110,592 bytes each) |
+| `BPLCHAR`       |    0 | `0x8007A80C`  |      13 | section 2 (section 1 is `0x24000`)                  |
+| `BPLCHAR`       |    0 | `0x8003B800`  |      44 | filler of zeros, 16,384 bytes (`reserve`)           |
+| `PLCHAR`        |    1 | `0x8003B800`  |      19 | whole container, LZ77, per-character sizes          |
+| `ETC` (`START`) |    1 | `0x8003B800`  |       1 | whole container, LZ77, per-character sizes          |
+| `PLCHAR`        |    0 | `0x801CE400`  |      19 | not sprite data: 4,676 to 9,932 bytes of MIPS code  |
 
 The five `BPLCHAR` section addresses are `0x8003B800` plus the container offsets `0x0C`, `0x1B00C`, `0x2400C`, `0x3600C` and `0x3F00C`. A `BPLCHAR` archive ships the whole container at `0x8003B800` or one section at its position. `PLCHAR` splits the container from its code: `PLxxx.EMI` holds the audio entries and the packed container, `PLPxxx.EMI` a per-character code overlay at `0x801CE400` (6,616 bytes and 27 functions for `PLP012`). The overlay's entry point is a dispatcher through its own tail table (`0x801CE404`, `0x801CFD80`). No `PLP` payload reads the bank.
 
@@ -80,13 +79,13 @@ Most nodes hold one image-shaped record behind a 16-byte prefix. Table offsets c
 
 The prefix has no known layout: some nodes hold four more in-section offsets there, others packed bytes or zeros. Whether it is a child list, a per-node header or the tail of the previous record is `[unknown]`. 592 of the in-range table values show no `0x0080` halfword in the 64 bytes that follow.
 
-The `BPLD012` section 0 node at `0x976C` is not image-shaped: 68 bytes, `u32 4`, then 64 bytes with no tag. It reads like a palette or parameter block (`0x7FFF` at `+0x1A`, halfwords `0x6583 0x5104 0x28A5 0x6B94`, small values `0x0190`, `0x0234` and `0x02DB` near its end). The three `BMAGIC` blocks open with the same `u32 4`. Whether they are containers without a container header or single nodes is `[unknown]`.
+The `BPLD012` section 0 node at `0x976C` is not image-shaped: 68 bytes, `u32 4`, then 64 bytes with no tag. It reads like a palette or parameter block (`0x7FFF` at `+0x1A`, halfwords `0x6583 0x5104 0x28A5 0x6B94`, small values `0x0190`, `0x0234` and `0x02DB` near its end). `BMAGIC/KAIZAR_D.EMI`, `KAIZAR_F.EMI` and `KAIZAR_N.EMI` entry 0 (type 0, `0x8003B800`, 34,924 bytes) open with the same `u32 4` but are not character sprites; see the open questions.
 
 The pixel and script formats inside a node are not decoded.
 
 ## Palette layer
 
-The word at section `+4` is the section-relative offset of the palette table. The table starts with the word `4n` for `n` palettes, followed by the palette offsets `4n + 0x40k`. Each palette is 32 16-bit colors. `n` is 1, 2 or 8 in all 141 character-sprites entries (66 containers with three tables each, and 75 sections). The three `BMAGIC` blocks do not have this layout and stay raw.
+The word at section `+4` is the section-relative offset of the palette table. The table starts with the word `4n` for `n` palettes, followed by the palette offsets `4n + 0x40k`. Each palette is 32 16-bit colors. `n` is 1, 2 or 8 in all 141 character-sprites entries (66 containers with three tables each, and 75 sections).
 
 `GFX_LoadPalette (exe/slus_004_22@0x80166C48)` copies palette `mode` into the palette RAM of a work slot (`0x80035600 + slot * 0x40`). It reads the section from work `+0x4C`, which `Party_LoadMemberSprite (emi/etc/game/00@0x801C1254)` stages. The callers seen pass `mode` 0, except `func_8019C664 (emi/etc/game/00@0x8019C664)`, which passes 1.
 
@@ -105,12 +104,13 @@ The field-side reader `Party_LoadMemberSprite` reads the container's section off
 - Readers of the `BPLCHAR` section addresses `0x8005680C`, `0x8007180C` and `0x8007A80C`, and whether the five addresses are the battle reader's section positions (the field reader picks section *n* for the *n*-th character of the party combination). Settled by: a battle overlay that reads them. The field reader forms its base with `lui` and `ori` (`0x801C12D0`), so a search must fold `ori` pairs as well as `addiu`. No payload or executable contains the little-endian word of any load argument.
 - Who consumes the loader's published destinations (`D_80146844`, `D_8014677C`, `0x801464B8`). Settled by: a reader in an overlay; none is known.
 - Who uploads the pixels: `LoadImage` has 8 direct `jal` sites, all in `exe/slus_004_22`, and no overlay uploads an image. Settled by: a trace of the node bytes to a primitive.
+- `BMAGIC/KAIZAR_D.EMI`, `KAIZAR_F.EMI` and `KAIZAR_N.EMI` entry 0 (type 0, `0x8003B800`, 34,924 bytes each, identical): `u32 4` head, no palette tables, and they read as a record stream. They are unclassified, not character sprites. Settled by: a reader of the block.
 - The node's 16-byte prefix; the tag `0x0080` (`width`, `count`, `size = width * 0x100`); `flags | offset` table entries; the pixel or script format of a node. Settled by: a reader of node fields in battle or field code.
 
 ## Sources and confidence
 
 - **Confidence:** medium. The container, section tables and palette layer hold on every character-sprites entry; the node prefix, table flags and pixel and script formats are not decoded.
-- **Evidence:** the 144 character-sprites entries, the loader chain, and the readers `Party_LoadMemberSprite` and `GFX_LoadPalette`.
+- **Evidence:** the 141 character-sprites entries, the loader chain, and the readers `Party_LoadMemberSprite` and `GFX_LoadPalette`.
 
 ## Related
 
