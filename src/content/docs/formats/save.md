@@ -3,11 +3,9 @@ title: "Memory card save"
 description: "A save is one file on a PlayStation memory card: a 512-byte standard save frame for the BIOS card menu (title and animated icon), followed by a copy of the game's live state."
 ---
 
-A save is one file on a PlayStation memory card: a 512-byte standard save frame for the BIOS card menu (title and animated icon), followed by a copy of the game's live state. The game keeps no separate save structure; it copies a block of RAM to the card and copies it back on load. This page covers the file around the copied fields: its name, header, icons, checksum and the card calls that move it. [Saving and loading](../../systems/saving/) describes the menu flow, and [Game records](../../data/records/#save-layout) names the fields inside the copied block.
+A save is one file on a PlayStation memory card: a 512-byte standard save frame for the BIOS card menu (title and animated icon), followed by a copy of the game's live state. The game has no separate save structure: it copies a block of RAM to the card and back on load. This page covers the file around the copied fields: name, header, icons, checksum and the card calls. [Saving and loading](../../systems/saving/) describes the menu flow; [Game records](../../data/records/#save-layout) names the fields inside the block.
 
 ## File summary
-
-The table lists the fixed properties of a save file.
 
 | Fact                   | Value                                                                     |
 | ---------------------- | ------------------------------------------------------------------------- |
@@ -19,11 +17,9 @@ The table lists the fixed properties of a save file.
 | Slots in the save menu | 3 (the listing keeps names whose last digit is 0 to 2)                    |
 | Card capacity check    | 15 blocks: `total + (blocks << 13) > 0x1E000` fails with a capacity event |
 
-`SAVE_TransferFile` rounds the size up to a multiple of 128, which gives the 4,864-byte figure. The game writes only the first 4,864 bytes of the 8 KiB block. The remainder of the block holds whatever file creation left; no reader looks at it (`[inferred]`).
+`SAVE_TransferFile` rounds the size up to a multiple of 128, giving 4,864 bytes. The rest of the 8 KiB block holds whatever file creation left; no reader looks at it (`[inferred]`).
 
 ## Layout
-
-The file holds the card header, three icon frames, the payload and padding. The table lists each region by file offset.
 
 | Offset   |  Size | Type       | Name           | Meaning                                                             |
 | -------- | ----: | ---------- | -------------- | ------------------------------------------------------------------- |
@@ -43,11 +39,11 @@ The file holds the card header, three icon frames, the payload and padding. The 
 
 `SAVE_BuildFileHeader (emi/etc/start/09@0x801EF27C)` writes bytes `0x00` to `0x1FF`. The call `SAVE_BuildSlotImage (emi/etc/shop/00@0x801D69E0)` passes block count 1 and flag `0x13`.
 
-The payload is the 4,272-byte span of live game state that starts at `0x801448D8`, the save work block. The scene event flags `g_SceneEventFlags (exe/slus_004_22@0x80144F28)` are at `+0x650` in it. A file offset `n` of `0x200` or more is RAM address `0x801446D8 + n`, and the field offsets in [game records](../../data/records/#save-layout) use that frame.
+The payload is the save work block, 4,272 bytes of live game state from `0x801448D8`. The scene event flags `g_SceneEventFlags (exe/slus_004_22@0x80144F28)` are at `+0x650` in it. A file offset `n` of `0x200` or more is RAM address `0x801446D8 + n`, and the field offsets in [game records](../../data/records/#save-layout) use that frame.
 
 ### Icons
 
-The BIOS card menu shows one to three 16x16 icon frames. The game does not store them in a separate file. It copies them out of three records in its own overlay. Each record is 192 bytes and has the layout of a Sony TIM image:
+The BIOS card menu shows one to three 16x16 icon frames, copied from three records in the game's own overlay. Each record is 192 bytes in Sony TIM layout:
 
 | Part        | Size | Content                                                 |
 | ----------- | ---: | ------------------------------------------------------- |
@@ -63,13 +59,13 @@ The BIOS card menu shows one to three 16x16 icon frames. The game does not store
 | `0x12` |  icon 0 |  icon 1 |  icon 1 |
 | `0x13` |  icon 0 |  icon 1 |  icon 2 |
 
-The game always saves with `0x13`. Only the CLUT of icon 0 is used, so the three icons share one palette. Nothing reads the TIM headers or uploads them to VRAM; the code copies the palette and pixel bytes only.
+The game always saves with `0x13`. Only the CLUT of icon 0 is used, so the icons share one palette. Nothing reads the TIM headers or uploads them to VRAM.
 
-The records sit at payload offsets `0x1254`, `0x1314` and `0x13D4` (RAM `0x801EFE54`, `0x801EFF14` and `0x801EFFD4`) of `ETC/START.EMI` entry 9 and of `ETC/SHOP.EMI` entry 8. These two entries are the same 5,268-byte overlay (byte-identical). These are the only TIM records on the disc ([conversion](../conversion/#tim-records)). A change to an icon must be made in both archives, because the title flow and the save flow load different ones.
+The records sit at payload offsets `0x1254`, `0x1314` and `0x13D4` (RAM `0x801EFE54`, `0x801EFF14` and `0x801EFFD4`) of `ETC/START.EMI` entry 9 and `ETC/SHOP.EMI` entry 8, the same 5,268-byte overlay (byte-identical) and the only TIM records on the disc ([conversion](../conversion/#tim-records)). Change an icon in both archives, because the title flow and the save flow load different ones.
 
 ### Title
 
-The title shown by the card menu is built when the save is written. `g_UiFormatBuffer (exe/slus_004_22@0x80145AD4)` is cleared over 64 bytes and filled by `sprintf` with a full-width Shift-JIS format string (`D_801D0C98`, 68 bytes). The format takes seven `%s` arguments, in this order (1 + 2 + 2 + 1 + 1):
+The card menu title is built at save time. `g_UiFormatBuffer (exe/slus_004_22@0x80145AD4)` is cleared over 64 bytes and filled by `sprintf` with a full-width Shift-JIS format string (`D_801D0C98`, 68 bytes). The format takes seven `%s` arguments, in this order (1 + 2 + 2 + 1 + 1):
 
 1. an area label from the table at `D_801E5434` (whether this argument is an area label or the slot digit is `[unknown]`; [saving](../../systems/saving/) lists the same seven arguments);
 2. two hour digits;
@@ -77,22 +73,22 @@ The title shown by the card menu is built when the save is written. `g_UiFormatB
 4. the tens digit of Ryu's level;
 5. one more digit.
 
-Each argument is a two-byte full-width digit or label from the `D_801E5434` table (`SAVE_FormatSlotInfo`). The seventh digit is the byte at `0x8014496E` modulo 10, and the format prints it last, after the level label. Whether that byte is the level's units digit is `[unknown]`, because the address is named for the shop clock's seconds byte. The longest result fits the 64-byte field (`[inferred]`, since every input is a two-byte character).
+Each argument is a two-byte full-width digit or label from the `D_801E5434` table (`SAVE_FormatSlotInfo`). The seventh digit is the byte at `0x8014496E` modulo 10, printed last, after the level label. Whether it is the level's units digit is `[unknown]`; the address is named for the shop clock's seconds byte. The longest result fits the 64-byte field (`[inferred]`, since every input is a two-byte character).
 
 ## Checksum
 
-The checksum covers the payload. `SAVE_RunLoadVerify (emi/etc/start/08@0x801E5A00)` checks it on load, and `SAVE_BuildSlotImage` writes it on save.
+`SAVE_RunLoadVerify (emi/etc/start/08@0x801E5A00)` checks the payload checksum on load, and `SAVE_BuildSlotImage` writes it on save.
 
 - Region: 4,272 bytes, file offsets `0x200..0x12B0`. The last byte is `0x12AF`.
 - Algorithm: the unsigned 32-bit sum of the bytes, masked with `0xFFFF`.
 - Slot: the halfword at file offset `0x270`. On load the game reads it, zeroes it, sums the region and compares. On save the halfword is already zero when summed, because `D_80144948` is cleared before the copy, and the result is stored afterwards.
 - Failure: a mismatch sets `g_SaveCardStatus (exe/slus_004_22@0x8018E228)` to 7 and plays the error cue.
 
-To patch a save by hand, change bytes in `0x200..0x12B0`, set the halfword at `0x270` to 0, sum all 4,272 bytes from `0x200`, and store the low 16 bits at `0x270` (little-endian). The load routine checks only this sum. It does not test the `"SC"` header, the title or the icons.
+To patch a save, change bytes in `0x200..0x12B0`, set the halfword at `0x270` to 0, sum all 4,272 bytes from `0x200`, and store the low 16 bits at `0x270` (little-endian). Load checks only this sum, not the `"SC"` header, title or icons.
 
 ## Card calls
 
-The overlay `etc/start/09` holds the card routines. The save menu and the shop overlay also carry copies of some of them.
+The overlay `etc/start/09` holds the card routines; the save menu and shop overlay carry copies of some.
 
 | Function (all `emi/etc/start/09`)    | Role                                                                                                                                                                                       |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -102,19 +98,19 @@ The overlay `etc/start/09` holds the card routines. The save menu and the shop o
 | `SAVE_ScanDirectory (@0x801EFCA8)`   | `firstfile` and `nextfile` over the `BASLUS-00422BOF3` pattern into `D_8018E990` (24-byte entries: name 20, size 4)                                                                        |
 | `SAVE_BuildFileHeader (@0x801EF27C)` | writes bytes 0 to 3, the title, the palette and the frames                                                                                                                                 |
 
-The save menu fills its rows with a read of 28 bytes at file offset `0xEA0`. The transfer rounds the offset down to `0xE80` and the size up to 128, so it fetches `0xE80` to `0xEFF`. That span holds the save name (`+0xEA0`), portrait ids (`+0xEA5`), level (`+0xEA8`), timer (`+0xEAC`) and fairy job (`+0xEF0`). The BIOS owns the card's own directory (block 0 and its 128-byte frames), and the game never writes it. Raw 128 KiB emulator images and DexDrive headers wrap this format and are outside the game.
+The save menu reads 28 bytes at file offset `0xEA0`; the transfer rounds the offset down to `0xE80` and the size up to 128, fetching `0xE80` to `0xEFF`. That span holds the save name (`+0xEA0`), portrait ids (`+0xEA5`), level (`+0xEA8`), timer (`+0xEAC`) and fairy job (`+0xEF0`). The BIOS owns the card directory (block 0 and its 128-byte frames); the game never writes it. Raw 128 KiB emulator images and DexDrive headers wrap this format outside the game.
 
 ## Open questions
 
-- Meaning of the unnamed payload bytes. [Game records](../../data/records/#save-layout) lists the named ones, and readers of the rest would settle it.
-- Whether the load path rejects a wrong `"SC"` header. A load test with a damaged header would settle it (the BIOS may reject it; the game code does not).
+- Meaning of the unnamed payload bytes ([game records](../../data/records/#save-layout) lists the named ones). Their readers would settle it.
+- Whether the load path rejects a wrong `"SC"` header (the BIOS may; the game code does not). A load test with a damaged header would settle it.
 - Source of the seventh title digit. The writer of the byte at `0x8014496E` would settle it.
 - Behavior when two files share a slot digit. A card with two such files would settle it.
 
 ## Sources and confidence
 
-- **Confidence:** medium. The header, checksum and card calls are read in the code, but the unnamed payload bytes, the seventh title digit and the load-time header check are open, and two minor claims are `[inferred]`.
-- **Evidence:** the `etc/start/08`, `etc/start/09` and `etc/shop/00` overlays unless a row says otherwise: `SAVE_BuildFileHeader`, `SAVE_BuildSlotImage`, `SAVE_RunLoadVerify` and the card routines of `etc/start/09`, and a search of every archive for the icons' TIM and CLUT headers. The frame layout and the directory block follow [psx-spx](https://psx-spx.consoledev.net/controllersandmemorycards/#memory-card-data-format) ([sources](../../appendix/sources/)). The community save editor listed in [sources](../../appendix/sources/) agrees on the checksum region.
+- **Confidence:** medium. The header, checksum and card calls are read in the code; the unnamed payload bytes, the seventh title digit and the load-time header check are open, and two minor claims are `[inferred]`.
+- **Evidence:** the `etc/start/08`, `etc/start/09` and `etc/shop/00` overlays: `SAVE_BuildFileHeader`, `SAVE_BuildSlotImage`, `SAVE_RunLoadVerify` and the card routines, and a search of every archive for the icons' TIM and CLUT headers. The frame layout and directory block follow [psx-spx](https://psx-spx.consoledev.net/controllersandmemorycards/#memory-card-data-format). The community save editor in [sources](../../appendix/sources/) agrees on the checksum region.
 
 ## Related
 

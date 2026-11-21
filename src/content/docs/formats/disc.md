@@ -3,13 +3,13 @@ title: "Disc and files"
 description: "The US disc (SLUS-00422) holds 887 files in 18 directories: 880 EMI archives, 3 XA audio streams, 1 movie, 2 executables and the boot configuration."
 ---
 
-The US disc (`SLUS-00422`) holds 887 files in 18 directories: 880 EMI archives, 3 XA audio streams, 1 movie, 2 executables and the boot configuration. This page lists each directory and kind of file, gives its slot ids and sectors, and names the game code that reads it and when. How and when archives load is in [loading](../../concepts/loading/), and the memory card is in [saving](../../systems/saving/).
+The US disc (`SLUS-00422`) holds 887 files in 18 directories: 880 EMI archives, 3 XA audio streams, 1 movie, 2 executables and the boot configuration. This page lists each directory and kind of file with its slot ids and sectors, and names the code that reads it and when. Archive loading is in [loading](../../concepts/loading/), the memory card in [saving](../../systems/saving/).
 
 ## Directories
 
-The ISO9660 volume lists 887 files in 18 directories, one row each in the table below. `Bytes` is the directory record's size. `Sectors` rounds it up to 2,048-byte sectors. `Slot ids` are indexes into the executable's disc file table ([executable](../exe/#the-disc-file-table)), which follows ascending LBA. The loader finds a file by that index, never by name.
+`Bytes` is the directory record's size; `Sectors` rounds it up to 2,048-byte sectors. `Slot ids` index the executable's disc file table ([executable](../exe/#the-disc-file-table)), which follows ascending LBA. The loader finds a file by that index, never by name.
 
-For example, the title overlay loads from slot `0x262`. That id falls in the `/BIN/ETC` row (`0x254` to `0x269`), so the file is the 15th of that directory (`0x262 - 0x254 = 14`, counting from zero): `GAME.EMI`.
+Example: the title overlay loads from slot `0x262`, in the `/BIN/ETC` row (`0x254` to `0x269`), so it is the 15th file of that directory (`0x262 - 0x254 = 14`, from zero): `GAME.EMI`.
 
 | Directory       | Files |       Bytes | Sectors | Slot ids        | First LBA |
 | --------------- | ----: | ----------: | ------: | --------------- | --------: |
@@ -33,11 +33,9 @@ For example, the title overlay loads from slot `0x262`. That id falls in the `/B
 | `/`             |     2 |   1,445,958 |     707 | `0x375`-`0x376` |   187,467 |
 | total           |   887 | 385,249,350 | 188,111 | `0x0`-`0x376`   |           |
 
-The totals cover every file: 887 files and 385,249,350 bytes of directory-record sizes. Track 1 holds 188,324 sectors, and 188,111 of them are in files ([coverage](../../appendix/coverage/#outside-the-887-files)).
+Track 1 holds 188,324 sectors, 188,111 of them in files ([coverage](../../appendix/coverage/#outside-the-887-files)).
 
 ## File kinds
-
-Every file is an archive, an audio or movie stream, an executable or the boot configuration. The table groups the 887 files by kind and names the code that reads each.
 
 | Kind                                         | Files |       Bytes | Format                                       | Reader                                                                     |
 | -------------------------------------------- | ----: | ----------: | -------------------------------------------- | -------------------------------------------------------------------------- |
@@ -50,30 +48,30 @@ Every file is an archive, an audio or movie stream, an executable or the boot co
 
 ## Archive families
 
-Each EMI archive has a header, a table of contents and 1 to 14 payloads ([EMI](../emi/)). `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` starts every archive read from its slot id. The sound code reads the three XA files, not the EMI loader ([loading](../../concepts/loading/#xa-audio)). The callers that choose a slot are in [EMI slot ids](../emi/#disc-slot-ids). The table says what each directory holds and when the game reads it.
+Each EMI archive has a header, a table of contents and 1 to 14 payloads ([EMI](../emi/)). `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` starts every archive read from its slot id. The sound code, not the EMI loader, reads the three XA files ([loading](../../concepts/loading/#xa-audio)). Callers that choose a slot are in [EMI slot ids](../emi/#disc-slot-ids).
 
-Two rules give a slot id. A scenario overlay is at slot `scenario_id + 661` (`0x295` is the base), so scenario 3 is slot 664 (`0x298`) in `SCENARIO`. An area archive is at slot `area + 0x2AB`, so area 5 is slot `0x2B0` in `WORLD00`.
+A scenario overlay is at slot `scenario_id + 661` (`0x295` is the base), so scenario 3 is slot 664 (`0x298`). An area archive is at slot `area + 0x2AB`, so area 5 is slot `0x2B0` in `WORLD00`.
 
-| Directory           | Files | What it holds                                                                                                                                                        | Format                                                                             | When read                                              |
-| ------------------- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `BATTLE`            |     9 | battle overlays (`BATL_*`, `BATTLE`, `BATTLE2`), battle backgrounds and effect textures, common sound effects (`COMN_SE`, `BATL_SE`), the shared battle script table | [EMI shapes](../emi/#archive-shapes), [graphics](../graphics/), [audio](../audio/) | fixed slot ids 0-8 at battle start                     |
-| `BENEMY`            |   200 | one enemy sound bank each: header, cue table, body                                                                                                                   | [audio](../audio/)                                                                 | battle start, slot `9 + g_GameAreaId`                  |
-| `BGM`               |    81 | one music bank each: VH, SEP package, VB (3 also a cue table)                                                                                                        | [audio](../audio/)                                                                 | on a music request, slot from the BGM id table         |
-| `BMAGIC`            |   144 | spell effect overlays and their sound banks (`MAGIC000`-`MAGIC227`, three `KAIZAR_*`)                                                                                | [EMI code overlays](../emi/#code-overlays)                                         | when a spell is cast                                   |
-| `BMAG_XA`           |     1 | `MAGIC00.STR`: spell voice and effect audio, 16 channels, 880 cues                                                                                                   | [STR and XA](../str/#xa-cue-tables)                                                | with the spell, by key `0x1000 + n`                    |
-| `BOSS`              |    40 | boss battle modules, textures, banks and scripts                                                                                                                     | [EMI shapes](../emi/#archive-shapes)                                               | boss battles (no static caller found)                  |
-| `BPLCHAR`           |   121 | battle character sprites, forms and VAB triples                                                                                                                      | [character sprites](../character/)                                                 | party member load, `EMI_GetArchiveId` families 1 and 2 |
-| `ETC`               |    22 | menu, shop, start, status, name entry, game tables, fonts and kanji, demo, tests                                                                                     | [records](../../data/records/), [text](../../data/text/)                           | fixed slot ids from `etc/game`                         |
-| `PLCHAR`            |    38 | field character sprites and party code (`PLxxx`, `PLPxxx`)                                                                                                           | [character sprites](../character/)                                                 | party member load, families 0 and 3                    |
-| `SCENARIO`          |    25 | scenario overlays and effect textures                                                                                                                                | [EMI](../emi/)                                                                     | `scenario_id + 661`                                    |
-| `SCE_XA`            |     2 | `S_XA00.STR` (stereo) and `VOICE.STR` (mono)                                                                                                                         | [STR and XA](../str/#xa-cue-tables)                                                | story scenes and voice lines, by key                   |
-| `WORLD00`-`WORLD04` |   200 | one archive per area: map bundle, cells, messages, script, actors, encounters, textures, palettes, sound bank, area program                                          | [area](../area/)                                                                   | area entry, slot `area + 0x2AB`                        |
-| `LOGO`              |     2 | `LOGO.EXE`, `CAPCOM30.STR`                                                                                                                                           | [executables](../exe/), [STR](../str/)                                             | once, at boot                                          |
-| `/`                 |     2 | `SLUS_004.22`, `SYSTEM.CNF`                                                                                                                                          | [executables](../exe/)                                                             | the BIOS, at boot                                      |
+| Directory           | Files | What it holds                                                                                                                                                        | When read                                              |
+| ------------------- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `BATTLE`            |     9 | battle overlays (`BATL_*`, `BATTLE`, `BATTLE2`), battle backgrounds and effect textures, common sound effects (`COMN_SE`, `BATL_SE`), the shared battle script table | fixed slot ids 0-8 at battle start                     |
+| `BENEMY`            |   200 | one enemy sound bank each: header, cue table, body                                                                                                                   | battle start, slot `9 + g_GameAreaId`                  |
+| `BGM`               |    81 | one music bank each: VH, SEP package, VB (3 also a cue table)                                                                                                        | on a music request, slot from the BGM id table         |
+| `BMAGIC`            |   144 | spell effect overlays and their sound banks (`MAGIC000`-`MAGIC227`, three `KAIZAR_*`)                                                                                | when a spell is cast                                   |
+| `BMAG_XA`           |     1 | `MAGIC00.STR`: spell voice and effect audio, 16 channels, 880 cues                                                                                                   | with the spell, by key `0x1000 + n`                    |
+| `BOSS`              |    40 | boss battle modules, textures, banks and scripts                                                                                                                     | boss battles (no static caller found)                  |
+| `BPLCHAR`           |   121 | battle character sprites, forms and VAB triples                                                                                                                      | party member load, `EMI_GetArchiveId` families 1 and 2 |
+| `ETC`               |    22 | menu, shop, start, status, name entry, game tables, fonts and kanji, demo, tests                                                                                     | fixed slot ids from `etc/game`                         |
+| `PLCHAR`            |    38 | field character sprites and party code (`PLxxx`, `PLPxxx`)                                                                                                           | party member load, families 0 and 3                    |
+| `SCENARIO`          |    25 | scenario overlays and effect textures                                                                                                                                | `scenario_id + 661`                                    |
+| `SCE_XA`            |     2 | `S_XA00.STR` (stereo) and `VOICE.STR` (mono)                                                                                                                         | story scenes and voice lines, by key                   |
+| `WORLD00`-`WORLD04` |   200 | one archive per area: map bundle, cells, messages, script, actors, encounters, textures, palettes, sound bank, area program                                          | area entry, slot `area + 0x2AB`                        |
+| `LOGO`              |     2 | `LOGO.EXE`, `CAPCOM30.STR`                                                                                                                                           | once, at boot                                          |
+| `/`                 |     2 | `SLUS_004.22`, `SYSTEM.CNF`                                                                                                                                          | the BIOS, at boot                                      |
 
 ## Entry kinds
 
-Every EMI entry has a kind ([asset kinds](../assets/)). The table counts entries per directory family over all 6,344 entries (250,503,535 bytes), and the kinds sum to the entry total. The `text` kind (strings and message tables inside other kinds) and the `data-table` kind (tables inside `ETC/GAME.EMI` entry 0) are views of those entries and add no bytes. For example, `audio-bank` under `BGM` is 162: the 81 music archives hold a VH and a VB each, and their 3 cue tables sit in `audio-cues`.
+Counts of all 6,344 EMI entries (250,503,535 bytes) by [kind](../assets/) and directory family. The `text` kind (strings and message tables inside other kinds) and the `data-table` kind (tables inside `ETC/GAME.EMI` entry 0) are views of these entries and add no bytes. Example: `audio-bank` under `BGM` is 162 because the 81 music archives hold a VH and a VB each; their 3 cue tables are in `audio-cues`.
 
 | Kind                | BATTLE | BENEMY | BGM | BMAGIC | BOSS | BPLCHAR | ETC | PLCHAR | SCENARIO | WORLD00 | WORLD01 | WORLD02 | WORLD03 | WORLD04 | Entries |       Bytes |
 | ------------------- | -----: | -----: | --: | -----: | ---: | ------: | --: | -----: | -------: | ------: | ------: | ------: | ------: | ------: | ------: | ----------: |
@@ -99,7 +97,7 @@ Every EMI entry has a kind ([asset kinds](../assets/)). The table counts entries
 
 ## Readers by kind
 
-The table names the function that reads each entry kind and the moment it does. A bare function name is in `exe/slus_004_22`.
+A bare function name is in `exe/slus_004_22`.
 
 | Kind                | Format                                                            | Reader (function, image, address)                                                                                                               | Read when                   |
 | ------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
@@ -124,16 +122,12 @@ The table names the function that reads each entry kind and the moment it does. 
 
 ## Items that are not files
 
-Two items on or beside the disc are not among the 887 files.
-
 | Item            | Where                | Notes                                                                                 |
 | --------------- | -------------------- | ------------------------------------------------------------------------------------- |
 | License sectors | LBA 0-11             | read by the BIOS only                                                                 |
 | CDDA track 2    | separate track image | 37,044,044 bytes, silent ([coverage](../../appendix/coverage/#outside-the-887-files)) |
 
 ## Unidentified
-
-These byte ranges have no known reader or purpose.
 
 | Item                                         |      Bytes | Why                                                                              |
 | -------------------------------------------- | ---------: | -------------------------------------------------------------------------------- |
@@ -142,12 +136,12 @@ These byte ranges have no known reader or purpose.
 | `bmagic-script` (37 entries at `0x800C3800`) |     30,762 | no reader found                                                                  |
 | `reserve` (53 entries)                       |    765,896 | all-zero fill; no consumer                                                       |
 
-The byte split by documentation level is in [coverage](../../appendix/coverage/).
+Bytes by documentation level are in [coverage](../../appendix/coverage/).
 
 ## Sources and confidence
 
 - **Confidence:** high. Counts, sizes and slot ids are measured over all 887 files and 6,344 entries; some entry kinds have no known reader.
-- **Evidence:** the ISO9660 directory records, the executable's disc file table, every archive's table of contents, and the loader and caller functions named in the tables.
+- **Evidence:** the ISO9660 directory records, the disc file table, every archive's table of contents, and the functions named above.
 
 ## Related
 
@@ -155,4 +149,4 @@ The byte split by documentation level is in [coverage](../../appendix/coverage/)
 - [Executables and boot files](../exe/): the disc file table that maps slot ids to sectors.
 - [Asset kinds](../assets/): what each entry kind holds.
 - [Loading](../../concepts/loading/): when archives load.
-- [Game version](../../appendix/version/): the release and the Redump checksums of the disc image.
+- [Game version](../../appendix/version/): the release and Redump checksums.
