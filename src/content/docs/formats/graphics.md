@@ -175,7 +175,7 @@ Each function writes the page and CLUT shown. "Family" means the CLUT column is 
 
 ### Coverage
 
-Across the replayed scenes, 245 of the 593 type-3 textures have the game's own palette, 239 of them from the archives alone. The two rules pair 202 of the 593 type-3 textures to 882 distinct (texture, depth, CLUT row) pairs; those textures hold 52,510,720 of the 112,312,320 type-3 payload bytes. The tile descriptors pair 200 textures (865 rows, all 8bpp): one terrain sheet in each of the 200 area bundles, the 11 world-map areas among them. Thirteen of those sheets also match a literal site (17 rows in all with the two below). Two textures pair through a site alone: `WORLD00/AREA030.EMI#19` and `BMAGIC/MAGIC218.EMI#4`. Every terrain row is 8bpp, so no retail descriptor that names a joined page has bit 31 set.
+Across the replayed scenes, 245 of the 593 type-3 textures have the game's own palette, 239 of them from the archives alone. The two rules pair 245 of the 593 type-3 textures to 988 distinct (texture, depth, CLUT row) pairs; those textures hold 54,312,960 of the 112,312,320 type-3 payload bytes. The tile descriptors pair 200 textures (867 rows, all 8bpp): one terrain sheet in each of the 200 area bundles, the 11 world-map areas among them. The literal sites pair 58 textures (121 rows). Thirteen of those are terrain sheets (15 rows), so 45 textures pair through a site alone (106 rows). Every terrain row is 8bpp, so no retail descriptor that names a joined page has bit 31 set.
 
 | Folder     | Textures | Paired |
 | ---------- | -------: | -----: |
@@ -184,26 +184,26 @@ Across the replayed scenes, 245 of the 593 type-3 textures have the game's own p
 | `WORLD02`  |       78 |     38 |
 | `WORLD03`  |       78 |     38 |
 | `WORLD04`  |       96 |     48 |
-| `BMAGIC`   |       97 |      1 |
+| `BMAGIC`   |       97 |     34 |
 | `BOSS`     |       40 |      0 |
-| `ETC`      |       36 |      0 |
-| `BATTLE`   |       10 |      0 |
+| `ETC`      |       36 |      8 |
+| `BATTLE`   |       10 |      2 |
 | `SCENARIO` |        2 |      0 |
 
 ### Unpaired textures
 
-The other 391 textures have no established depth or palette. A scoring heuristic ranks a depth and CLUT rows from the texture's words and the scene's palette rows; its ranking is a suggestion, not a pairing.
+The other 348 textures have no established depth or palette. A scoring heuristic ranks a depth and CLUT rows from the texture's words and the scene's palette rows; its ranking is a suggestion, not a pairing.
 
 - Depth. Each of 4bpp, 8bpp and 16bpp reads the words as an image. A drawn image repeats a texel next to itself far more than chance, and the wrong depth loses that. The score is each texel's agreement with its right and lower neighbours, corrected for the agreement the texel histogram gives by chance (Cohen's kappa).
 - CLUT. A candidate is a row of the palette band that one entry wrote: column 0 of each row at 8bpp, each 16-word column at 4bpp. Neighbouring texels with different indices should get close colours, so the score is one minus their mean colour distance, less the share of texels on the transparent word `0x0000`, plus 0.25 when the texture's own archive wrote the row.
 
-Measured on the 202 paired textures with the pairing hidden: the top-ranked depth is right for 196 (97 percent), while a fixed guess of 8bpp is right for 201, because the paired set is nearly all terrain. The best depth and row together match for 146 (72 percent), the best five rows include the pairing for 195, and the first row the texture's own archive wrote matches for 2. The heuristic is validated only on terrain-heavy data, so it says little about sprite and effect sheets.
+Measured on the 243 textures paired in their own scene, with the pairing hidden: the top-ranked depth is right for 231 (95 percent), while a fixed guess of 8bpp is right for 212, because most of the paired set is terrain. The best depth and row together match for 154 (63 percent), the best five rows include the pairing for 205, and the first row the texture's own archive wrote matches for 24. The heuristic is validated mostly on terrain, so it says little about sprite and effect sheets.
 
 Read as 16bpp, each VRAM word is one pixel, and 4bpp and 8bpp textures look like noise. A texture and one CLUT row are what a Sony TIM file holds (Sony's *File Formats* manual, chapter 3), but the game stores no TIM of its own for textures; the six TIM records on the disc are the memory card icons ([save](../save/#icons)).
 
 ## Open questions
 
-1. The 391 unpaired textures: 207 sheets in the area archives that are not the terrain sheet (`WORLD00` to `WORLD04`), 96 in `BMAGIC`, 40 in `BOSS`, 36 in `ETC`, 10 in `BATTLE` and 2 in `SCENARIO`. No site in the table pairs them in a replayed scene. The sites that could name some (battle, `SCENARIO`, `ETC`, and the family and table rows above) take the page or CLUT from a table or a caller argument, so they need the callers' arguments.
+1. The 348 unpaired textures: 207 sheets in the area archives that are not the terrain sheet (`WORLD00` to `WORLD04`), 63 in `BMAGIC`, 40 in `BOSS`, 28 in `ETC`, 8 in `BATTLE` and 2 in `SCENARIO`. No site in the table pairs them in a replayed scene. The sites that could name some (battle, `SCENARIO`, `ETC`, and the family and table rows above) take the page or CLUT from a table or a caller argument, so they need the callers' arguments.
 2. `ENDKANJI` and `SCENA17` (4 uploads) have no default scene: the loaders that stream them are not read, so their VRAM is not replayed.
 3. `FIRST` entry 4 does not appear in the replayed VRAM, because entry 12 covers all of its words. `FIRST` entries 3 to 7 and 12 stay unjoined.
 4. Texel depth without a site. A depth of 4bpp, 8bpp or 15bpp is known only for the sites in the table and for a paired terrain descriptor.
@@ -212,7 +212,7 @@ Read as 16bpp, each VRAM word is one pixel, and 4bpp and 8bpp textures look like
 
 ## Sources and confidence
 
-- **Confidence:** medium. The upload, color words and replayed pairings are checked on every payload; 391 of 593 textures have no established depth or palette.
+- **Confidence:** medium. The upload, color words and replayed pairings are checked on every payload; 348 of 593 textures have no established depth or palette.
 - **Evidence:** all 593 type-3 payloads and 620 CLUT blocks, the loader and drawing functions named above (including `GFX_CopyPaletteAnimationColors`), the archive load order of each scene, and every CLUT and TPage write in the game code. The community [BoF3-Data-Doc](https://github.com/GlitchedDragon-dev/BoF3-Data-Doc) only confirms. The primitives are PsyQ 3.7 ([sources](../../appendix/sources/)).
 
 ## Related

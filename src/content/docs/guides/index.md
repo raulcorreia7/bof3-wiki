@@ -16,7 +16,7 @@ Every change to the *Breath of Fire III* disc follows one cycle: find the entry,
 | [Edit characters and enemies](characters/) | in place           | the unnamed spans of the character and enemy records                    |
 | [Edit sound and music](sound/)             | partly             | the area-to-music map, the SPU memory budget, an encoder for XA audio   |
 | [Edit maps and scripts](maps/)             | partly             | script opcodes, the meaning of cell values                              |
-| [Edit graphics and textures](graphics/)    | partly             | depth and palette of 391 of 593 textures, the pixel format of sprites   |
+| [Edit graphics and textures](graphics/)    | partly             | depth and palette of 348 of 593 textures, the pixel format of sprites   |
 | [Edit saves](saves/)                       | partly             | the unnamed payload bytes                                               |
 
 ## The editing cycle

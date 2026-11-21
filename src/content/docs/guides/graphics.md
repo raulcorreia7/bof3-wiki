@@ -38,7 +38,7 @@ Edit the palette tables only. A container has one palette layer per section, eac
 
 - The payload size stays a multiple of 2,048 and matches the rectangle count in the load argument. A rectangle uploads only if its whole extent lies inside the 1,024 by 512 word VRAM.
 - Several sheets can cover the same VRAM words, for example slots 5 and 7 of `AREA024`. Which one is resident depends on the stream order.
-- Depth and palette are known for 202 of the 593 textures ([texture-to-palette pairing](../../formats/graphics/#texture-to-palette-pairing)). The other 391 are `[unknown]`: no rule pairs them. Edit those as raw 16-bit words only.
+- Depth and palette are known for 245 of the 593 textures ([texture-to-palette pairing](../../formats/graphics/#texture-to-palette-pairing)). The other 348 are `[unknown]`: no rule pairs them. Edit those as raw 16-bit words only.
 - An indexed edit keeps the palette that the texture uses.
 
 ### Palette limits
