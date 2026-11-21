@@ -296,14 +296,14 @@ XA audio plays straight from the disc to the SPU and never passes through main R
 
 `SND_UpdateXA (exe/slus_004_22@0x801638B0)` runs one state per frame from `g_XaStateFuncs (exe/slus_004_22@0x80183274)`: 0 idle, 1 seek, 2 seek result, 3 set filter and start reading, 4 progress, 5 read the position until it reaches the end bound, 6 pause with a CD volume fade, 7 pause result, 8 wait for sync. A timeout of 181 ticks allows up to 6 retries. `SND_StartXAStream` clears the state byte, so `EMI_IsReady` is false until state 7. The callers are:
 
-| Caller                                                             | Key                       | When                               |
-| ------------------------------------------------------------------ | ------------------------- | ---------------------------------- |
-| `Scene_StartShopSave`, `ClearImage`, `func_801D65A0` (`menu/shop`) | `0`                       | shop and save events               |
-| `func_801A83DC` (`emi/etc/game/00`)                                | `9`                       | a field event                      |
-| `func_801AB458` (`emi/etc/game/00`)                                | the `u16` in the script   | actor script op `0x89`             |
-| `func_801F23A4` (`commu00`)                                        | `8` or `10`               | a Fairy Village event              |
-| `func_801DDF50` (`battle/03`)                                      | `0x1000 +` an entry value | a battle cue; the `BMAG_XA` stream |
-| `scena03` (`278.c`), `scena17` (`B1C.c`)                           | `2`, `8`                  | scenario events                    |
+| Caller                                                      | Key                       | When                               |
+| ----------------------------------------------------------- | ------------------------- | ---------------------------------- |
+| `Scene_RunInn`, `ClearImage`, `func_801D65A0` (`menu/shop`) | `0`                       | inn and save events                |
+| `func_801A83DC` (`emi/etc/game/00`)                         | `9`                       | a field event                      |
+| `func_801AB458` (`emi/etc/game/00`)                         | the `u16` in the script   | actor script op `0x89`             |
+| `func_801F23A4` (`commu00`)                                 | `8` or `10`               | a Fairy Village event              |
+| `func_801DDF50` (`battle/03`)                               | `0x1000 +` an entry value | a battle cue; the `BMAG_XA` stream |
+| `scena03` (`278.c`), `scena17` (`B1C.c`)                    | `2`, `8`                  | scenario events                    |
 
 None of these callers polls `EMI_IsReady`.
 
