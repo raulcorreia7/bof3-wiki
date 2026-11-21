@@ -232,7 +232,7 @@ The dispatch indexes the step byte into the owning overlay's table with no bound
 ## Sources and confidence
 
 - **Confidence:** medium. The entry-state routes, substate tables, return paths, BATE and SHISU steps and the SHISU score are read in the code. The roles of the STATUS and SHOP steps, the sources of the BATE tally, the SHISU prizes, and the world-map and master triggers are `[inferred]` or `[unknown]`.
-- **Evidence:** the state functions in `emi/etc/game/00`; the heads and step tables of the STATUS, SHOP, BATE, SHISU, SISYOU, COMMU and `area030` overlays; the BATE functions `func_801D1FA0`, `func_801D1E8C`, `func_801D259C`; the SHISU functions `func_801D1018`, `func_801D1E60`, `func_801D1EE8`; the request-code writers in the scenario overlays.
+- **Evidence:** the state functions in `emi/etc/game/00`; the heads and step tables of the STATUS, SHOP, BATE, SHISU, SISYOU, COMMU and `area030` overlays; the request-code writers in the scenario overlays.
 
 ## Related
 

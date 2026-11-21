@@ -110,7 +110,7 @@ The retail build has `checkRECT(char *, RECT *)` at `0x8017B438` and an argument
 ## Sources and confidence
 
 - **Confidence:** medium. The load addresses, windows and map kinds are read from every image and every area, but the entry path of the battle-effect modules and the effect of map-kind bit `0x20` are not established.
-- **Evidence:** the load argument of every EMI entry, the PS-X headers of both executables, the area load table `g_AreaLoads` over all 200 areas, the module ids and callback tables in the battle overlays, and the linked PsyQ library members compared with the 3.7 release ([sources](../../appendix/sources/#sony-sdk)).
+- **Evidence:** the load argument of every EMI entry, both PS-X headers, `g_AreaLoads` over all 200 areas, the module ids and callback tables in the battle overlays, and the linked PsyQ members compared with the 3.7 release ([sources](../../appendix/sources/#sony-sdk)).
 
 ## Related
 

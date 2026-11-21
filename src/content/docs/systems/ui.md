@@ -147,7 +147,7 @@ The fade body `GFX_UpdateScreenFade` draws a 320 by 240 `TILE` with gray level `
 ## Sources and confidence
 
 - **Confidence:** medium. The string path, the message state dispatch, the typewriter delay, the drawers and the fade bodies are read in the code. The roles of states 4, 5 and 7, the panel handler owners and the camera-spin effects are not.
-- **Evidence:** `UI_UpdateLayout`, `UI_DrawMessageScript`, `UI_DrawTextGlyphs`, `UI_SetMode` and the panel functions in `exe/slus_004_22`; the message-state and panel tables from RAM; the title and overlay functions that read `g_UiWindowEffectBusy`.
+- **Evidence:** the message and panel functions in `exe/slus_004_22`, the state and panel tables from RAM, and the title and overlay readers of `g_UiWindowEffectBusy`.
 
 ## Related
 

@@ -164,7 +164,7 @@ Palette animations read 4-byte steps (`dst`, `src`, `count`, `wait`) and copy `c
 ## Sources and confidence
 
 - **Confidence:** medium. The pipeline, the palette chain and the limits are read in the code. The layer meanings, the VRAM allocation and the scene-object merge are `[unknown]` or `[inferred]`.
-- **Evidence:** `SYS_PrepareFrame`, `GFX_AddPrim`, `SYS_SubmitFrame`, `GFX_ResetPalette`, `GFX_UploadPalette`, `Area_BuildClut`, `Area_DrawObjectSprite`, `Area_DrawScene` and `GFX_UpdateTransferQueue` in `exe/slus_004_22`; layer usage from the literals at call sites.
+- **Evidence:** the frame, palette, sprite-draw and transfer-queue functions in `exe/slus_004_22`; layer usage from the literals at call sites.
 
 ## Related
 
