@@ -99,6 +99,13 @@ pad_samples   = max(0, round((video_seconds - audio_seconds) * sample_rate))
 
 The 30 frames per second and double-speed figures come from the stream's size and the CD rate, not from the game's timing code. `Logo_Init (exe/logo@0x801CE760)` and `Logo_DrawFrame (exe/logo@0x801CEA98)` run the playback; the game schedule is `[unknown]`. The trailing mono sector is a separate stream, not part of the stereo track. No code that controls CDDA playback is recovered.
 
+## Open questions
+
+| Question                                                                        | What would settle it                                                  |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| The use of the 29,665 non-zero Form 1 sectors of `S_XA00.STR` and `MAGIC00.STR` | A reader that bypasses the hardware filter, or proof that none exists |
+| The reason for the 150-sector offset in the XA cue end bound                    | The code that stores the end bound                                    |
+
 ## Sources and confidence
 
 - **Confidence:** medium. Sector classes, cue arrays and the STR header are read from every sector and array; the unplayed Form 1 content, the 150-sector offset and the playback schedule are not established.
