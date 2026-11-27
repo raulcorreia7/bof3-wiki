@@ -33,18 +33,18 @@ The [glossary](../../appendix/glossary/) defines request code and entry state.
 | Area load flag `0x10`                                              |   2 (stays) | COMMU00 (`0x258`), COMMU01 to 05 | The fairy village.                                              |
 | Area load flag `0x01`                                              |  2, mode 10 | World area overlay               | The world map. The map code is `[inferred]`.                    |
 
-Every screen state has three substates: 0 starts the overlay stream and waits for `EMI_IsReady`; the middle one runs one screen frame and `Menu_UpdatePanelTasks`; the last re-streams the character sprites (`EMI_GetArchiveId`, `PL` family) and returns to state 2 with `g_GameEntrySubstate = 0` and `g_GameStateIndex = 0`. Return calls: `Game_ReturnFromMenu` (state 3), `Game_ReturnFromShop` (7), `GameRunMapLoadHandshake` (9, 10), `func_801985C8` (8, back to state 1); code 9 returns by code 0.
+Every screen state has three substates: 0 starts the overlay stream and waits for `EMI_IsReady`; the middle one runs one screen frame and `UI_PanelUpdateTasks`; the last re-streams the character sprites (`EMI_ArchiveLoadFamily`, `PL` family) and returns to state 2 with `g_GameEntrySubstate = 0` and `g_GameStateIndex = 0`. Return calls: `Game_ReturnFromMenu` (state 3), `Game_ReturnFromShop` (7), `GameRunMapLoadHandshake` (9, 10), `func_801985C8` (8, back to state 1); code 9 returns by code 0.
 
-The state functions are `Game_UpdateMenu (emi/etc/game/00@0x801975E4)` (state 3), `Game_UpdateShop (emi/etc/game/00@0x80198234)` (7), `Game_UpdateFishing (emi/etc/game/00@0x801984AC)` (8), `Game_UpdateAbilityMenu (emi/etc/game/00@0x80198744)` (9), `Game_UpdateStatusMenu (emi/etc/game/00@0x80198904)` (10) and `Game_UpdateSceneCamera (emi/etc/game/00@0x80198AC4)` (11).
+The state functions are `Game_MenuUpdate (emi/etc/game/00@0x801975E4)` (state 3), `Game_ShopUpdate (emi/etc/game/00@0x80198234)` (7), `Game_FishingUpdate (emi/etc/game/00@0x801984AC)` (8), `Game_AbilityMenuUpdate (emi/etc/game/00@0x80198744)` (9), `Game_ShisuUpdate (emi/etc/game/00@0x80198904)` (10) and `Game_SceneCameraUpdate (emi/etc/game/00@0x80198AC4)` (11).
 
 ## In-game menu (entry state 3)
 
-Code 1 calls `UI_SetMode(2)` and `func_80198BC4(0)`, then sets state 3, substate 0. The substates are `g_GameEntryHandlers` (`0x801C7B44`):
+Code 1 calls `UI_ModeSet(2)` and `func_80198BC4(0)`, then sets state 3, substate 0. The substates are `g_GameEntryHandlers` (`0x801C7B44`):
 
 | Substate | Function (`emi/etc/game/00`) | Work                                                                                         |
 | -------: | ---------------------------- | -------------------------------------------------------------------------------------------- |
-|        0 | `Game_LoadMenuOverlay`       | Stream STATUS, copy palettes 1 and 2, `D_80148650 = 0`, `UI_SetMode(3)`, `func_80198C38(1)`. |
-|        1 | `Game_UpdateMenuFrame`       | `Game_UpdateScenario`, `Menu_DispatchStep`, `Menu_UpdatePanelTasks`.                         |
+|        0 | `Game_LoadMenuOverlay`       | Stream STATUS, copy palettes 1 and 2, `D_80148650 = 0`, `UI_ModeSet(3)`, `func_80198C38(1)`. |
+|        1 | `Game_UpdateMenuFrame`       | `Game_ScenarioUpdate`, `Menu_DispatchStep`, `UI_PanelUpdateTasks`.                           |
 |        2 | `Game_ReturnFromMenu`        | Leave: restore the character sprites, reload the fairy village, re-enter the area, state 2.  |
 
 `Menu_DispatchStep (emi/etc/start/08@0x801D1740)` runs `D_801EC35C[D_80148650]`, nine step functions. The program is STATUS entry 0. The start menu (New Game, Load Game) runs the same bytes from `START.EMI` entry 8, a copy of `BIN/ETC/STATUS.EMI` entry 0. The roles of the nine steps are `[unknown]`. The load-game steps are in [saving](../saving/).
@@ -66,15 +66,15 @@ State 7 runs `g_GameStateHandlers` (`0x801C7B7C`):
 
 | Substate | Function (`emi/etc/game/00`) | Work                                                                                                                          |
 | -------: | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-|        0 | `Game_LoadShopOverlay`       | If a shop actor is selected and its `+0x18` is 9, return to state 2 at once. Otherwise stream SHOP and copy palettes 1 and 2. |
+|        0 | `Game_ShopLoadOverlay`       | If a shop actor is selected and its `+0x18` is 9, return to state 2 at once. Otherwise stream SHOP and copy palettes 1 and 2. |
 |        1 | `func_80199398`              | Field frame, `Area_UpdateParty`, panels, `Menu_DispatchScreen`.                                                               |
 |        2 | `Game_ReturnFromShop`        | Restore the character sprites, stream COMMU00 when the area has flag `0x10`, return to state 2.                               |
 
-`Menu_DispatchScreen (emi/etc/shop/00@0x801D0EA0)` runs `D_801E5144[11]` by `D_80148650`. Entry 0, `Menu_SelectScreen`, is the selector. It reads `D_8014865C`. A negative value (a script or code origin) sets the step to `D_80148698 + 2`. A shop-actor index copies the actor row's `+0x18` and adds 2, and copies `+0x1C` to `D_80148699`. Actor type 9 never reaches the screen (`Game_LoadShopOverlay`). The other ten entries are the screens. Steps 2,3,5,6,7: buy/sell, inn ([saving](../saving/)), inoculation, party swap, Skill Ink; 8 to 10 are `[unknown]`.
+`Menu_DispatchScreen (emi/etc/shop/00@0x801D0EA0)` runs `D_801E5144[11]` by `D_80148650`. Entry 0, `Menu_SelectScreen`, is the selector. It reads `D_8014865C`. A negative value (a script or code origin) sets the step to `D_80148698 + 2`. A shop-actor index copies the actor row's `+0x18` and adds 2, and copies `+0x1C` to `D_80148699`. Actor type 9 never reaches the screen (`Game_ShopLoadOverlay`). The other ten entries are the screens. Steps 2,3,5,6,7: buy/sell, inn ([saving](../saving/)), inoculation, party swap, Skill Ink; 8 to 10 are `[unknown]`.
 
 ## BATE and SHISU (entry states 9 and 10)
 
-States 9 and 10 have the same shape. Substate 0 (`Game_LoadAbilityMenu` and `Game_LoadStatusMenu`) calls `UI_SetMode(2)`, waits two frames, streams the slot (BATE `0x257`, SHISU `0x265`), copies palettes 1 and 2, and advances. Substate 1 (`Game_UpdateAbilityMenuFrame` and `Game_UpdateStatusMenuFrame`) runs `func_801D0D9C` or `func_801D0D80` plus `Menu_UpdatePanelTasks`. Substate 2 (`GameRunMapLoadHandshake`) streams the character sprites, calls `UI_SetMode(3)`, waits for the effect, and returns to state 2.
+States 9 and 10 have the same shape. Substate 0 (`Game_LoadAbilityMenu` and `Game_LoadStatusMenu`) calls `UI_ModeSet(2)`, waits two frames, streams the slot (BATE `0x257`, SHISU `0x265`), copies palettes 1 and 2, and advances. Substate 1 (`Game_UpdateAbilityMenuFrame` and `Game_UpdateStatusMenuFrame`) runs `func_801D0D9C` or `func_801D0D80` plus `UI_PanelUpdateTasks`. Substate 2 (`GameRunMapLoadHandshake`) streams the character sprites, calls `UI_ModeSet(3)`, waits for the effect, and returns to state 2.
 
 Each overlay starts with an `OverlayHeader`, then a step entry that dispatches a step table by `D_80148650`, with sub-tables indexed by `D_80148651` and `D_80148652`. Only `scena06` stores request code 7, and only `scena11` stores code 8. No other program on the disc stores either value to `g_GameStateIndex`.
 
@@ -117,9 +117,9 @@ It then raises the record's stats at once. Target 3 goes to defense and base def
 | Step | Function        | Work                                                                                                      |
 | ---: | --------------- | --------------------------------------------------------------------------------------------------------- |
 |    0 | `func_801D0DBC` | Counts four held items into `g_MenuStatusItems.held`, clears `used` and `unk_08`-`unk_0A`, sets `unk_0B`. |
-|    1 | `func_801D0E4C` | Open: `UI_SetMode(3)`, then wait for the effect.                                                          |
+|    1 | `func_801D0E4C` | Open: `UI_ModeSet(3)`, then wait for the effect.                                                          |
 |    2 | `func_801D11A4` | The play, by `D_801D9700[D_80148651]`.                                                                    |
-|    3 | `func_801D0F24` | Close: `UI_SetMode(2)`, then wait for the effect.                                                         |
+|    3 | `func_801D0F24` | Close: `UI_ModeSet(2)`, then wait for the effect.                                                         |
 |    4 | `func_801D1018` | Use the items, score, rank and leave (`Menu_ResetPanelTasks`, then `g_GameEntrySubstate` plus 1).         |
 
 The four items are `0x4D`, `0x23`, `0x24` and `0x56` (`ITEM_MACKEREL`, `ITEM_SHALY_SEED`, `ITEM_VINEGAR`, `ITEM_HORSERADISH`). The play moves one item at a time from `held[i]` to `used[i]` (`func_801D14C0`). `used[0]` stops at 1 and `used[1]` stops at 20. `func_801D11F4` adds 1 to `unk_08`, the round count.
@@ -151,11 +151,11 @@ The score is `(10 * k * t0 + used[1] * (t1 * t2 / 100) + 16 * t3) / 100`. Which 
 
 ## Fishing (entry state 8)
 
-`Game_UpdateAreaLoad` (state 1) sets `g_GameEntryState = 8` right after `func_8019FAA0` when `g_GameRequestFlags & 8`; bit 3 of the area record's `flag_32` marks a fishing area ([area](../areas/)). The substates are `g_GameSubstateHandlers[4]` (`0x801C7B88`):
+`Game_UpdateAreaLoad` (state 1) sets `g_GameEntryState = 8` right after `Game_EnterArea` when `g_GameRequestFlags & 8`; bit 3 of the area record's `flag_32` marks a fishing area ([area](../areas/)). The substates are `g_GameSubstateHandlers[4]` (`0x801C7B88`):
 
 | Substate | Function                                   | Work                                                                                         |
 | -------: | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
-|        0 | `func_801984E8` (`emi/etc/game/00`)        | `UI_SetMode(1)`, redraw, copy a framebuffer strip, call substate 1 once, clear `D_80143F22`. |
+|        0 | `func_801984E8` (`emi/etc/game/00`)        | `UI_ModeSet(1)`, redraw, copy a framebuffer strip, call substate 1 once, clear `D_80143F22`. |
 |        1 | `func_801E0BD0` (`emi/world00/area030/04`) | The pond frame: `func_801E09B4` and the field draw.                                          |
 |        2 | `func_801985C8` (`emi/etc/game/00`)        | Restore the character sprites, fade, `Game_RequestAreaChange(D_80143F04, ..., 4)`, state 1.  |
 |        3 | `func_801E0C20` (`emi/world00/area030/04`) | `func_800F500C`. The caller of this substate is not found.                                   |
@@ -164,7 +164,7 @@ The fishing program is part of the pond area's own image. `world00/area030/04` h
 
 ## Master (scene event 4)
 
-The master menu is not an entry state. `g_SceneEvents[4]` is `Menu_OpenMaster (emi/etc/game/00@0x801A7CF0)`, stepped by `D_801448EC`.
+The master menu is not an entry state. `g_SceneEvents[4]` is `UI_PanelOpenMaster (emi/etc/game/00@0x801A7CF0)`, stepped by `D_801448EC`.
 
 | Step | Work                                                                                             |
 | ---: | ------------------------------------------------------------------------------------------------ |
@@ -190,9 +190,9 @@ That the five COMMU screens are scene events, and which game action opens each, 
 
 The world map is an area with `g_GameRequestFlags & 1`. It stays in entry state 2.
 
-- `Game_UpdateAreaLoad` sets `g_GameEntryMode = 10` (instead of 0, or 20 for area `0xBD`) and applies the area's screen effect with `UI_SetMode(g_GameRequestKind)`. With the flag set it also calls `func_801A0048` on the camera cell.
+- `Game_UpdateAreaLoad` sets `g_GameEntryMode = 10` (instead of 0, or 20 for area `0xBD`) and applies the area's screen effect with `UI_ModeSet(g_GameRequestKind)`. With the flag set it also calls `Area_RequestLinkAtCell` on the camera cell.
 - The field step `func_801B146C` tests the cell under the party with `Area_GetCellCode`. The value `0xAF` requests an area change (`Game_RequestAreaChange`, `g_GameRequestKind = 0xC`).
-- Random encounters on the world map skip the `D_80143EFC >= 0xF1` test in `Area_CanStartEncounter`. Its last test reads the cell class ahead of the party instead of building a formation ([battle](../battle/)).
+- Random encounters on the world map skip the `D_80143EFC >= 0xF1` test in `Area_EncounterCanStart`. Its last test reads the cell class ahead of the party instead of building a formation ([battle](../battle/)).
 
 The world-map code is in the `world*` area overlays `[unknown]`.
 
@@ -204,7 +204,7 @@ Counts of entry states, request codes, battle substates, scene events and panel 
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | Menu, shop, fishing substates   | 3, 3, 4                                                                                                                                                       | `g_GameEntryHandlers`, `g_GameStateHandlers`, `g_GameSubstateHandlers` |
 | BATE, SHISU, state 11 substates | 3 each                                                                                                                                                        | `g_MenuAbilityOpen`, `g_MenuStatusOpen`, `g_GameFlowHandlers`          |
-| SHOP actor types                | 0 to 8 select a screen (`+0x18` plus 2 must stay at 10 or less). Type 9 skips it. `[inferred]`                                                                | `Menu_SelectScreen`, `Game_LoadShopOverlay`                            |
+| SHOP actor types                | 0 to 8 select a screen (`+0x18` plus 2 must stay at 10 or less). Type 9 skips it. `[inferred]`                                                                | `Menu_SelectScreen`, `Game_ShopLoadOverlay`                            |
 | BATE, SHISU step tables         | 4 and 5 entries. Two five-byte names follow BATE's table, at `0x801D86F0` and `0x801D86F8`.                                                                   | `D_801D86E0`; `D_801D96DC`                                             |
 | Fishing rod rows                | The code does not bound the selector: it indexes `sel * 10`. [Field](../../data/field/#fairy-village-and-fishing) owns the rod and lure rows and their count. | `Fishing_SelectGear (emi/world00/area030/04@0x801DDE2C)`               |
 | Screen overlay slots            | BATE `0x257`, SHISU `0x265`, SHOP `0x266`, SISYOU `0x267`, START `0x268`, STATUS `0x269`                                                                      | [disc slot ids](../../formats/emi/#disc-slot-ids)                      |

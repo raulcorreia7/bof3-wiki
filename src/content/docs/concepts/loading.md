@@ -3,24 +3,24 @@ title: "Loading"
 description: "The game streams almost everything it runs or draws from the disc during play: overlay code, area maps, battle data, character graphics, sound banks and story scenes."
 ---
 
-The game streams nearly all code and data from the disc during play. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_LoadArchive` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each type of data. The archive layout is in the [EMI container](../../formats/emi/).
+The game streams nearly all code and data from the disc during play. Only the main executable and the resident game program stay in RAM. A load request names one archive by slot id; `EMI_ArchiveLoad` starts a CD stream that writes each entry to its destination in a fixed [memory](../memory/) window. This page traces one request, then lists the load path of each type of data. The archive layout is in the [EMI container](../../formats/emi/).
 
 ## Load request flow
 
-1. **Request.** Game code calls `EMI_LoadArchive (exe/slus_004_22@0x80161FDC)` with a slot id. The slot id is the index of the archive in the disc file list. The call looks up the archive's disc address in the table `g_EmiSlotLbas (exe/slus_004_22@0x80182444)`, installs two CD callbacks, and starts the drive. It returns at once.
+1. **Request.** Game code calls `EMI_ArchiveLoad (exe/slus_004_22@0x80161FDC)` with a slot id. The slot id is the index of the archive in the disc file list. The call looks up the archive's disc address in the table `g_EmiSlotLbas (exe/slus_004_22@0x80182444)`, installs two CD callbacks, and starts the drive. It returns at once.
 2. **Wait.** The calling thread polls with `CallbackWait(1)` until `EMI_IsReady` returns nonzero. The other callback threads keep running, so a load blocks only its caller. In battle, a step machine polls instead of a loop.
 3. **Table of contents.** The first sector of every EMI archive is its table of contents. `EMI_ReadToc` checks the `MATH_TBL` tag and computes the first sector of each entry.
 4. **Entries.** The loader reads the entries in order. Each has a type that says where its bytes go: copied to a RAM address, decompressed to a RAM address, uploaded to VRAM, or sent to the SPU. The entry's load argument holds the address.
-5. **Sectors.** Each sector raises a CD-ready interrupt. `EMI_CdOnReady (exe/slus_004_22@0x80162230)` either copies the sector straight to its destination, or parks it in a ring slot for the main loop to process.
+5. **Sectors.** Each sector raises a CD-ready interrupt. `CD_OnReady (exe/slus_004_22@0x80162230)` either copies the sector straight to its destination, or parks it in a ring slot for the main loop to process.
 6. **Tick.** Once per frame, step 11 of the [frame loop](../frame-loop/) calls `EMI_Update`. In mode 1 it runs `EMI_UpdateStream`, which advances the CD steps and drains the ring slots: it decodes, stages or uploads each parked sector.
 7. **Ready.** After the last entry, the loader pauses the CD. One frame with no ring slot left to drain later, the stream state byte becomes 3. `EMI_IsReady` returns true, the waiting thread wakes and calls into the new code at its fixed address.
 
 ```mermaid
 sequenceDiagram
     participant Caller as caller thread
-    participant Init as EMI_LoadArchive
+    participant Init as EMI_ArchiveLoad
     participant Cd as CD drive
-    participant Rdy as EMI_CdOnReady<br/>(interrupt)
+    participant Rdy as CD_OnReady<br/>(interrupt)
     participant Svc as EMI_UpdateStream<br/>(each frame)
     participant Ram as window in RAM
 
@@ -74,11 +74,11 @@ The fixed archives have these ids:
 
 `FIRST` is `0x261`, `GAME` is `0x262`, `DEMO` is `0x25F`, `START` is `0x268`, `STATUS` is `0x269` and `SHOP` is `0x266`.
 
-The table `g_EmiSlotLbas` has 887 entries, one per disc file, so the slot ids run from 0 to `0x376`. The XA files and the movie have slots too, but they are not read through the EMI stream. `EMI_GetArchiveId (exe/slus_004_22@0x8016728C)` turns a character family and an index into a slot id: family 0 is `PL`, 1 is `BPLD`, 2 is `BPLU` and 3 is `PLP`.
+The table `g_EmiSlotLbas` has 887 entries, one per disc file, so the slot ids run from 0 to `0x376`. The XA files and the movie have slots too, but they are not read through the EMI stream. `EMI_ArchiveLoadFamily (exe/slus_004_22@0x8016728C)` turns a character family and an index into a slot id: family 0 is `PL`, 1 is `BPLD`, 2 is `BPLU` and 3 is `PLP`.
 
 ## Entry types
 
-The table of contents gives each entry a type from 0 to 10. The type selects a handler from `g_EmiEntryHandlers (exe/slus_004_22@0x80183248)`. The type names below are the handler names, because the loader does not name the types. `[inferred]`
+The table of contents gives each entry a type from 0 to 10. The type selects a handler from `g_EmiEntryTypes (exe/slus_004_22@0x80183248)`. The type names below are the handler names, because the loader does not name the types. `[inferred]`
 
 |  Type | Handler              | Path                 | Effect                                            |
 | ----: | -------------------- | -------------------- | ------------------------------------------------- |
@@ -87,20 +87,20 @@ The table of contents gives each entry a type from 0 to 10. The type selects a h
 |     3 | `EMI_LoadToVram`     | ring, state 3        | upload each sector to VRAM                        |
 |     4 | `EMI_ReadToc`        | direct               | second table-of-contents state; no caller traced  |
 |     5 | `EMI_ReadToc`        | ring                 | the header sector, the first read of every stream |
-|     6 | `EMI_LoadVabHeader`  | direct               | sound bank header to the bank record              |
-|     7 | `EMI_LoadVabBody`    | ring, state 4        | sound bank body to SPU RAM                        |
-|     8 | `EMI_LoadSoundCues`  | direct               | cue table to the bank record                      |
+|     6 | `EMI_VabLoadHeader`  | direct               | sound bank header to the bank record              |
+|     7 | `EMI_VabLoadBody`    | ring, state 4        | sound bank body to SPU RAM                        |
+|     8 | `EMI_LoadSE`         | direct               | cue table to the bank record                      |
 | 9, 10 | `EMI_LoadSequence`   | direct               | music sequence to the bank's sequence buffer      |
 
-Direct types (0, 4, 6, 8, 9, 10) are copied at interrupt time by `EMI_CopySectorData`. Ring types (1, 2, 3, 5, 7) go through 23 ring slots of 2,048 bytes at `g_EmiRingBase + (slot << 11)`, where `g_EmiRingBase` is `0x800E4800`. The ring keeps the order. If the target ring slot is still occupied, or the first word of a sector differs from the first word that the table of contents recorded, the loader flags the read for a retry. If a stream makes no progress for about 300 frames, the loader rearms the read. The drain functions, one per ring state, are in `g_EmiRingSlotHandlers (exe/slus_004_22@0x80149C60)`: 1 `EMI_CopySectorToScratchpad`, 2 `EMI_DecompressSector`, 3 `EMI_UploadSectorImage`, 4 `EMI_UploadVabBody`.
+Direct types (0, 4, 6, 8, 9, 10) are copied at interrupt time by `EMI_CopySectorData`. Ring types (1, 2, 3, 5, 7) go through 23 ring slots of 2,048 bytes at `g_EmiRingBase + (slot << 11)`, where `g_EmiRingBase` is `0x800E4800`. The ring keeps the order. If the target ring slot is still occupied, or the first word of a sector differs from the first word that the table of contents recorded, the loader flags the read for a retry. If a stream makes no progress for about 300 frames, the loader rearms the read. The drain functions, one per ring state, are in `g_EmiRingSteps (exe/slus_004_22@0x80149C60)`: 1 `EMI_CopySectorToScratchpad`, 2 `EMI_SectorDecompress`, 3 `EMI_SectorUploadImage`, 4 `EMI_VabUploadBody`.
 
 ### Decode
 
-A compressed entry (types 1 and 2) is decoded as it arrives. `EMI_DecompressSector` calls `LZ77_DecodeBegin (exe/slus_004_22@0x80164028)` with the destination. `EMI_CopySectorToScratchpad` then copies each sector to the scratchpad as two 1,024-byte halves and calls `LZ77_DecodeStep (exe/slus_004_22@0x80164064)` for each half. The decoder context sits at `0x800327A0`, its source pointer starts at scratchpad offset 6 and its limit is offset `0x400`. The format is in [LZ77](../../formats/lz77/).
+A compressed entry (types 1 and 2) is decoded as it arrives. `EMI_SectorDecompress` calls `LZ77_DecodeBegin (exe/slus_004_22@0x80164028)` with the destination. `EMI_CopySectorToScratchpad` then copies each sector to the scratchpad as two 1,024-byte halves and calls `LZ77_DecodeStep (exe/slus_004_22@0x80164064)` for each half. The decoder context sits at `0x800327A0`, its source pointer starts at scratchpad offset 6 and its limit is offset `0x400`. The format is in [LZ77](../../formats/lz77/).
 
 ### The CD steps
 
-The CD itself runs as a small state machine, `g_EmiCdSteps (exe/slus_004_22@0x80149C3C)`. Its steps are, in order: idle, set speed, seek, finish seek, start read, finish read, pause, finish pause, idle. `EMI_StartArchive (exe/slus_004_22@0x80162178)` converts an LBA to a CD position and arms the first step.
+The CD itself runs as a small state machine, `g_CdStateHandlers (exe/slus_004_22@0x80149C3C)`. Its steps are, in order: idle, set speed, seek, finish seek, start read, finish read, pause, finish pause, idle. `EMI_ArchiveStart (exe/slus_004_22@0x80162178)` converts an LBA to a CD position and arms the first step.
 
 ### The end of a stream
 
@@ -108,60 +108,60 @@ After the last entry, `EMI_EndArchive` sets the pause step. `EMI_CdOnPause` then
 
 ### One stream at a time
 
-`g_EmiServiceMode (exe/slus_004_22@0x80146840)` holds the CD owner: 0 idle, 1 EMI stream, 2 XA audio. `EMI_Update` runs `EMI_UpdateStream` in mode 1 and `SND_UpdateXA` in mode 2. When an EMI stream starts while XA is playing, `EMI_LoadArchive` makes one non-blocking `CdSync(1)` check. If the status has any of the bits `0xE0` set, the read starts at the pause step instead of the speed step. The new stream takes over at once. Nothing waits for the XA stream to end.
+`g_EmiStreamMode (exe/slus_004_22@0x80146840)` holds the CD owner: 0 idle, 1 EMI stream, 2 XA audio. `EMI_Update` runs `EMI_UpdateStream` in mode 1 and `SND_XAUpdate` in mode 2. When an EMI stream starts while XA is playing, `EMI_ArchiveLoad` makes one non-blocking `CdSync(1)` check. If the status has any of the bits `0xE0` set, the read starts at the pause step instead of the speed step. The new stream takes over at once. Nothing waits for the XA stream to end.
 
 Bit `0x20` of `g_EmiStreamFlags (exe/slus_004_22@0x80146854)` shortens a load. `EMI_NextEntry` then ends the stream at the first entry with a type below 6, so only the leading sound bank entries load. The loader clears the flag when the stream reaches state 3. Several overlay functions set it, for example the battle return path `Battle_ReloadAreaAudio (emi/battle/battle/03@0x801D7108)`, which reloads the area's audio without reloading its data.
 
 ## Overlay swaps
 
-A swap overwrites the old overlay's code and its own variables. Only the persistent block and the executable's variables outlive it ([memory](../memory/#overlay-windows)). Every swap starts with one `EMI_LoadArchive` call. Code outside battle mostly waits in a `CallbackWait` loop. Battle code polls `EMI_IsReady` from a step machine and advances `g_BattleSubStep` when the stream is ready. The table lists the call sites read; unread functions are not covered.
+A swap overwrites the old overlay's code and its own variables. Only the persistent block and the executable's variables outlive it ([memory](../memory/#overlay-windows)). Every swap starts with one `EMI_ArchiveLoad` call. Code outside battle mostly waits in a `CallbackWait` loop. Battle code polls `EMI_IsReady` from a step machine and advances `g_BattleSubStep` when the stream is ready. The table lists the call sites read; unread functions are not covered.
 
 | Trigger                | Caller                                                                                                             | Slot                                                                                                                                 | Waits for                                      |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
 | First start, reset     | `SYS_StartFrontend`                                                                                                | `FIRST` (`0x261`)                                                                                                                    | the `CallbackWait` loop                        |
 | Title                  | `SYS_EnterFrontend`                                                                                                | `GAME` (`0x262`)                                                                                                                     | the same loop                                  |
-| Title demo             | `Game_BeginTitle (emi/etc/game/01@0x801D0C90)`                                                                     | `DEMO` (`0x25F`)                                                                                                                     | the same loop                                  |
-| Start menu, menus      | `Game_LoadCampMenu`, `Game_LoadMenuOverlay`, `Game_LoadShopOverlay`, `Game_LoadAbilityMenu`, `Game_LoadStatusMenu` | `START` `0x268`, `STATUS` `0x269`, `SHOP` `0x266`, `BATE` `0x257`, `SHISU` `0x265`; `SISYOU` `0x267` from `Menu_OpenMaster`          | the same loop; `Menu_OpenMaster` polls         |
+| Title demo             | `Title_Begin (emi/etc/game/01@0x801D0C90)`                                                                         | `DEMO` (`0x25F`)                                                                                                                     | the same loop                                  |
+| Start menu, menus      | `Game_LoadCampMenu`, `Game_LoadMenuOverlay`, `Game_ShopLoadOverlay`, `Game_LoadAbilityMenu`, `Game_LoadStatusMenu` | `START` `0x268`, `STATUS` `0x269`, `SHOP` `0x266`, `BATE` `0x257`, `SHISU` `0x265`; `SISYOU` `0x267` from `UI_PanelOpenMaster`       | the same loop; `UI_PanelOpenMaster` polls      |
 | Dialogue               | `Game_ReturnFromMenu`, `Game_ReturnFromShop`; `emi/etc/commu00/00`                                                 | `COMMU00` (`0x258`); `COMMU01` to `COMMU05` (`0x259` to `0x25E`)                                                                     | `COMMU00`: the loop; the rest: the event step  |
 | Scenario               | `Scene_Start` to `Scene_LoadOverlay`                                                                               | `SCENA` + scenario id (`0x295 + id`)                                                                                                 | the same loop                                  |
-| Area change            | `func_8019FAA0 (emi/etc/game/00@0x8019FAA0)`                                                                       | `AREA` + area seed (`0x2AB + seed`)                                                                                                  | the same loop                                  |
+| Area change            | `Game_EnterArea (emi/etc/game/00@0x8019FAA0)`                                                                      | `AREA` + area seed (`0x2AB + seed`)                                                                                                  | the same loop                                  |
 | Audio-only area reload | `Battle_ReloadAreaAudio`                                                                                           | `AREA` + `g_GameAreaId`, with flag bit `0x20`                                                                                        | battle step machine                            |
 | Inside battle          | `battle/03`, `battle/15`                                                                                           | `BATL_SE`, `BATL_RET`, `BATL_END`, `BATL_OVR`, `BATL_DRA`, `BATL_RE2`, `COMN_SE`, `ENEMY` + area, `AFLDKWA`, `BPLD`, `BPLU`, `MAGIC` | battle step machines                           |
 | Battle entry           | `Battle_LoadPartySprites`, `Battle_LoadBattleArchive`                                                              | `BPLD` or `BPLU` by scroll direction, then `BATTLE` (6), `BATTLE2` (7) or a `BOSS` archive from `g_BossArchiveSlots`                 | the same loop                                  |
-| Music                  | `SND_RequestBGM (exe/slus_004_22@0x80161BBC)`                                                                      | the slot in `g_BGMTracks[request]` (`BGM`, `0xD1` to `0x121`)                                                                        | the caller                                     |
-| Character graphics     | `EMI_GetArchiveId`                                                                                                 | `PL` `0x26A`, `BPLD` `0x1DB`, `BPLU` `0x1EE`, `PLP` `0x27D`, plus the party combination                                              | `EMI_LoadPartyArchives` waits; the others poll |
+| Music                  | `SND_BGMRequest (exe/slus_004_22@0x80161BBC)`                                                                      | the slot in `g_BGMTracks[request]` (`BGM`, `0xD1` to `0x121`)                                                                        | the caller                                     |
+| Character graphics     | `EMI_ArchiveLoadFamily`                                                                                            | `PL` `0x26A`, `BPLD` `0x1DB`, `BPLU` `0x1EE`, `PLP` `0x27D`, plus the party combination                                              | `EMI_LoadPartyArchives` waits; the others poll |
 
 ## Load paths
 
-| Path                                        | Request function                                                                                                   | Archive                                         | Lands                                                                   | Read by                                       |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
-| [Boot](#title-and-boot)                     | `SYS_StartFrontend`, `SYS_EnterFrontend`, `Game_BeginTitle`                                                        | `FIRST`, `GAME`, `DEMO`                         | SPU banks 0 and 1, VRAM, RAM                                            | `func_801D0C04`, the title states             |
-| [Area](#area)                               | `func_8019FAA0`                                                                                                    | `AREA` + area id                                | SPU bank 2, RAM, VRAM, the area program at `0x801F2C00`                 | `g_AreaLoads`, the area program               |
-| [Scenario](#scenario)                       | `Scene_LoadOverlay`                                                                                                | `SCENA` + scenario id                           | RAM `0x801F6C00`                                                        | `Game_UpdateScenario`                         |
-| [Party](#characters-and-the-party)          | `EMI_LoadPartyArchives`, `EMI_GetArchiveId`                                                                        | `PLP`, `PL`, `BPLD`, `BPLU` + combination       | RAM `0x801CE400`, `0x8003B800`, SPU bank 1, 3, 4 or 5                   | `Party_LoadMemberSprite`, `Actor_BeginScript` |
-| [Menus](#menus-shop-and-save)               | `Game_LoadCampMenu`, `Game_LoadMenuOverlay`, `Game_LoadAbilityMenu`, `Game_LoadStatusMenu`, `Game_LoadShopOverlay` | `START`, `STATUS`, `BATE`, `SHISU`, `SHOP`      | RAM `0x801D0C00` and `0x801EEC00`, VRAM, SPU bank 1                     | the state handlers in `g_GameStates`          |
-| [Master](#menus-shop-and-save)              | `Menu_OpenMaster`                                                                                                  | `SISYOU`                                        | RAM `0x801D0C00`, VRAM, SPU bank 1                                      | `Menu_ResetMasterPanel`, `Menu_UpdateMaster`  |
-| [Fairy Village](#fairy-village)             | `Game_ReturnFromMenu`, `Game_ReturnFromShop`, `emi/etc/commu00/00` event steps                                     | `COMMU00` to `COMMU05`                          | RAM `0x801EEC00` (`COMMU00`), `0x801D0C00` (the rest), VRAM, SPU bank 1 | `func_801F03D0`, the village event steps      |
-| [Battle](#battle)                           | `Battle_LoadPartySprites`, `Battle_LoadBattleArchive`, `func_801D1228`                                             | `BATTLE`/`BATTLE2`, `BOSS`, `ENEMY` + area      | RAM `0x801D0C00`, `0x80096800`, `0x800F0800`, SPU banks 1, 2 and 6      | `Battle_Update`                               |
-| [Battle effects](#battle-magic-and-effects) | `Battle_LoadSelectionEffect`, `func_800AE2D4`                                                                      | `MAGIC`, `BMAGIC` + selection id                | RAM `0x801EEC00`, `0x80036C00`, `0x800C3800`, VRAM, SPU bank 1          | the selection's handler word                  |
-| [Battle end](#after-a-battle)               | `Battle_LoadEndOverlay`, `Battle_ReloadFieldText`, `Battle_ReloadAreaAudio`, `Battle_ReloadPartyBank`              | `BATL_END`, `BATL_OVR`, `AFLDKWA`, `AREA`, `PL` | RAM `0x801EEC00`, `0x8001A000`, SPU banks 1 and 2                       | the battle step machine                       |
-| [Music](#music)                             | `SND_RequestBGM`, `SND_StartBGM`                                                                                   | `BGM` + track                                   | SPU bank 0                                                              | `SND_PlayBGM`                                 |
-| [XA audio](#xa-audio)                       | `SND_StartXAStream`                                                                                                | `BMAG_XA`, `SCE_XA`                             | SPU, straight from the disc                                             | `SND_UpdateXA`                                |
-| [Executable](#executable-load)              | `SYS_LoadExec`                                                                                                     | `LOGO.EXE`                                      | RAM                                                                     | the BIOS jump in `SYS_StartLogo`              |
+| Path                                        | Request function                                                                                                   | Archive                                         | Lands                                                                   | Read by                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
+| [Boot](#title-and-boot)                     | `SYS_StartFrontend`, `SYS_EnterFrontend`, `Title_Begin`                                                            | `FIRST`, `GAME`, `DEMO`                         | SPU banks 0 and 1, VRAM, RAM                                            | `func_801D0C04`, the title states            |
+| [Area](#area)                               | `Game_EnterArea`                                                                                                   | `AREA` + area id                                | SPU bank 2, RAM, VRAM, the area program at `0x801F2C00`                 | `g_AreaLoads`, the area program              |
+| [Scenario](#scenario)                       | `Scene_LoadOverlay`                                                                                                | `SCENA` + scenario id                           | RAM `0x801F6C00`                                                        | `Game_ScenarioUpdate`                        |
+| [Party](#characters-and-the-party)          | `EMI_LoadPartyArchives`, `EMI_ArchiveLoadFamily`                                                                   | `PLP`, `PL`, `BPLD`, `BPLU` + combination       | RAM `0x801CE400`, `0x8003B800`, SPU bank 1, 3, 4 or 5                   | `Party_MemberLoadSprite`, `Script_Begin`     |
+| [Menus](#menus-shop-and-save)               | `Game_LoadCampMenu`, `Game_LoadMenuOverlay`, `Game_LoadAbilityMenu`, `Game_LoadStatusMenu`, `Game_ShopLoadOverlay` | `START`, `STATUS`, `BATE`, `SHISU`, `SHOP`      | RAM `0x801D0C00` and `0x801EEC00`, VRAM, SPU bank 1                     | the state handlers in `g_GameModes`          |
+| [Master](#menus-shop-and-save)              | `UI_PanelOpenMaster`                                                                                               | `SISYOU`                                        | RAM `0x801D0C00`, VRAM, SPU bank 1                                      | `Menu_ResetMasterPanel`, `Menu_UpdateMaster` |
+| [Fairy Village](#fairy-village)             | `Game_ReturnFromMenu`, `Game_ReturnFromShop`, `emi/etc/commu00/00` event steps                                     | `COMMU00` to `COMMU05`                          | RAM `0x801EEC00` (`COMMU00`), `0x801D0C00` (the rest), VRAM, SPU bank 1 | `func_801F03D0`, the village event steps     |
+| [Battle](#battle)                           | `Battle_LoadPartySprites`, `Battle_LoadBattleArchive`, `func_801D1228`                                             | `BATTLE`/`BATTLE2`, `BOSS`, `ENEMY` + area      | RAM `0x801D0C00`, `0x80096800`, `0x800F0800`, SPU banks 1, 2 and 6      | `Battle_Update`                              |
+| [Battle effects](#battle-magic-and-effects) | `Battle_LoadSelectionEffect`, `func_800AE2D4`                                                                      | `MAGIC`, `BMAGIC` + selection id                | RAM `0x801EEC00`, `0x80036C00`, `0x800C3800`, VRAM, SPU bank 1          | the selection's handler word                 |
+| [Battle end](#after-a-battle)               | `Battle_LoadEndOverlay`, `Battle_ReloadFieldText`, `Battle_ReloadAreaAudio`, `Battle_ReloadPartyBank`              | `BATL_END`, `BATL_OVR`, `AFLDKWA`, `AREA`, `PL` | RAM `0x801EEC00`, `0x8001A000`, SPU banks 1 and 2                       | the battle step machine                      |
+| [Music](#music)                             | `SND_BGMRequest`, `SND_BGMStart`                                                                                   | `BGM` + track                                   | SPU bank 0                                                              | `SND_PlayBGM`                                |
+| [XA audio](#xa-audio)                       | `SND_XAStartStream`                                                                                                | `BMAG_XA`, `SCE_XA`                             | SPU, straight from the disc                                             | `SND_XAUpdate`                               |
+| [Executable](#executable-load)              | `SYS_LoadExe`                                                                                                      | `LOGO.EXE`                                      | RAM                                                                     | the BIOS jump in `SYS_StartLogo`             |
 
 ### Title and boot
 
 `SYS_StartFrontend` clears the screen, calls `SND_Init`, sets sound bank layout 0 and streams `FIRST` (`0x261`). The archive holds the sound bank for SPU bank 1, six VRAM blocks (fonts and window graphics), and RAM blocks at `0x80033800`, `0x80033A00`, `0x80033C00`, `0x80036C00` and the message table at `0x8001A000`. It sets `g_EmiLoadedCharacterIndex` to `0xFF`, so no party archive counts as loaded, and registers `SYS_EnterFrontend` as the next callback. `SYS_EnterFrontend` streams `GAME` (`0x262`): entry 0 is the resident game program at `0x80195800`, entry 1 is the title overlay at `0x801D0C00`. It then calls the overlay's entry, `func_801D0C04`.
 
-The title overlay streams `DEMO` (`0x25F`) from `Game_BeginTitle (emi/etc/game/01@0x801D0C90)` after `SND_SetBankLayout(2)`. `DEMO` holds a sound bank and sequence for SPU bank 0 (the title music), another sound bank for SPU bank 1, graphics blocks in VRAM and one RAM block at `0x80034000`. `Game_BeginTitle` then calls `SND_PlayBGM(BGM_TITLE)`. When the player picks a game, `Game_StartSelectedGame` and `Game_LeaveTitle` set layout 0 again, and `Game_LeaveTitle` registers `Game_UpdateCampMenu`, which streams `START` (see [menus](#menus-shop-and-save)).
+The title overlay streams `DEMO` (`0x25F`) from `Title_Begin (emi/etc/game/01@0x801D0C90)` after `SND_SetBankLayout(2)`. `DEMO` holds a sound bank and sequence for SPU bank 0 (the title music), another sound bank for SPU bank 1, graphics blocks in VRAM and one RAM block at `0x80034000`. `Title_Begin` then calls `SND_PlayBGM(BGM_TITLE)`. When the player picks a game, `Title_StartSelectedGame` and `Title_Leave` set layout 0 again, and `Title_Leave` registers `Game_RunCampMenu`, which streams `START` (see [menus](#menus-shop-and-save)).
 
 ### Area
 
-`func_8019FAA0` is the area loader. It clears the actors and the palette fades, restarts the music with `SND_StartBGM`, and, only when the area id differs from the loaded one and `g_GameStateIndex` is 5, calls `EMI_LoadArchive(area_id + 0x2AB)` and waits. The conditions that choose an area change are in [area](../../systems/areas/). The entries of an area archive follow the worked example above. Some areas add a code block at `0x801EEC00` or `0x80117000`, and `area030` has 23 entries, with code at `0x801D0C00` and a companion at `0x800F5000`. The function reads the new area's `g_AreaLoads` record, sets the colour matrix and starts the area program.
+`Game_EnterArea` is the area loader. It clears the actors and the palette fades, restarts the music with `SND_BGMStart`, and, only when the area id differs from the loaded one and `g_GameStateIndex` is 5, calls `EMI_ArchiveLoad(area_id + 0x2AB)` and waits. The conditions that choose an area change are in [area](../../systems/areas/). The entries of an area archive follow the worked example above. Some areas add a code block at `0x801EEC00` or `0x80117000`, and `area030` has 23 entries, with code at `0x801D0C00` and a companion at `0x800F5000`. The function reads the new area's `g_AreaLoads` record, sets the colour matrix and starts the area program.
 
 ### Scenario
 
-`Scene_Start (emi/etc/game/00@0x801A7704)` sets the scenario state and calls `Scene_LoadOverlay (emi/etc/game/00@0x801A7804)`, which calls `EMI_LoadArchive(scenario_id + 0x295)`. It waits with `CallbackWait`, then calls `Game_UpdateScenario`, which calls `entry_00` of `g_SceneScenes[scenario_id]` and then `Game_UpdateScene`. Each `SCENA` archive is one type-0 entry at `0x801F6C00`. The five archives below it (`0x290` to `0x294`: `SCE10EFF` and `SCE15EF0` to `SCE15EF3`) are scenario effect programs; `SCE10EFF` is one type-0 entry at `0x801D0C00`.
+`Scene_Start (emi/etc/game/00@0x801A7704)` sets the scenario state and calls `Scene_LoadOverlay (emi/etc/game/00@0x801A7804)`, which calls `EMI_ArchiveLoad(scenario_id + 0x295)`. It waits with `CallbackWait`, then calls `Game_ScenarioUpdate`, which calls `entry_00` of `g_ScenarioHandlers[scenario_id]` and then `Game_UpdateScene`. Each `SCENA` archive is one type-0 entry at `0x801F6C00`. The five archives below it (`0x290` to `0x294`: `SCE10EFF` and `SCE15EF0` to `SCE15EF3`) are scenario effect programs; `SCE10EFF` is one type-0 entry at `0x801D0C00`.
 
 Scenario programs change the party with `EMI_LoadPartyArchives` (about 50 sites in `scena01` to `scena14`, through `SCENE_SET_PARTY` and the `Scene_Join*` helpers), always with family 0.
 
@@ -184,14 +184,14 @@ A character archive set is named for the three characters it holds: `PL012` hold
 
 The character ids are `CHAR_ID_*`: 0 young Ryu, 1 young Nina, 2 Garr, 3 Teepo, 4 Rei, 5 Momo, 6 Peco, 7 adult Ryu, 8 adult Nina, 9 Ryu in pajamas, 10 Whelp.
 
-**Field party.** `EMI_LoadPartyArchives(a, b, c, 0)` is the party change. It runs `EMI_LoadPartyCode` (family `PLP`, slot `0x27D` + combination) and waits, then `EMI_LoadPartyData` (family `PL`, slot `0x26A` + combination) and waits. Both call `EMI_FindPartyArchive (exe/slus_004_22@0x80166FF8)`, which turns the three ids into a combination: it keeps the loaded combination when it already holds every given character, and otherwise sorts the ids, finds the row that holds them and calls `SYS_ShowFileNotFound` when none does. `[inferred]` from the unmatched body.
+**Field party.** `EMI_LoadPartyArchives(a, b, c, 0)` is the party change. It runs `EMI_LoadPartyCode` (family `PLP`, slot `0x27D` + combination) and waits, then `EMI_LoadPartyData` (family `PL`, slot `0x26A` + combination) and waits. Both call `EMI_PartyFindArchive (exe/slus_004_22@0x80166FF8)`, which turns the three ids into a combination: it keeps the loaded combination when it already holds every given character, and otherwise sorts the ids, finds the row that holds them and calls `SYS_ShowFileNotFound` when none does. `[inferred]` from the unmatched body.
 
-- **Skip rule.** `EMI_LoadPartyCode` skips the load when the combination equals the low seven bits of `g_EmiLoadedCharacterIndex`. `EMI_LoadPartyData` skips it when the index equals `combination | 0x80`. Bit 7 (`EMI_LOADED_PL`) marks that the field bank `PL` is the one in RAM. `EMI_GetArchiveId` sets the bit for family 0 and stores the plain index for families 1 and 2, so a battle sprite load makes the next `PL` request load again. Family 3 leaves the index alone.
+- **Skip rule.** `EMI_LoadPartyCode` skips the load when the combination equals the low seven bits of `g_EmiLoadedCharacterIndex`. `EMI_LoadPartyData` skips it when the index equals `combination | 0x80`. Bit 7 (`EMI_LOADED_PL`) marks that the field bank `PL` is the one in RAM. `EMI_ArchiveLoadFamily` sets the bit for family 0 and stores the plain index for families 1 and 2, so a battle sprite load makes the next `PL` request load again. Family 3 leaves the index alone.
 - **`PLP` (`0x801CE400`).** One type-0 entry, the character program: 6,616 bytes and 27 functions for `PLP012`.
 - **`PL` (`0x8003B800`).** The sound bank for SPU bank 1 (types 6, 8, 7) and the LZ77 sprite container.
-- **Readers.** `Party_LoadMemberSprite (emi/etc/game/00@0x801C1254)` finds the actor's character in the loaded row, so the position in the row is its section number. It reads the section offset at `0x8003B800 + section * 4` and stores the section pointer in the actor. `Actor_BeginScript` reads the same row to pick the character id of an actor's party slot. This settles which section belongs to which character; the pixel format is still open ([character sprites](../../formats/character/)).
+- **Readers.** `Party_MemberLoadSprite (emi/etc/game/00@0x801C1254)` finds the actor's character in the loaded row, so the position in the row is its section number. It reads the section offset at `0x8003B800 + section * 4` and stores the section pointer in the actor. `Script_Begin` reads the same row to pick the character id of an actor's party slot. This settles which section belongs to which character; the pixel format is still open ([character sprites](../../formats/character/)).
 
-**Menus, shops and the Fairy Village rebuild the bank, not the program.** Each of those overlays overwrites the sound bank in SPU bank 1. The close handler therefore sets `g_EmiStreamFlags` to `0x20` and calls `EMI_GetArchiveId(loaded & 0x7F, EMI_FAMILY_PL)`. The flag stops the stream after the leading sound entries (types 6, 8, 7), so only the bank returns and the sprites stay. The callers are `Game_ReturnFromMenu`, `Game_ReturnFromShop`, `func_801985C8` (fishing), `GameRunMapLoadHandshake`, `Menu_OpenMaster` and `Fairy_ReloadPartyBank (commu00)`. `SAVE_RunLoadRestore (emi/etc/start/08)` loads a saved game's party the full way: `PLP`, then `PL`, without the flag.
+**Menus, shops and the Fairy Village rebuild the bank, not the program.** Each of those overlays overwrites the sound bank in SPU bank 1. The close handler therefore sets `g_EmiStreamFlags` to `0x20` and calls `EMI_ArchiveLoadFamily(loaded & 0x7F, EMI_FAMILY_PL)`. The flag stops the stream after the leading sound entries (types 6, 8, 7), so only the bank returns and the sprites stay. The callers are `Game_ReturnFromMenu`, `Game_ReturnFromShop`, `func_801985C8` (fishing), `GameRunMapLoadHandshake`, `UI_PanelOpenMaster` and `Fairy_ReloadPartyBank (commu00)`. `SAVE_RunLoadRestore (emi/etc/start/08)` loads a saved game's party the full way: `PLP`, then `PL`, without the flag.
 
 **Battle sprites.** `Battle_LoadPartySprites` (battle entry) streams one `BPLD` or `BPLU` archive (slot `0x1DB` or `0x1EE` + combination), `BPLU` when `g_BattleScrollDir & 2`. The archive carries a sound bank each for SPU banks 3, 4 and 5 and the sprite container or one section of it at `0x8003B800` (see [EMI archive shapes](../../formats/emi/#character-archives)). `func_801E7948 (emi/battle/battle/03)` reloads the sprites during a battle when a form changes. For combinations 7, 13, 14 and 15 (`247`, `457`, `467`, `478`) it streams `BRTD`/`BRTU` at `0x201 + k` (down) or `0x205 + k` (up) by facing. For the others it streams `BPLD`/`BPLU`, or the slot read from the pointers `D_800B4A64` and `D_800B4A68`. `func_801E75B0` streams the Rei form pair `REID00`/`REID01`/`REIU00`/`REIU01` (`0x23C` to `0x23F`). The other forms are in the same range: `PAPY` (`0x232` to `0x23B`), `RT` (`0x240` to `0x243`), `RYU` (`0x244` to `0x253`), `DRG` (`0x211` to `0x231`) and `CRYU` (`0x209` to `0x20C`). Which pointer table picks which, and what each form is, is `[unknown]`.
 
@@ -199,22 +199,22 @@ The character ids are `CHAR_ID_*`: 0 young Ryu, 1 young Nina, 2 Garr, 3 Teepo, 4
 
 ### Menus, shop and save
 
-The game state table `g_GameStates` has one handler per state. A menu state has three sub-handlers: open (stream the overlay), run (the overlay's own code) and close (restore what the overlay overwrote).
+The game state table `g_GameModes` has one handler per state. A menu state has three sub-handlers: open (stream the overlay), run (the overlay's own code) and close (restore what the overlay overwrote).
 
 | State handler            | Open                   | Archive            | Close                        |
 | ------------------------ | ---------------------- | ------------------ | ---------------------------- |
-| `Game_UpdateMenu`        | `Game_LoadMenuOverlay` | `STATUS` (`0x269`) | `Game_ReturnFromMenu`        |
-| `Game_UpdateShop`        | `Game_LoadShopOverlay` | `SHOP` (`0x266`)   | `Game_ReturnFromShop`        |
-| `Game_UpdateAbilityMenu` | `Game_LoadAbilityMenu` | `BATE` (`0x257`)   | `Game_ReturnFromAbilityMenu` |
-| `Game_UpdateStatusMenu`  | `Game_LoadStatusMenu`  | `SHISU` (`0x265`)  | `Game_ReturnFromStatusMenu`  |
-| `Game_UpdateCampMenu`    | `Game_LoadCampMenu`    | `START` (`0x268`)  | `func_801E1680` `[inferred]` |
+| `Game_MenuUpdate`        | `Game_LoadMenuOverlay` | `STATUS` (`0x269`) | `Game_ReturnFromMenu`        |
+| `Game_ShopUpdate`        | `Game_ShopLoadOverlay` | `SHOP` (`0x266`)   | `Game_ReturnFromShop`        |
+| `Game_AbilityMenuUpdate` | `Game_LoadAbilityMenu` | `BATE` (`0x257`)   | `Game_ReturnFromAbilityMenu` |
+| `Game_ShisuUpdate`       | `Game_LoadStatusMenu`  | `SHISU` (`0x265`)  | `Game_ReturnFromStatusMenu`  |
+| `Game_RunCampMenu`       | `Game_LoadCampMenu`    | `START` (`0x268`)  | `func_801E1680` `[inferred]` |
 
-Every open handler streams the archive, waits, copies the palette (`GFX_CopyPalette`), raises `g_GfxPalettePending` and advances the entry substate. Each archive writes its code to `0x801D0C00`, graphics to two VRAM blocks, and a sound bank to SPU bank 1 (`START` also has an LZ77 bank at `0x8003B800` and `SHOP` more code at `0x801EEC00`).
+Every open handler streams the archive, waits, copies the palette (`GFX_PaletteCopy`), raises `g_GfxPalettePending` and advances the entry substate. Each archive writes its code to `0x801D0C00`, graphics to two VRAM blocks, and a sound bank to SPU bank 1 (`START` also has an LZ77 bank at `0x8003B800` and `SHOP` more code at `0x801EEC00`).
 
 - **Close handlers.** `Game_ReturnFromMenu` first reloads the party with `EMI_LoadPartyArchives` on `g_PartyFieldOrder` when the menu changed the party (`D_80148661`), then restores the `PL` character sprites (flag `0x20`), then loads `COMMU00` when the area has the Fairy Village flag. `Game_ReturnFromShop` does the last two for the shop. `Game_ReturnFromAbilityMenu` and `Game_ReturnFromStatusMenu` restore the `PL` character sprites through `GameRunMapLoadHandshake`. The shop overlay also reloads the party after it changes it: `func_801DE944 (emi/etc/shop/00)` calls `EMI_LoadPartyArchives` on the field order.
-- **`SISYOU`.** `Menu_OpenMaster` (`g_SceneEventStep` 0 to 4) streams `SISYOU` (`0x267`), runs `Menu_ResetMasterPanel` and `Menu_UpdateMaster` from it, and restores the `PL` character sprites in step 3. It polls `EMI_IsReady` instead of waiting.
+- **`SISYOU`.** `UI_PanelOpenMaster` (`g_SceneEventStep` 0 to 4) streams `SISYOU` (`0x267`), runs `Menu_ResetMasterPanel` and `Menu_UpdateMaster` from it, and restores the `PL` character sprites in step 3. It polls `EMI_IsReady` instead of waiting.
 - **Save and load.** The save screen in `emi/etc/start/08` does not stream an archive to write a save. `SAVE_RunLoadRestore` loads a saved game: it rebuilds the party with `PLP` then `PL` for the saved combination, copies the saved scenario state and calls `Scene_LoadOverlay`. See [saving](../../systems/saving/).
-- **Reader.** The open handler advances `g_GameEntrySubstate`, and the next frame calls the run handler from the same table. The run handler is resident (`Game_UpdateMenuFrame` runs `Game_UpdateScenario`, `Menu_DispatchStep` and `Menu_UpdatePanelTasks`); it reaches the overlay's step functions at their fixed addresses. `[inferred]`
+- **Reader.** The open handler advances `g_GameEntrySubstate`, and the next frame calls the run handler from the same table. The run handler is resident (`Game_UpdateMenuFrame` runs `Game_ScenarioUpdate`, `Menu_DispatchStep` and `UI_PanelUpdateTasks`); it reaches the overlay's step functions at their fixed addresses. `[inferred]`
 
 ### Fairy Village
 
@@ -246,7 +246,7 @@ Each archive writes the event code to `0x801D0C00`, graphics to VRAM, two RAM bl
 
 ### Battle magic and effects
 
-A spell or summon effect is a `MAGIC` or `BMAGIC` archive. `Battle_LoadSelectionEffect (emi/battle/battle/15@0x800AE1F8)` and `func_800AE2D4` read the selection id from `g_BattleSelections[...].id` (the table at `0x800B65F8`) and call `EMI_LoadArchive(id)`, unless the id is `0xFFFF`. They then raise `BATTLE_STATE_EFFECT_LOADING`. The ids cover slots `0x122` to `0x1B1`.
+A spell or summon effect is a `MAGIC` or `BMAGIC` archive. `Battle_LoadSelectionEffect (emi/battle/battle/15@0x800AE1F8)` and `func_800AE2D4` read the selection id from `g_BattleSelections[...].id` (the table at `0x800B65F8`) and call `EMI_ArchiveLoad(id)`, unless the id is `0xFFFF`. They then raise `BATTLE_STATE_EFFECT_LOADING`. The ids cover slots `0x122` to `0x1B1`.
 
 - **Entries.** 64 archives are one type-0 entry at `0x801EEC00`, the effect program. 38 add a block at `0x80036C00`, 26 add `0x80036C00` and `0x800C3800`, and 11 more add `0x80033C00`. Some carry their own sound bank in SPU bank 1 (`MAGIC162`). The three `KAIZAR` archives are character-size blocks at `0x8003B800` and `0x80033C00` (see [character sprites](../../formats/character/)).
 - **Reader.** The selection record's handler word, `BattleSelectionAction`, runs the effect program from `0x801EEC00` once the state bit clears. `[inferred]`
@@ -268,38 +268,38 @@ The rest of the area's data stays in RAM because battle writes other windows (`0
 
 Three paths reach VRAM:
 
-- **Archive graphics (type 3).** `EMI_LoadToVram` unpacks the load argument into a start column, a row and a column count before wrap. `EMI_UploadSectorImage` then calls `LoadImage` for each 2,048-byte sector as a 32 by 32 block, bounded to x below 1001 and y below 501.
-- **The palette.** `GFX_UploadPalette` runs each frame. When `g_GfxPalettePending` is set it uploads the rectangle (0, 0x1E0, 0x100, 0x20) from `0x80037800`.
+- **Archive graphics (type 3).** `EMI_LoadToVram` unpacks the load argument into a start column, a row and a column count before wrap. `EMI_SectorUploadImage` then calls `LoadImage` for each 2,048-byte sector as a 32 by 32 block, bounded to x below 1001 and y below 501.
+- **The palette.** `GFX_PaletteUpload` runs each frame. When `g_GfxPalettePending` is set it uploads the rectangle (0, 0x1E0, 0x100, 0x20) from `0x80037800`.
 - **The transfer queue.** `GFX_UpdateTransferQueue` runs each frame and walks `D_80145A00`. Type 1 expands RGB555, type 2 decodes LZSS, anything else is a `LoadImage`.
 
 No wait for `LoadImage` to finish was found in the loader. The image formats are in [graphics](../../formats/graphics/).
 
 ### Audio banks
 
-`SND_SetBankLayout(layout)` runs before a bank stream. Layout 0 is set by `SYS_StartFrontend` and `Game_StartSelectedGame`, layout 2 by `Game_BeginTitle` and layout 1 by the battle entry. The tables are in [memory](../memory/#sound-memory). A bank archive then carries three entries:
+`SND_SetBankLayout(layout)` runs before a bank stream. Layout 0 is set by `SYS_StartFrontend` and `Title_StartSelectedGame`, layout 2 by `Title_Begin` and layout 1 by the battle entry. The tables are in [memory](../memory/#sound-memory). A bank archive then carries three entries:
 
 - Type 6 copies the header into the bank record and closes the old sequence with `SsSepClose`.
-- Type 7 sets SPU DMA mode, calls `SsVabClose` and `SsVabOpenHeadSticky` with the bank record. In ring state 4, `EMI_UploadVabBody` moves the body with `SsVabTransBodyPartly` and `SsVabTransCompleted`, opens the sequence with `SsSepOpenJ`, and may call `SND_PlaySequence`.
+- Type 7 sets SPU DMA mode, calls `SsVabClose` and `SsVabOpenHeadSticky` with the bank record. In ring state 4, `EMI_VabUploadBody` moves the body with `SsVabTransBodyPartly` and `SsVabTransCompleted`, opens the sequence with `SsSepOpenJ`, and may call `SND_SeqPlay`.
 - Type 8 copies the cue table. Types 9 and 10 copy the sequence and set flag bit 2.
 
-`SND_SetBankLayout(layout)` runs before a bank stream: layout 0 by `SYS_StartFrontend` and `Game_StartSelectedGame`, layout 2 by `Game_BeginTitle`, layout 1 by the battle entry. The per-type entry handling is in [audio](../../systems/audio/#banks); the tables are in [memory](../../concepts/memory/#sound-memory).
+`SND_SetBankLayout(layout)` runs before a bank stream: layout 0 by `SYS_StartFrontend` and `Title_StartSelectedGame`, layout 2 by `Title_Begin`, layout 1 by the battle entry. The per-type entry handling is in [audio](../../systems/audio/#banks); the tables are in [memory](../../concepts/memory/#sound-memory).
 
 ### Music
 
-`SND_StartBGM (exe/slus_004_22@0x80161B24)` takes a track id (`0xFF` means none), a cue level and a cue shape. It calls `SND_RequestBGM (exe/slus_004_22@0x80161BBC)`, which reads `bank_slot` from `g_BGMTracks[id]` and calls `EMI_LoadArchive(bank_slot)` only when it differs from the bank of the track now playing, or when none plays. A return of 1 makes `SND_StartBGM` wait for `EMI_IsReady`; then `SND_PlayBGM` starts the sequence unless that track is already active. The 165 tracks share the 81 `BGM` archives (`0xD1` to `0x121`): tracks 0 and 1 are two sequences of `0xD1`, for example, so switching between them loads nothing.
+`SND_BGMStart (exe/slus_004_22@0x80161B24)` takes a track id (`0xFF` means none), a cue level and a cue shape. It calls `SND_BGMRequest (exe/slus_004_22@0x80161BBC)`, which reads `bank_slot` from `g_BGMTracks[id]` and calls `EMI_ArchiveLoad(bank_slot)` only when it differs from the bank of the track now playing, or when none plays. A return of 1 makes `SND_BGMStart` wait for `EMI_IsReady`; then `SND_PlayBGM` starts the sequence unless that track is already active. The 165 tracks share the 81 `BGM` archives (`0xD1` to `0x121`): tracks 0 and 1 are two sequences of `0xD1`, for example, so switching between them loads nothing.
 
-Scenario code calls `SND_RequestBGM` alone (`scena00`, `scena16`, `scena17`, `commu02`, `commu03`), so the load runs while the scene continues. `SND_StartBGM` is called by `func_8019FAA0` on every area load and by the area script op in `func_801A96E4`. A `BGM` archive is a type-6 header, a type-10 sequence and a type-7 body for SPU bank 0, with no code ([audio](../../systems/audio/)).
+Scenario code calls `SND_BGMRequest` alone (`scena00`, `scena16`, `scena17`, `commu02`, `commu03`), so the load runs while the scene continues. `SND_BGMStart` is called by `Game_EnterArea` on every area load and by the area script op in `func_801A96E4`. A `BGM` archive is a type-6 header, a type-10 sequence and a type-7 body for SPU bank 0, with no code ([audio](../../systems/audio/)).
 
 ### XA audio
 
-XA audio plays straight from the disc to the SPU and never passes through main RAM. `SND_StartXAStream (exe/slus_004_22@0x801636A0)` sets `g_EmiServiceMode` to 2 and `g_EmiServiceState` to 1. It resolves the start and end of the stream with `SND_ResolveXAStream` from the three files' slot ids (`0x2A9`, `0x1B2`, `0x2AA`) and installs `SND_StoreXASyncResult` as the CD-sync callback.
+XA audio plays straight from the disc to the SPU and never passes through main RAM. `SND_XAStartStream (exe/slus_004_22@0x801636A0)` sets `g_EmiStreamMode` to 2 and `g_EmiServiceState` to 1. It resolves the start and end of the stream with `SND_XAResolveStream` from the three files' slot ids (`0x2A9`, `0x1B2`, `0x2AA`) and installs `SND_StoreXASyncResult` as the CD-sync callback.
 
-`SND_UpdateXA (exe/slus_004_22@0x801638B0)` runs one state per frame from `g_XaStateFuncs (exe/slus_004_22@0x80183274)`: 0 idle, 1 seek, 2 seek result, 3 set filter and start reading, 4 progress, 5 read the position until it reaches the end bound, 6 pause with a CD volume fade, 7 pause result, 8 wait for sync. A timeout of 181 ticks allows up to 6 retries. `SND_StartXAStream` clears the state byte, so `EMI_IsReady` is false until state 7. The callers are:
+`SND_XAUpdate (exe/slus_004_22@0x801638B0)` runs one state per frame from `g_SndXAStates (exe/slus_004_22@0x80183274)`: 0 idle, 1 seek, 2 seek result, 3 set filter and start reading, 4 progress, 5 read the position until it reaches the end bound, 6 pause with a CD volume fade, 7 pause result, 8 wait for sync. A timeout of 181 ticks allows up to 6 retries. `SND_XAStartStream` clears the state byte, so `EMI_IsReady` is false until state 7. The callers are:
 
 | Caller                                                      | Key                       | When                               |
 | ----------------------------------------------------------- | ------------------------- | ---------------------------------- |
 | `Scene_RunInn`, `ClearImage`, `func_801D65A0` (`menu/shop`) | `0`                       | inn and save events                |
-| `func_801A83DC` (`emi/etc/game/00`)                         | `9`                       | a field event                      |
+| `Scene_RunGeneFound` (`emi/etc/game/00`)                    | `9`                       | a field event                      |
 | `func_801AB458` (`emi/etc/game/00`)                         | the `u16` in the script   | actor script op `0x89`             |
 | `func_801F23A4` (`commu00`)                                 | `8` or `10`               | a Fairy Village event              |
 | `func_801DDF50` (`battle/03`)                               | `0x1000 +` an entry value | a battle cue; the `BMAG_XA` stream |
@@ -313,17 +313,17 @@ The only movie code is in `LOGO.EXE`, which [boot](../../systems/boot/#the-logo-
 
 ### Executable load
 
-`SYS_LoadExec (exe/slus_004_22@0x8014E0FC)` is the only direct disc read outside the stream. It is blocking: `SYS_ReadCd` calls `CdRead`, then loops on `CdReadSync(1)` and `VSync(0)`, with up to 10 attempts. No thread runs and no frame is drawn while it reads. It loads `LOGO.EXE` once, at boot ([boot](../../systems/boot/)).
+`SYS_LoadExe (exe/slus_004_22@0x8014E0FC)` is the only direct disc read outside the stream. It is blocking: `SYS_ReadCd` calls `CdRead`, then loops on `CdReadSync(1)` and `VSync(0)`, with up to 10 attempts. No thread runs and no frame is drawn while it reads. It loads `LOGO.EXE` once, at boot ([boot](../../systems/boot/)).
 
 ## Data and limits
 
 | Data                        | Type                  | Address                      | Role                                                                          |
 | --------------------------- | --------------------- | ---------------------------- | ----------------------------------------------------------------------------- |
 | `g_EmiSlotLbas`             | `u32[]`               | `exe/slus_004_22@0x80182444` | slot id to LBA                                                                |
-| `g_EmiEntryHandlers`        | `u32[11]`             | `exe/slus_004_22@0x80183248` | entry type to handler                                                         |
-| `g_EmiCdSteps`              | `u32[]`               | `exe/slus_004_22@0x80149C3C` | CD step functions                                                             |
-| `g_EmiRingSlotHandlers`     | `SystemDispatchFuncs` | `exe/slus_004_22@0x80149C60` | ring slot state to drain function                                             |
-| `g_EmiServiceMode`          | `u8`                  | `exe/slus_004_22@0x80146840` | CD owner: 0 idle, 1 EMI, 2 XA                                                 |
+| `g_EmiEntryTypes`           | `u32[11]`             | `exe/slus_004_22@0x80183248` | entry type to handler                                                         |
+| `g_CdStateHandlers`         | `u32[]`               | `exe/slus_004_22@0x80149C3C` | CD step functions                                                             |
+| `g_EmiRingSteps`            | `SystemDispatchFuncs` | `exe/slus_004_22@0x80149C60` | ring slot state to drain function                                             |
+| `g_EmiStreamMode`           | `u8`                  | `exe/slus_004_22@0x80146840` | CD owner: 0 idle, 1 EMI, 2 XA                                                 |
 | `g_EmiStreamState`          | `u8`                  | `exe/slus_004_22@0x80146494` | stream state byte; 3 means ready                                              |
 | `g_EmiLoadedCharacterIndex` | `u8`                  | `exe/slus_004_22@0x80145024` | loaded party combination; bit 7 marks the `PL` character sprites; `0xFF` none |
 | `D_80181B34`                | `u8[20][3]`           | `exe/slus_004_22@0x80181B34` | characters of each party combination                                          |
@@ -331,9 +331,9 @@ The only movie code is in `LOGO.EXE`, which [boot](../../systems/boot/#the-logo-
 | `g_BossArchiveSlots`        | `u16[42]`             | `emi/etc/game/00@0x801CD86C` | battle archive: `BATTLE` (6) or a `BOSS` slot                                 |
 | `g_EmiStreamFlags`          | `u8`                  | `exe/slus_004_22@0x80146854` | stream flags; bit `0x20` loads only leading audio entries                     |
 | `g_EmiRingBase`             | `u32`                 | `exe/slus_004_22@0x80146464` | ring base, `0x800E4800`                                                       |
-| `g_XaStateFuncs`            | `u32[55]`             | `exe/slus_004_22@0x80183274` | XA state table                                                                |
+| `g_SndXAStates`             | `u32[55]`             | `exe/slus_004_22@0x80183274` | XA state table                                                                |
 | `g_GameBattleSubstates`     | `Callback[8]`         | `emi/etc/game/00@0x801C7B54` | battle entry functions                                                        |
-| `g_SceneScenes`             | `void*[20]`           | `emi/etc/game/00@0x801C8454` | the 20 scenario controller pointers                                           |
+| `g_ScenarioHandlers`        | `void*[20]`           | `emi/etc/game/00@0x801C8454` | the 20 scenario controller pointers                                           |
 
 ## Open questions
 
@@ -341,17 +341,17 @@ The only movie code is in `LOGO.EXE`, which [boot](../../systems/boot/#the-logo-
 | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
 | What restores the non-audio data after a battle                                                        | `Battle_ReloadAreaAudio` reloads only area audio, and `BATTLE.EMI` writes the text table at `0x8001A000` |
 | Whether anything awaits the completion of a `LoadImage`                                                | Read the draw and loader code for a `DrawSync` after the upload                                          |
-| Whether a wider game state keeps `SND_StartXAStream` from starting during an EMI stream                | No check exists in its callers; trace a run that plays XA during a load                                  |
+| Whether a wider game state keeps `SND_XAStartStream` from starting during an EMI stream                | No check exists in its callers; trace a run that plays XA during a load                                  |
 | Callers of `0x263` (`MTEST`) and `0x264` (`RTEST`)                                                     | No constant or table holds them; they may be unused test archives                                        |
 | Where `COMMU00` first loads on entry to the Fairy Village                                              | The menu close handlers reload it; the first load is in no caller read                                   |
 | What `COMMU01` to `COMMU05` are in the village                                                         | Read the event code at `0x801D0C00` in each archive                                                      |
 | Which pointer table picks each battle form archive (`D_800B4A64`, `D_800B4A68`) and what the forms are | Find where the two pointers are set, and read the `BRT`, `CRYU`, `DRG`, `PAPY`, `RT` and `RYU` archives  |
-| The conditions in `func_8019FAA0` that choose a world or area change                                   | The function branches on state values not yet traced                                                     |
+| The conditions in `Game_EnterArea` that choose a world or area change                                  | The function branches on state values not yet traced                                                     |
 
 ## Sources and confidence
 
-- **Confidence:** medium. The request flow, the entry types and every call site of `EMI_LoadArchive`, `EMI_GetArchiveId`, `EMI_LoadPartyArchives`, `SND_RequestBGM`, `SND_StartBGM`, `SND_SetBankLayout`, `SND_StartXAStream` and `SYS_LoadExec` are read in the code. The guards against a window overwrite, the party search in `EMI_FindPartyArchive` (unmatched) and the runtime callers of the loaded overlays are `[inferred]` or `[unknown]`.
-- **Evidence:** `EMI_LoadArchive`, `EMI_CdOnReady`, `EMI_UpdateStream`, `g_EmiEntryHandlers`, `SND_UpdateXA`, `SYS_LoadExec`; the table of contents of `AREA001` and of every archive that a constant slot names; every call site of the request functions; the party combination table.
+- **Confidence:** medium. The request flow, the entry types and every call site of `EMI_ArchiveLoad`, `EMI_ArchiveLoadFamily`, `EMI_LoadPartyArchives`, `SND_BGMRequest`, `SND_BGMStart`, `SND_SetBankLayout`, `SND_XAStartStream` and `SYS_LoadExe` are read in the code. The guards against a window overwrite, the party search in `EMI_PartyFindArchive` (unmatched) and the runtime callers of the loaded overlays are `[inferred]` or `[unknown]`.
+- **Evidence:** `EMI_ArchiveLoad`, `CD_OnReady`, `EMI_UpdateStream`, `g_EmiEntryTypes`, `SND_XAUpdate`, `SYS_LoadExe`; the table of contents of `AREA001` and of every archive that a constant slot names; every call site of the request functions; the party combination table.
 
 ## Related
 

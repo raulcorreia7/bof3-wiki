@@ -70,36 +70,36 @@ record
 
 Example: `dir_bytes = 0x10`, so `L = 4` and the directory is `0x10`, `0x80`, `0x120`, `0x1A0`. Section 2 starts at table offset `0x120`. If its first halfword is `0x08`, its table is 8 bytes (`M = 4` offsets) and record 0 starts at section offset `0x08`. If its table entry 3 is `0x40`, record 3 is at section offset `0x40`, table offset `0x160`.
 
-`Actor_BeginScript (exe/slus_004_22@0x8014D6DC)` resolves a record through the pointer `g_ScriptBank`:
+`Script_Begin (exe/slus_004_22@0x8014D6DC)` resolves a record through the pointer `g_ScriptBank`:
 
 ```text
 section = u32[table + 4 * lhu(work + 0x2C)]
 record  = table + section + u16[table + section + 2 * lbu(work + 0x4B)]
 ```
 
-`SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` sets the pointer to `0x800D3800`. The battle handlers swap in `0x800F0800` around each handler call and restore `0x800D3800` afterwards (`func_801E6724 (emi/battle/battle/03@0x801E6724)`, `func_801E6C84 (emi/battle/battle/03@0x801E6C84)`). When bit 0 of work `+0x24` is set, `Actor_BeginScript` takes the record from the actor's character table (work `+0x4C`) through `Actor_SelectScriptBank (exe/slus_004_22@0x8014DC08)` instead, and the same step code reads it. No record stores its length; the table offsets are the only record boundaries. `Actor_CopyScriptEntry (exe/slus_004_22@0x8014D54C)` does not read this table: it selects a record through `Actor_SelectScriptBank` and copies a byte count its caller passes: `0xA00` from `Battle_LoadPartyScripts (emi/etc/game/00@0x801BEE5C)` and `0x1800` from `Battle_ReloadPartyBank (emi/battle/battle/03@0x801D6F28)` and `func_801DEFE4 (emi/battle/battle/03@0x801DEFE4)`.
+`SYS_StartFrontend (exe/slus_004_22@0x8014EA80)` sets the pointer to `0x800D3800`. The battle handlers swap in `0x800F0800` around each handler call and restore `0x800D3800` afterwards (`func_801E6724 (emi/battle/battle/03@0x801E6724)`, `func_801E6C84 (emi/battle/battle/03@0x801E6C84)`). When bit 0 of work `+0x24` is set, `Script_Begin` takes the record from the actor's character table (work `+0x4C`) through `Actor_SelectSprite (exe/slus_004_22@0x8014DC08)` instead, and the same step code reads it. No record stores its length; the table offsets are the only record boundaries. `Script_CopyRecord (exe/slus_004_22@0x8014D54C)` does not read this table: it selects a record through `Actor_SelectSprite` and copies a byte count its caller passes: `0xA00` from `Game_BattleLoadPartyScripts (emi/etc/game/00@0x801BEE5C)` and `0x1800` from `Battle_ReloadPartyBank (emi/battle/battle/03@0x801D6F28)` and `func_801DEFE4 (emi/battle/battle/03@0x801DEFE4)`.
 
 `u16[0]` is both the table size and record 0's offset, so every section describes itself. In all 2,380 sections the distinct offsets of a table increase strictly, and the spans between them tile the section from the table end to its end. 308 of the 2,380 tables contain a descent (51 byte-identical tables, the most used 23 times, across 88 archives) and 225 more contain only equal words. An entry may repeat an earlier offset and then shares that record.
 
 ### Script record
 
-`Actor_SeekScript (exe/slus_004_22@0x8014D910)` reads byte 1 as the step count, moves the cursor (work `+0x50`) past the two count bytes and points the frame table (work `+0x54`) at `cursor + 2 * steps`. `Actor_StageAnimStep (exe/slus_004_22@0x8014DB98)` loads one step: it stores the hold byte to work `+0x4A` and the frame-table entry that the frame byte selects to work `+0x5A`.
+`Script_Seek (exe/slus_004_22@0x8014D910)` reads byte 1 as the step count, moves the cursor (work `+0x50`) past the two count bytes and points the frame table (work `+0x54`) at `cursor + 2 * steps`. `Script_AnimStageStep (exe/slus_004_22@0x8014DB98)` loads one step: it stores the hold byte to work `+0x4A` and the frame-table entry that the frame byte selects to work `+0x5A`.
 
 |             Offset |         Size | Type           | Meaning                                                                                     |
 | -----------------: | -----------: | -------------- | ------------------------------------------------------------------------------------------- |
 |             `0x00` |            1 | `u8`           | frame count, the number of frame-table entries `[inferred]`; the step code does not read it |
-|             `0x01` |            1 | `u8`           | step count; `Actor_SeekScript` stores it to work `+0x49`                                    |
+|             `0x01` |            1 | `u8`           | step count; `Script_Seek` stores it to work `+0x49`                                         |
 |             `0x02` |  `2 * steps` | `u8[2][steps]` | one (hold, frame) pair per step                                                             |
 | `0x02 + 2 * steps` | `2 * frames` | `u16[frames]`  | frame offsets, relative to the start of this table                                          |
 |    after the table |            - | `u8`, parts    | each frame is a `u8` part count, then that many 5-byte parts                                |
 
 A step is a hold byte and a frame index. A step function counts the hold down by one per call and loads the next step at zero. A hold of `0x80` or more makes the pair a jump: it moves to the step whose index is the second byte, loads it at once and reports 1. The three step functions differ only at the end of the list.
 
-| Step function                                        | After the last step                                                                                 |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `Actor_StepAnimLoop (exe/slus_004_22@0x8014D978)`    | starts again at step 0 and reports 1                                                                |
-| `Actor_StepAnimOnce (exe/slus_004_22@0x8014DAEC)`    | keeps the last frame and reports 1 on each later call                                               |
-| `Actor_StepAnimReverse (exe/slus_004_22@0x8014DA24)` | walks the steps backward without jumps; after step 0 it starts again at the last step and reports 1 |
+| Step function                                         | After the last step                                                                                 |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `Script_AnimStepLoop (exe/slus_004_22@0x8014D978)`    | starts again at step 0 and reports 1                                                                |
+| `Script_AnimStepOnce (exe/slus_004_22@0x8014DAEC)`    | keeps the last frame and reports 1 on each later call                                               |
+| `Script_AnimStepReverse (exe/slus_004_22@0x8014DA24)` | walks the steps backward without jumps; after step 0 it starts again at the last step and reports 1 |
 
 ### Frame parts
 
@@ -272,9 +272,9 @@ The area's CLUT entries fill slices of one 16 KiB CLUT arena (256 units of 64 by
 | `0x80035800`               |          `+0x2000` | 200 WORLD archives                        |
 | `0x80036E00`               |          `+0x3600` | BATTLE palettes (shared 512-byte overlay) |
 
-`GFX_ResetPalette (exe/slus_004_22@0x8014E284)` zeroes arena rows 28 to 31 (`+0x3800` to `+0x3FFF`) and copies all 32 rows to the working copy. Its callers are `SYS_StartFrontend`, `etc/game/00` (`@0x80196FFC` and `@0x8019FAA0`), `etc/game/01` `Game_BeginTitle`, `etc/commu00/00` (`@0x801F17A4`) and `scenario/scena17/00` (`@0x801F7750`). `GFX_UploadPalette (exe/slus_004_22@0x8014E22C)` uploads the working copy once per frame while `g_GfxPalettePending` is nonzero ([rendering](../../systems/rendering/)). Every palette writer raises that flag.
+`GFX_PaletteReset (exe/slus_004_22@0x8014E284)` zeroes arena rows 28 to 31 (`+0x3800` to `+0x3FFF`) and copies all 32 rows to the working copy. Its callers are `SYS_StartFrontend`, `etc/game/00` (`@0x80196FFC` and `@0x8019FAA0`), `etc/game/01` `Title_Begin`, `etc/commu00/00` (`@0x801F17A4`) and `scenario/scena17/00` (`@0x801F7750`). `GFX_PaletteUpload (exe/slus_004_22@0x8014E22C)` uploads the working copy once per frame while `g_GfxPalettePending` is nonzero ([rendering](../../systems/rendering/)). Every palette writer raises that flag.
 
-`GFX_CopyPalette (exe/slus_004_22@0x8014E3A0)` copies one arena row into the same working row. `battle/battle/03`, `battle/battle/15`, `battle/batl_ovr/00`, `bmagic/magic057/03`, `etc/game/00` and `scenario/scena17/00` call it. Battle code moves single rows this way:
+`GFX_PaletteCopy (exe/slus_004_22@0x8014E3A0)` copies one arena row into the same working row. `battle/battle/03`, `battle/battle/15`, `battle/batl_ovr/00`, `bmagic/magic057/03`, `etc/game/00` and `scenario/scena17/00` call it. Battle code moves single rows this way:
 
 - `battle/battle/03` `@0x801D1228` copies rows 26 and 27, so the `+0x3600` battle CLUT block (`BATTLE/BATL_RE2.EMI#1`) reaches VRAM row 507.
 - `battle/battle/15` `@0x800AFC54` copies arena row 2 (`0x80033C00`) into working row 2, and `@0x800AFB48` copies CLUT runs inside the working copy into row 2.
@@ -383,7 +383,7 @@ Over the 200 retail bundles there are 1,263,531 cells, and 688,714 (54.5 percent
 
 Readers: `@0x80153DE8` (area init, publishes `g_AreaCellCodes`), `@0x80166CB0` (byte code), `@0x8015477C` (height query, 538 direct call sites: 7 in the executable and 531 across the overlay images), `@0x801530D0`, `@0x8015684C` and `@0x80157CE4` (mesh), `@0x80154438` and `@0x80158400` (grid), `@0x801576FC`, `@0x80157F98`, `@0x801580A4` and `@0x80158B24` (record lists), `@0x80155560` (tile tables) and `@0x80156ED4` (inline colors). `emi/etc/game/00` reads the grid at `@0x8019C4F0`, `@0x8019C794` and `@0x8019EC20`, and writes the byte code at `@0x801A4BC0`. Writers are limited to the byte-code table, the height table, the runtime color words and the record fields. No loader fixup exists.
 
-The `+0x20` and `+0x22` lists use a header word whose byte 3 is the dispatcher opcode and byte 2 the size in words. The dispatch tables are `D_8017F8F0` (mask `0x3F`) and `D_8017F8FC` (mask `0x7F`). The `+0x24` cells start with `{y, x, size}`, and the `+0x28` objects start with `{tag, body_words}`.
+The `+0x20` and `+0x22` lists use a header word whose byte 3 is the dispatcher opcode and byte 2 the size in words. The dispatch tables are `D_8017F8F0` (mask `0x3F`) and `g_BundleRecordOpcodes` (mask `0x7F`). The `+0x24` cells start with `{y, x, size}`, and the `+0x28` objects start with `{tag, body_words}`.
 
 ### Not decoded
 
@@ -408,20 +408,20 @@ Nineteen payloads hold no `addiu $sp` and no `jr $ra` at any word offset, so the
 
 ## Open questions
 
-| Question                                                                                | What would settle it                                                 |
-| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Names behind byte-code values; operands of the `+0x20` and `+0x22` record lists         | the dispatch tables `D_8017F8F0` and `D_8017F8FC` and their handlers |
-| Value range of header word `scroll` (map bundle `+0x1E`)                                | a re-measurement of the 76 nonzero values                            |
-| Which battle background upload a battle draws, and its palette                          | the battle code that selects a `BATL_*` upload                       |
-| The loader and palette of the world-map uploads in `AREA000` and the 11 world-map areas | the code that reads entries 5 and 7                                  |
-| The script that ends the 10 enemies with HP `0xFFFF`                                    | a trace of one such fight                                            |
-| Whether any code reads byte 0 of a script record, the frame count                       | a reader of that byte                                                |
-| Bits 4 to 6 of a frame part's `size` byte                                               | a reader of those bits                                               |
+| Question                                                                                | What would settle it                                                            |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Names behind byte-code values; operands of the `+0x20` and `+0x22` record lists         | the dispatch tables `D_8017F8F0` and `g_BundleRecordOpcodes` and their handlers |
+| Value range of header word `scroll` (map bundle `+0x1E`)                                | a re-measurement of the 76 nonzero values                                       |
+| Which battle background upload a battle draws, and its palette                          | the battle code that selects a `BATL_*` upload                                  |
+| The loader and palette of the world-map uploads in `AREA000` and the 11 world-map areas | the code that reads entries 5 and 7                                             |
+| The script that ends the 10 enemies with HP `0xFFFF`                                    | a trace of one such fight                                                       |
+| Whether any code reads byte 0 of a script record, the frame count                       | a reader of that byte                                                           |
+| Bits 4 to 6 of a frame part's `size` byte                                               | a reader of those bits                                                          |
 
 ## Sources and confidence
 
 - **Confidence:** medium. The block formats, script table and map bundle header are checked on all 200 archives, and the script record grammar is read in the step and draw code; the byte-code names, `scroll` and the battle and world-map graphics are not decoded.
-- **Evidence:** the 200 area archives, the loader and the area, field and battle functions named above. The script record grammar comes from `Actor_BeginScript`, `Actor_SeekScript`, `Actor_StageAnimStep`, the three step functions and `Area_DrawObjectSprite`. The frame count at record byte 0 is `[inferred]` from the layout. The script table holds no opcodes, so the event-script opcodes in the community [bof3-script-editor](https://github.com/glitch-in-the-herring/bof3-script-editor) (MIT) do not describe it ([sources](../../appendix/sources/)).
+- **Evidence:** the 200 area archives, the loader and the area, field and battle functions named above. The script record grammar comes from `Script_Begin`, `Script_Seek`, `Script_AnimStageStep`, the three step functions and `Area_DrawObjectSprite`. The frame count at record byte 0 is `[inferred]` from the layout. The script table holds no opcodes, so the event-script opcodes in the community [bof3-script-editor](https://github.com/glitch-in-the-herring/bof3-script-editor) (MIT) do not describe it ([sources](../../appendix/sources/)).
 
 ## Related
 

@@ -149,7 +149,7 @@ A note-on uses `fine = 0`: `_SsNoteOn`, `_SsVmKeyOn` and `_SsVmSelectToneAndVag`
 
 ## EMI type-8 cue records
 
-A type-8 entry is one bank's sound-effect cue table: a list of 4-byte records, each naming an SPU voice, a VAB program and a tone. The loader copies the payload into a fixed chunk, and `SND_PlayCue (exe/slus_004_22@0x8015DF18)` turns a record into `SsUtKeyOnV` and `SsUtSetDetVVol` calls.
+A type-8 entry is one bank's sound-effect cue table: a list of 4-byte records, each naming an SPU voice, a VAB program and a tone. The loader copies the payload into a fixed chunk, and `SND_SEPlay (exe/slus_004_22@0x8015DF18)` turns a record into `SsUtKeyOnV` and `SsUtSetDetVVol` calls.
 
 | Item   | Value                                                                                                                     |
 | ------ | ------------------------------------------------------------------------------------------------------------------------- |
@@ -157,7 +157,7 @@ A type-8 entry is one bank's sound-effect cue table: a list of 4-byte records, e
 | Bank   | TOC load argument 0 to 6; type-8 selectors are a subset of the container's type-6 selectors in 731 of 731 containers      |
 | Chunk  | `0x801486A0 + 124 * bank`, banks 0 to 6; 31 records per chunk, at most 24 on the disc                                     |
 | Reader | `g_SndCueReaders[bank]`: `0x8015E994`, `0x8015EFAC`, `0x8015F5C8`, `0x8015FBE4`, `0x80160200`, `0x8016081C`, `0x80160E38` |
-| Cue id | `(bank << 8) \| record_index`; `SND_PlayCue` splits it into `(cue_id >> 8) & 0xF` and `cue_id & 0xFF`                     |
+| Cue id | `(bank << 8) \| record_index`; `SND_SEPlay` splits it into `(cue_id >> 8) & 0xF` and `cue_id & 0xFF`                      |
 
 [EMI load argument](../emi/#load-argument) lists the bank selectors by archive type. Record fields:
 
@@ -248,11 +248,11 @@ Over the 476 sequences (508,471 events):
 |      Address | Function                | Role                                                                             |
 | -----------: | ----------------------- | -------------------------------------------------------------------------------- |
 | `0x8015CEBC` | `SND_Exit`              | all-key-off, close active VAB ids, release seven slots, disable reverb           |
-| `0x8015D044` | `SND_UpdateVoiceStatus` | poll all 24 SPU voices into the game voice-state table                           |
-| `0x8015DF18` | `SND_PlayCue`           | queued cue dispatcher; `SsUtKeyOnV` and detailed voice-volume operations         |
-| `0x80161BBC` | `SND_RequestBGM`        | ensure one logical audio bank is active, starting the EMI stream when it differs |
-| `0x80161C20` | `SND_PlayBgm`           | start the selected BGM cue and record its id in `g_SndBgmId`                     |
-| `0x80161CD0` | `SND_FadeOutBgm`        | fade out the selected BGM cue                                                    |
+| `0x8015D044` | `SND_VoiceUpdateStatus` | poll all 24 SPU voices into the game voice-state table                           |
+| `0x8015DF18` | `SND_SEPlay`            | queued cue dispatcher; `SsUtKeyOnV` and detailed voice-volume operations         |
+| `0x80161BBC` | `SND_BGMRequest`        | ensure one logical audio bank is active, starting the EMI stream when it differs |
+| `0x80161C20` | `SND_BGMPlay`           | start the selected BGM cue and record its id in `g_SndBGMId`                     |
+| `0x80161CD0` | `SND_BGMFadeOut`        | fade out the selected BGM cue                                                    |
 
 All are in `exe/slus_004_22`. `SND_Exit` is neither the music scheduler nor the bootstrap entry. A standalone player must reproduce the tables the EMI loader fills before it calls the cue-start path.
 
@@ -266,7 +266,7 @@ All are in `exe/slus_004_22`. `SND_Exit` is neither the music scheduler nor the 
 ## Sources and confidence
 
 - **Confidence:** medium. The VAB, cue-record and SEP layouts are checked on every instance; two cue-record fields have no known role and a standalone player's tables are not traced.
-- **Evidence:** the linked PsyQ 3.7 `libsnd` structures and routines, the seven cue readers and `SND_PlayCue`, and checks over all 1,020 banks, 904 cue tables and 119 SEP packages. The SPU model (ADPCM, ADSR, interpolation, reverb) follows [psx-spx](https://psx-spx.consoledev.net/soundprocessingunitspu/) ([sources](../../appendix/sources/)); the XA sound group follows the psx-spx [XA ADPCM section](https://psx-spx.consoledev.net/cdromformat/).
+- **Evidence:** the linked PsyQ 3.7 `libsnd` structures and routines, the seven cue readers and `SND_SEPlay`, and checks over all 1,020 banks, 904 cue tables and 119 SEP packages. The SPU model (ADPCM, ADSR, interpolation, reverb) follows [psx-spx](https://psx-spx.consoledev.net/soundprocessingunitspu/) ([sources](../../appendix/sources/)); the XA sound group follows the psx-spx [XA ADPCM section](https://psx-spx.consoledev.net/cdromformat/).
 
 ## Related
 

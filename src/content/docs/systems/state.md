@@ -24,7 +24,7 @@ Offsets in the table are block-relative. The save-file frame adds `0x200` ([game
 | `+0x79`  | `0x80144951` |     1 | `u8`                 | -                           | stereo or mono sound flag, read by `SAVE_RunLoadVerify`      |
 | `+0x7A`  | `0x80144952` |     2 | `u8[2]` `[inferred]` | `D_80144952`, `53`          | window style and palette bytes `[inferred]`                  |
 | `+0x90`  | `0x80144968` | 1,312 | `Character[8]`       | `g_Characters`              | 8 records of 164 bytes                                       |
-| `+0x5B0` | `0x80144E88` |   160 | `u8[160]`            | `g_SceneFlagWords`          | 20 scenario flag words of 8 bytes                            |
+| `+0x5B0` | `0x80144E88` |   160 | `u8[160]`            | `g_SceneFlagRows`           | 20 scenario flag rows of 8 bytes                             |
 | `+0x650` | `0x80144F28` |    40 | `u8[40]`             | `g_SceneEventFlags`         | event flag bits                                              |
 | `+0x678` | `0x80144F50` |     4 | `u32`                | `g_Zenny`                   | the party's money                                            |
 | `+0x682` | `0x80144F5A` | 3 + 3 | `u8[3]` each         | `D_80144F5A`, `D_80144F5D`  | field order, then battle order                               |
@@ -45,7 +45,7 @@ Notes on the table:
 
 - The slot summary is written by `SAVE_BuildSlotImage (emi/etc/shop/00@0x801D69E0)` just before each save and read back by the slot lists. [Saving](../saving/#building-the-image) lists its fields.
 - `SAVE_RunLoadRestore` restores the button masks from `0x80145594` into `g_InputMasks`.
-- `g_SceneFlags` is a pointer into `g_SceneFlagWords`, `scenario_id * 8` bytes in. `Scene_Start (emi/etc/game/00@0x801A7704)` sets it, and `SAVE_RunLoadRestore` rebuilds it after a load.
+- `g_SceneFlags` is a pointer into `g_SceneFlagRows`, `scenario_id * 8` bytes in. `Scene_Start (emi/etc/game/00@0x801A7704)` sets it, and `SAVE_RunLoadRestore` rebuilds it after a load.
 - Only the low byte of `g_GameFlags` (a `u16` at `0x80146258`) is saved, through `D_80145025`.
 
 ### Not persistent
@@ -62,7 +62,7 @@ The game rebuilds or resets each of these.
 | `0x80146254`               | `u8`             | `g_PartySize`                             | party size, recomputed from the order array by `Party_CountOrder` |
 | overlay windows            | -                | area, scene and actor tables              | reloaded with the area and scenario overlays `[inferred]`         |
 
-`g_GameState` is not game progress. `func_801E3EC4 (emi/etc/start/08@0x801E3EC4)` points it at a `g_BattlePartyBattlers` row for the camp menu, and `Party_BuildBattlers (emi/etc/game/00@0x801C1400)` points it at one row per party member for the field.
+`g_GameState` is not game progress. `func_801E3EC4 (emi/etc/start/08@0x801E3EC4)` points it at a `g_BattlePartyBattlers` row for the camp menu, and `Party_BattlersBuild (emi/etc/game/00@0x801C1400)` points it at one row per party member for the field.
 
 ## How the block changes
 
@@ -70,7 +70,7 @@ Four things write the block: a new game, the field and its menus, a save, and a 
 
 ```mermaid
 flowchart TD
-    NG["New game<br/>Game_StartSelectedGame<br/>emi/etc/game/01@0x801D0E54"]
+    NG["New game<br/>Title_StartSelectedGame<br/>emi/etc/game/01@0x801D0E54"]
     DEF["Party_InitDefaults<br/>emi/etc/start/08@0x801D15C0<br/>copy default records"]
     LD["Load<br/>SAVE_RunLoadVerify and SAVE_RunLoadRestore<br/>start/08"]
     BLK[("Persistent block<br/>0x801448D8 to 0x80145988")]
@@ -85,7 +85,7 @@ flowchart TD
     CARD --> LD --> BLK
 ```
 
-`Game_StartSelectedGame` stops the sound effects, sets sound layout 0, clears the play clock, calls `Scene_Start(16)` and registers `Game_UpdateMain`. `Party_InitDefaults` supplies the default party records. It runs as state 0 of camp substate 2, which the New Game choice selects ([saving](../saving/#the-continue-menu)). For records 0 to 6 it copies `D_801EB514[i]` and sets base, current and record willpower to `(level << 4) / D_801EBA34[i][0] + D_801EBA34[i][1]`. It copies `D_801EB990` into the record that `D_80181B1A` names.
+`Title_StartSelectedGame` stops the sound effects, sets sound layout 0, clears the play clock, calls `Scene_Start(16)` and registers `Game_RunMain`. `Party_InitDefaults` supplies the default party records. It runs as state 0 of camp substate 2, which the New Game choice selects ([saving](../saving/#the-continue-menu)). For records 0 to 6 it copies `D_801EB514[i]` and sets base, current and record willpower to `(level << 4) / D_801EBA34[i][0] + D_801EBA34[i][1]`. It copies `D_801EB990` into the record that `D_80181B1A` names.
 
 Game progress lives in the block or in the executable's work variables. An overlay's own variables, such as the load screen's `D_801ED860`, are lost when the overlay is replaced. Scenario overlays write flags through `g_SceneFlags` `[inferred]`. The writers of the block are `SAVE_RunLoadRestore`, `SAVE_BuildSlotImage` and `Scene_Start`.
 
@@ -93,15 +93,15 @@ Game progress lives in the block or in the executable's work variables. An overl
 
 | Trigger                       | What is rebuilt                                                                                  | Function (image@address)                              |
 | ----------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| Field entry after boot / load | `g_BattlePartyBattlers` rows from `g_Characters` and the field order; `g_PartySize`              | `Party_BuildBattlers (emi/etc/game/00@0x801C1400)`    |
+| Field entry after boot / load | `g_BattlePartyBattlers` rows from `g_Characters` and the field order; `g_PartySize`              | `Party_BattlersBuild (emi/etc/game/00@0x801C1400)`    |
 | Field entry after boot / load | `g_GameAreaId` set to `0xFFFF`, then the area load; entry context and position from the block    | `Game_NewGame (emi/etc/game/00@0x801970EC)`           |
 | Field entry                   | `g_GameStateIndex = 5`, so the next field step is the entry step                                 | `Game_RequestAreaChange (emi/etc/game/00@0x8019FA28)` |
 | Load                          | live stats for all 8 records: base `+0x3C` block copied over `+0x1C`, then fatigue and equipment | `Char_RebuildStats (exe/slus_004_22@0x80164A44)`      |
 | Load                          | character code and graphics archives for `g_EmiLoadedCharacterIndex`                             | `SAVE_RunLoadRestore (emi/etc/start/08@0x801E5FD4)`   |
 | Load                          | scenario overlay for `g_SceneState.scenario_id`                                                  | `Scene_LoadOverlay` via `SAVE_RunLoadRestore`         |
-| Entering the save screen      | nothing; the shop overlay streams in and the field frame keeps running under it                  | `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`   |
+| Entering the save screen      | nothing; the shop overlay streams in and the field frame keeps running under it                  | `Game_ShopLoadOverlay (emi/etc/game/00@0x80198270)`   |
 
-`Game_NewGame` also clears the battle options and encounter bytes, sets the pending-entry bit in `g_AreaWalkFlags`, and, when the play clock is nonzero, saves the current music id as the area music request before it clears `g_SndBgmId` ([audio](../audio/#music)).
+`Game_NewGame` also clears the battle options and encounter bytes, sets the pending-entry bit in `g_AreaWalkFlags`, and, when the play clock is nonzero, saves the current music id as the area music request before it clears `g_SndBGMId` ([audio](../audio/#music)).
 
 ## Party records and lists
 
@@ -109,16 +109,16 @@ Game progress lives in the block or in the executable's work variables. An overl
 
 `g_Characters` holds eight 164-byte records. The field layout is in [game records](../../data/records/). Two details come from the code:
 
-- `Party_AddMember (exe/slus_004_22@0x801667A4)` maps the character id through `g_CharSlot` to a record and sets bits `0x01` and `0x02` of its flag byte `unk_07`. When fewer than three members are in the field it appends the id to both order arrays. When the party is full it replaces the first field-order member whose record has bit `0x02` clear and who is also in the battle order, in both arrays, and returns 0 if none qualifies. The meaning of the two bits is not traced `[unknown]`.
+- `Party_MemberAdd (exe/slus_004_22@0x801667A4)` maps the character id through `g_CharSlot` to a record and sets bits `0x01` and `0x02` of its flag byte `unk_07`. When fewer than three members are in the field it appends the id to both order arrays. When the party is full it replaces the first field-order member whose record has bit `0x02` clear and who is also in the battle order, in both arrays, and returns 0 if none qualifies. The meaning of the two bits is not traced `[unknown]`.
 - `Char_RebuildStats` treats `+0x3C` as base stats and `+0x1C` as live stats. A load recomputes all live stats, so any stale live value in a save is overwritten. It then lowers max HP by `(base_hp * fatigue + 5) / 10`, caps current HP to the new max, and applies inoculation resistances and per-character chance tuning.
 
 ### Order arrays
 
-`D_80144F5A` holds the field order and `D_80144F5D` the battle order, three bytes each, with `0xFF` as an empty entry. `Party_CountOrder` counts the leading non-255 entries of either array (`mode` selects the array, `mode * 3` bytes in), and `Party_AddMember` fills both.
+`D_80144F5A` holds the field order and `D_80144F5D` the battle order, three bytes each, with `0xFF` as an empty entry. `Party_CountOrder` counts the leading non-255 entries of either array (`mode` selects the array, `mode * 3` bytes in), and `Party_MemberAdd` fills both.
 
 ### Inventory
 
-There are four categories (item, weapon, armor, accessory), each with 128 id bytes and 128 quantity bytes. `Party_CountItem (exe/slus_004_22@0x8016628C)` reads the ids and counts through two pointer tables, `D_801C893C` and `D_801C8950`, which live in `emi/etc/game/00`. The executable thus depends on the resident game image to count items. With mode 0 it returns the inventory quantity. With another mode it counts the item among the equipment of live records that have flag bit `0x01` set, and for accessories adds the fishing rod and lures.
+There are four categories (item, weapon, armor, accessory), each with 128 id bytes and 128 quantity bytes. `Item_Count (exe/slus_004_22@0x8016628C)` reads the ids and counts through two pointer tables, `D_801C893C` and `D_801C8950`, which live in `emi/etc/game/00`. The executable thus depends on the resident game image to count items. With mode 0 it returns the inventory quantity. With another mode it counts the item among the equipment of live records that have flag bit `0x01` set, and for accessories adds the fishing rod and lures.
 
 ### Zenny
 
@@ -133,12 +133,12 @@ A save edit keeps the block size and the checksum rule ([save format](../../form
 - The block content between `0x80144F60` and `0x80144FC0`, between `0x80144FC4` and `0x80144FE4`, and between `0x80145025` and `0x8014504C`. Settled by: finding the readers and writers of those addresses.
 - `D_80145030`, the second zenny total, has no reader. Settled by: searching every image for loads from `0x80145030`.
 - Which scenario overlays write which flag bits. Settled by: decoding the flag opcodes of each scenario overlay.
-- Whether the new-game name entry reaches `Party_InitDefaults` before the first field frame. Settled by: tracing camp substate 2 to `Game_StartSelectedGame`.
+- Whether the new-game name entry reaches `Party_InitDefaults` before the first field frame. Settled by: tracing camp substate 2 to `Title_StartSelectedGame`.
 
 ## Sources and confidence
 
 - **Confidence:** medium. The block bounds, the copy in both directions and the named globals are read in the code. Several fields rest on names or offsets alone, and three ranges of the block are unexplained.
-- **Evidence:** the save and load copies in `SAVE_BuildSlotImage` and `SAVE_RunLoadVerify`, the rebuild in `SAVE_RunLoadRestore`, `Menu_ExitCamp`, `Game_NewGame` and `Party_BuildBattlers`, the new-game path in `Game_StartSelectedGame` and `Party_InitDefaults`, and the party, inventory and zenny functions (`Party_AddMember`, `Party_CountItem`, `Party_AddZenny`, `Char_RebuildStats`).
+- **Evidence:** the save and load copies in `SAVE_BuildSlotImage` and `SAVE_RunLoadVerify`, the rebuild in `SAVE_RunLoadRestore`, `Menu_ExitCamp`, `Game_NewGame` and `Party_BattlersBuild`, the new-game path in `Title_StartSelectedGame` and `Party_InitDefaults`, and the party, inventory and zenny functions (`Party_MemberAdd`, `Item_Count`, `Party_AddZenny`, `Char_RebuildStats`).
 
 ## Related
 

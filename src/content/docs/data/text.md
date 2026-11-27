@@ -17,11 +17,11 @@ Every string is a byte string in one custom encoding: digits and letters in ASCI
 
 Letters and digits equal their ASCII values. The message font has no `0x20` space; `0xFF` is the
 space. The plain ASCII space `0x20` belongs to the interface font of
-[`UI_DrawGlyphString`](#other-glyph-sheets).
+[`UI_TextDrawGlyphString`](#other-glyph-sheets).
 
 ### Glyph atlas
 
-`UI_DrawTextGlyphs (exe/slus_004_22@0x8014F84C)` maps a byte to a cell of the 31-column message
+`UI_TextDrawGlyphs (exe/slus_004_22@0x8014F84C)` maps a byte to a cell of the 31-column message
 atlas: `u = ((c - 0x30) % 31) * 8` and `v = ((c - 0x30) / 31) * 12 + 0x48`. The cell number is
 `c - 0x30`, so the digit row starts at slot 0. `func_8014FC00 (exe/slus_004_22@0x8014FC00)` selects the
 font texture page.
@@ -50,15 +50,15 @@ round trip must keep which slot it used.
 
 ### Other glyph sheets
 
-Two more sheets exist. `UI_DrawGlyphString (exe/slus_004_22@0x80150098)` draws 8 by 8 glyphs from a
+Two more sheets exist. `UI_TextDrawGlyphString (exe/slus_004_22@0x80150098)` draws 8 by 8 glyphs from a
 sheet of 32 columns that starts at `0x20`, so its bytes are plain ASCII. It has no case for control
 code `0x15`: the byte takes the ordinary glyph path and draws the cell for ASCII `5` (`0x35`).
 
-`UI_DrawTextString (exe/slus_004_22@0x8014FC90)` reads control code `0x15` from the same 32-column
+`UI_TextDrawString (exe/slus_004_22@0x8014FC90)` reads control code `0x15` from the same 32-column
 grid of 8 by 8 cells on texture page `0x2F`. The operand `n` selects the cell `n + 0x40`, which is
 column `(n + 0x40) % 32` and row `(n + 0x40) / 32`, with the row shade added.
 
-Control code `0x15` in `UI_DrawTextGlyphs (exe/slus_004_22@0x8014F84C)` draws a number glyph from a
+Control code `0x15` in `UI_TextDrawGlyphs (exe/slus_004_22@0x8014F84C)` draws a number glyph from a
 third sheet of 21 columns and 12 px cells. The operand `n` selects the cell `n + 0x5B`, at
 `u = ((n + 0x5B) % 21) * 12`. Operands 0 to 255 use rows 4 to 16 of that sheet.
 
@@ -69,7 +69,7 @@ the string: `0x48` is `H`, `0x69` is `i`, `0x5D` is `!`, `0x01` starts a new lin
 
 ## Control codes
 
-Both text drawers switch on the same byte. `UI_DrawTextGlyphs (exe/slus_004_22@0x8014F84C)` draws a line; the message engine, `func_8015083C (exe/slus_004_22@0x8015083C)` with `UI_DrawMessageScript` (exe/slus_004_22@0x80150470), steps the window state. A control byte is written as a tag such as `{NEWLINE}`; an operand byte follows as `{COLOR:03}`.
+Both text drawers switch on the same byte. `UI_TextDrawGlyphs (exe/slus_004_22@0x8014F84C)` draws a line; the message engine, `func_8015083C (exe/slus_004_22@0x8015083C)` with `UI_MessageDrawScript` (exe/slus_004_22@0x80150470), steps the window state. A control byte is written as a tag such as `{NEWLINE}`; an operand byte follows as `{COLOR:03}`.
 
 | Byte     | Tag           | Behavior                                                                                                    |
 | -------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -83,11 +83,11 @@ Both text drawers switch on the same byte. `UI_DrawTextGlyphs (exe/slus_004_22@0
 | `0x07 n` | `{VAR:nn}`    | prints the 32-byte string at `0x801490D8 + n * 32`, budget 33                                               |
 | `0x08 n` | `{LINK:nn}`   | redirects to the string that `u16[2 * n]` of the table at `0x80010000 + u32[0x80010004]` selects, budget 17 |
 | `0x09`   | `{NOP09}`     | no effect; the shared tail advances one byte                                                                |
-| `0x0A n` | `{SE:nn}`     | plays the cue `n \| 0x200` through `SND_PlayCue (exe/slus_004_22@0x8015DF18)`                               |
+| `0x0A n` | `{SE:nn}`     | plays the cue `n \| 0x200` through `SND_SEPlay (exe/slus_004_22@0x8015DF18)`                                |
 | `0x0B`   | `{GAP}`       | the engine enters state 1 and adds 8 frames to the glyph delay; the line drawer ignores the code            |
 | `0x0C n` | `{BOX:nn}`    | starts a box; the operand is the window style                                                               |
-| `0x0D`   | `{NOP0D}`     | `UI_DrawMessageScript` draws the following glyphs at the state's `x` and `y` plus deltas                    |
-| `0x0E`   | `{NOP0E}`     | `UI_DrawMessageScript` clears the flag and draws at the script cursor                                       |
+| `0x0D`   | `{NOP0D}`     | `UI_MessageDrawScript` draws the following glyphs at the state's `x` and `y` plus deltas                    |
+| `0x0E`   | `{NOP0E}`     | `UI_MessageDrawScript` clears the flag and draws at the script cursor                                       |
 | `0x0F`   | `{STYLE0F}`   | loads three style parameters from `0x8017F5B8`, `0x8017F5BA` and `0x8017F5B9`                               |
 | `0x10`   | `{STYLE10}`   | same body as `0x0F`                                                                                         |
 | `0x11`   | `{WAIT}`      | toggles flag `0x10`; the step returns while the flag is set                                                 |
@@ -105,7 +105,7 @@ byte that is neither a case nor in the glyph range draws nothing and is `[unknow
 ### Redirects
 
 `{GOTO}`, `{INSERT}`, `{VAR}` and `{LINK}` move the read pointer into another string and set a
-budget. `UI_DrawMessageScript` counts one per byte read. When the budget runs out, or the other
+budget. `UI_MessageDrawScript` counts one per byte read. When the budget runs out, or the other
 string reaches `{END}`, reading resumes after the code that redirected. The budgets are 6 for
 `{GOTO}` and `{INSERT}`, 17 for `{LINK}` and 33 for `{VAR}`. They bound the inserted text and are not
 a message-engine state.
@@ -161,7 +161,7 @@ text.
 | `absolute-u32` | `u32` | code or data of any payload                          | the string's runtime address                       |
 | `resource-id`  | `u16` | the group table of a payload loaded at `0x8001A000`  | the string that the id resolves to                 |
 
-`Message_GetText (exe/slus_004_22@0x801502D0)` turns a resource id into a runtime address. It
+`UI_MessageGetText (exe/slus_004_22@0x801502D0)` turns a resource id into a runtime address. It
 works on the payload loaded at `0x8001A000`.
 
 1. `id >> 14` selects one of four base words, at `0x8001A000 + 4 * (id >> 14)`.
@@ -188,7 +188,7 @@ entry 8 of `BOSS` (5 times) and entry 0 of `ETC/AFLDKWA` (1). The ids are local 
 ## Sources and confidence
 
 - **Confidence:** medium. The encoding, the control codes and the containers are read in the code and checked on every table, but the payload behind a `text-id` and the effect of two control codes are not established.
-- **Evidence:** the drawers, `UI_DrawMessageScript` and `Message_GetText`, and a check of every message and name table on the disc.
+- **Evidence:** the drawers, `UI_MessageDrawScript` and `UI_MessageGetText`, and a check of every message and name table on the disc.
 
 ## Related
 

@@ -19,7 +19,7 @@ The XA subheader holds `[file, channel, submode, coding]` twice. The CD hardware
 
 ### Files
 
-`LOGO.EXE` plays the movie at boot ([executables](../exe/#boot-chain)); `SND_StartXAStream` plays the three audio banks ([Audio system](../../systems/audio/)).
+`LOGO.EXE` plays the movie at boot ([executables](../exe/#boot-chain)); `SND_XAStartStream` plays the three audio banks ([Audio system](../../systems/audio/)).
 
 | Path                      | Content                   |
 | ------------------------- | ------------------------- |
@@ -45,7 +45,7 @@ In `S_XA00.STR`, after the first 463 sectors, each 8-sector period holds one sec
 
 ## XA cue tables
 
-`SND_ResolveXAStream (exe/slus_004_22@0x80163744)` turns a sound request key into the first and last sector of one cue.
+`SND_XAResolveStream (exe/slus_004_22@0x80163744)` turns a sound request key into the first and last sector of one cue.
 
 The key is `(stream << 12) | cue_index`. Stream 0 is `S_XA00.STR`, 1 is `MAGIC00.STR`, 2 is `VOICE.STR`. The slot ids are in `D_80183230` (`0x2A9`, `0x1B2`, `0x2AA`); the file start is `g_EmiSlotLbas[slot]` ([executables](../exe/#the-disc-file-table)). `D_8018323C[stream]` points to the stream's `u16` cue array in the executable, at `0x801839C4`, `0x801832C4` and `0x80183298`.
 
@@ -109,7 +109,7 @@ The 30 frames per second and double-speed figures come from the stream's size an
 ## Sources and confidence
 
 - **Confidence:** medium. Sector classes, cue arrays and the STR header are read from every sector and array; the unplayed Form 1 content, the 150-sector offset and the playback schedule are not established.
-- **Evidence:** the subheaders of every sector of the four files, a walk of the three cue arrays in `SLUS_004.22`, the video chunk headers, and `SND_ResolveXAStream`, `Logo_Init` and `Logo_DrawFrame`. The chunk header follows [psx-spx](https://psx-spx.consoledev.net/cdromformat/) ([sources](../../appendix/sources/)).
+- **Evidence:** the subheaders of every sector of the four files, a walk of the three cue arrays in `SLUS_004.22`, the video chunk headers, and `SND_XAResolveStream`, `Logo_Init` and `Logo_DrawFrame`. The chunk header follows [psx-spx](https://psx-spx.consoledev.net/cdromformat/) ([sources](../../appendix/sources/)).
 
 ## Related
 

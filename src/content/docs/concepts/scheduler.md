@@ -57,20 +57,20 @@ Because the walk goes from slot 0 to slot 3, a callback in slot 0 that registers
 
 ## Slot assignments
 
-| Slot | Callback                                                             | Registered by                                                                                                         |
-| ---: | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-|    0 | `SYS_StartFrontend (exe/slus_004_22@0x8014EA80)`                     | `SYS_Main`, at boot and on a soft reset; `CallbackReplace` from game over, from `scena15` and from `scena17`          |
-|    0 | `Game_UpdateCampMenu (emi/etc/game/00@0x80196F78)`, the start menu   | `Game_LeaveTitle (emi/etc/game/01@0x801D1000)`                                                                        |
-|    0 | `Game_UpdateMain (emi/etc/game/00@0x80197068)`, the game proper      | `Game_StartSelectedGame (emi/etc/game/01@0x801D0E54)`; `CallbackReplace` from `Menu_ExitCamp` and `Menu_StartNewGame` |
-|    1 | `SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)`, then the title     | `SYS_StartFrontend`                                                                                                   |
-|    2 | `UI_DispatchLocalMode (exe/slus_004_22@0x8014ED6C)`, a screen effect | `UI_SetMode (exe/slus_004_22@0x8014ECAC)`, `UI_SetModeWait (exe/slus_004_22@0x8014ECEC)`                              |
-|    3 | none                                                                 | no `CallbackRegister` call anywhere in the exported assembly names slot 3                                             |
+| Slot | Callback                                                             | Registered by                                                                                                          |
+| ---: | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+|    0 | `SYS_StartFrontend (exe/slus_004_22@0x8014EA80)`                     | `SYS_Main`, at boot and on a soft reset; `CallbackReplace` from game over, from `scena15` and from `scena17`           |
+|    0 | `Game_RunCampMenu (emi/etc/game/00@0x80196F78)`, the start menu      | `Title_Leave (emi/etc/game/01@0x801D1000)`                                                                             |
+|    0 | `Game_RunMain (emi/etc/game/00@0x80197068)`, the game proper         | `Title_StartSelectedGame (emi/etc/game/01@0x801D0E54)`; `CallbackReplace` from `Menu_ExitCamp` and `Menu_StartNewGame` |
+|    1 | `SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)`, then the title     | `SYS_StartFrontend`                                                                                                    |
+|    2 | `UI_ModeDispatchLocal (exe/slus_004_22@0x8014ED6C)`, a screen effect | `UI_ModeSet (exe/slus_004_22@0x8014ECAC)`, `UI_ModeSetWait (exe/slus_004_22@0x8014ECEC)`                               |
+|    3 | none                                                                 | no `CallbackRegister` call anywhere in the exported assembly names slot 3                                              |
 
-`SYS_EnterFrontend` calls `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`, which never returns, so the title runs on slot 1's thread. `Game_StartSelectedGame` and `Game_LeaveTitle` run inside that thread. They register slot 0 and the title thread continues until `Game_LeaveTitle` calls `CallbackExit`. The title reads slot 0's state to know that the game program has ended and the title may restart.
+`SYS_EnterFrontend` calls `Title_Run (emi/etc/game/01@0x801D0C04)`, which never returns, so the title runs on slot 1's thread. `Title_StartSelectedGame` and `Title_Leave` run inside that thread. They register slot 0 and the title thread continues until `Title_Leave` calls `CallbackExit`. The title reads slot 0's state to know that the game program has ended and the title may restart.
 
 Only the executable and the title overlay `emi/etc/game/01` call `CallbackRegister`. Every other overlay changes a slot through `CallbackReplace`. The sites in the exported assembly are:
 
-- `Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` and `Menu_StartNewGame (emi/etc/start/08@0x801E2584)` install `Game_UpdateMain`.
+- `Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` and `Menu_StartNewGame (emi/etc/start/08@0x801E2584)` install `Game_RunMain`.
 - `Battle_UpdateGameOver (emi/battle/batl_ovr/00@0x801EF0A8)` installs `SYS_StartFrontend`. So do `func_801FC1D8` in `emi/scenario/scena15/00`, and `Scene_ExitToTitle` and `func_801F87D0` in `emi/scenario/scena17/00`.
 - `func_801F8844` in `scena17` installs `Scene_RunSaveMenu`.
 
@@ -82,34 +82,34 @@ Almost every mode loop has one shape: loop, read a state byte, call `table[state
 
 | Loop                                                    | State byte                                      | Handler table                                      | Entries |
 | ------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------- | ------: |
-| `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`         | `g_UiTitleState (exe/slus_004_22@0x80143C10)`   | `s_TitleStates`, static in `emi/etc/game/01`       |       8 |
-| `Game_UpdateMain (emi/etc/game/00@0x80197068)`          | `g_GameEntryState (exe/slus_004_22@0x80143B90)` | `g_GameStates (emi/etc/game/00@0x801C7B14)`        |      12 |
-| `Game_UpdateCampMenu (emi/etc/game/00@0x80196F78)`      | `g_GameEntryState`                              | `g_GameCampMenuLoad (emi/etc/game/00@0x801C7B08)`  |       3 |
-| `UI_DispatchLocalMode`                                  | `g_UiLocalMode`                                 | `g_UiLocalModeFuncs (exe/slus_004_22@0x801499AC)`  |      21 |
+| `Title_Run (emi/etc/game/01@0x801D0C04)`                | `g_UITitleState (exe/slus_004_22@0x80143C10)`   | `s_TitleStates`, static in `emi/etc/game/01`       |       8 |
+| `Game_RunMain (emi/etc/game/00@0x80197068)`             | `g_GameEntryState (exe/slus_004_22@0x80143B90)` | `g_GameModes (emi/etc/game/00@0x801C7B14)`         |      12 |
+| `Game_RunCampMenu (emi/etc/game/00@0x80196F78)`         | `g_GameEntryState`                              | `g_GameCampMenuLoad (emi/etc/game/00@0x801C7B08)`  |       3 |
+| `UI_ModeDispatchLocal`                                  | `g_UIModeLocal`                                 | `g_UIModeLocals (exe/slus_004_22@0x801499AC)`      |      21 |
 | `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)` | `g_BattleMode (exe/slus_004_22@0x801462E0)`     | `g_BattlePhases (emi/battle/battle/03@0x801D0C04)` |       6 |
 
-The two game loops differ in order. `Game_UpdateMain` calls the handler, then `Game_UpdateClock` (the play clock and timers), then `CallbackWait(1)`. `Game_UpdateCampMenu` waits first, then calls the handler, then `Menu_UpdatePanelTasks`. Both zero `g_GameEntryState` and `g_GameEntrySubstate` when they start, and call `Menu_ResetPanelTasks`. The meaning of each entry state is in [game phases](../../systems/phases/).
+The two game loops differ in order. `Game_RunMain` calls the handler, then `Game_UpdateClock` (the play clock and timers), then `CallbackWait(1)`. `Game_RunCampMenu` waits first, then calls the handler, then `UI_PanelUpdateTasks`. Both zero `g_GameEntryState` and `g_GameEntrySubstate` when they start, and call `Menu_ResetPanelTasks`. The meaning of each entry state is in [game phases](../../systems/phases/).
 
-Overlays also index the handler table by a byte of a work record instead of a global byte. The pointer cell `g_SpadWork (exe/slus_004_22@0x1F800044)` in the scratchpad points at the record that the running handler steps. Its type depends on the overlay: a party battler in battle, an actor in the field, a band effect in a scenario. Handlers read its step bytes at offsets `+0x01`, `+0x02` and `+0x04`.
+Overlays also index the handler table by a byte of a work record instead of a global byte. The pointer cell `g_Self (exe/slus_004_22@0x1F800044)` in the scratchpad points at the record whose routine is running. Its type depends on the overlay: a party battler in battle, an actor in the field, a band effect in a scenario. Handlers read its step bytes at offsets `+0x01`, `+0x02` and `+0x04`.
 
 ## Work-record tables
 
 Handlers step fixed-size records in RAM tables. Each table has a free-slot search, so its row count is the hard limit on live records.
 
-| Table              | Address                         | Type                | Stride x count | Allocator and walker                                                                                                                     |
-| ------------------ | ------------------------------- | ------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `g_ActorSlots`     | `exe/slus_004_22@0x80143FC8`    | `ActorSlot[20]`     | 116 x 20       | `Actor_FindFreeSlot (emi/etc/game/00@0x8019601C)` takes the first slot with `flags_00 == 0`, else `0xFF`; `Actor_Free`, `Actor_ClearAll` |
-| `g_Actors`         | `exe/slus_004_22@0x80146888`    | `Actor[30]`         | 152 x 30       | `Actor_FindFree (exe/slus_004_22@0x8015CA48)` takes the first record whose first byte is 0, else `0xFF`                                  |
-| `g_MenuPanelTasks` | `exe/slus_004_22@0x80148330`    | `MenuPanelTask[22]` | 36 x 22        | `Menu_OpenPanelTask (exe/slus_004_22@0x80158DB8)`, `Menu_ResetPanelTasks`, `Menu_UpdatePanelTasks`                                       |
-| battlers           | [battle](../../systems/battle/) | -                   | per overlay    | `Battle_UpdateParty`, `Battle_UpdateEnemies` in `emi/battle/battle/03`                                                                   |
+| Table            | Address                         | Type                | Stride x count | Allocator and walker                                                                                                                        |
+| ---------------- | ------------------------------- | ------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `g_ActorSlots`   | `exe/slus_004_22@0x80143FC8`    | `ActorSlot[20]`     | 116 x 20       | `Actor_FindFreeSpawned (emi/etc/game/00@0x8019601C)` takes the first slot with `flags_00 == 0`, else `0xFF`; `Actor_Free`, `Actor_ClearAll` |
+| `g_Actors`       | `exe/slus_004_22@0x80146888`    | `Actor[30]`         | 152 x 30       | `Actor_FindFreeField (exe/slus_004_22@0x8015CA48)` takes the first record whose first byte is 0, else `0xFF`                                |
+| `g_UIPanelTasks` | `exe/slus_004_22@0x80148330`    | `MenuPanelTask[22]` | 36 x 22        | `UI_PanelOpenTask (exe/slus_004_22@0x80158DB8)`, `Menu_ResetPanelTasks`, `UI_PanelUpdateTasks`                                              |
+| battlers         | [battle](../../systems/battle/) | -                   | per overlay    | `Battle_UpdateParty`, `Battle_UpdateEnemies` in `emi/battle/battle/03`                                                                      |
 
-A menu panel is a task, so at most 22 panels are live. `Menu_UpdatePanelTasks (exe/slus_004_22@0x80158C80)` makes one pass for each mode value from `g_MenuPanelMode` up to 2, and does nothing when the mode is 3 or more. A pass walks the 22 records; for each record whose first byte is nonzero and whose mode byte (offset `0x0F`) equals the pass, it calls the handler `g_MenuPanels[record[1]]`, one of nine. Panel drawing: [UI and text drawing](../../systems/ui/). Field actors: [areas and the field](../../systems/areas/).
+A menu panel is a task, so at most 22 panels are live. `UI_PanelUpdateTasks (exe/slus_004_22@0x80158C80)` makes one pass for each mode value from `g_MenuPanelMode` up to 2, and does nothing when the mode is 3 or more. A pass walks the 22 records; for each record whose first byte is nonzero and whose mode byte (offset `0x0F`) equals the pass, it calls the handler `g_MenuPanels[record[1]]`, one of nine. Panel drawing: [UI and text drawing](../../systems/ui/). Field actors: [areas and the field](../../systems/areas/).
 
 ## Local UI modes
 
-`UI_SetMode(m)` starts a screen effect such as a fade, wipe or zoom. It does nothing while `g_UiWindowEffectBusy (exe/slus_004_22@0x80143C40)` is nonzero. Otherwise it stores `m & 0xFF` in `g_UiLocalMode (exe/slus_004_22@0x80143C90)` and registers `UI_DispatchLocalMode` in slot 2. That callback copies the 21-entry table to the stack and calls the entry `g_UiLocalMode` selects, once. Several entries are one-line wrappers around the fade routine `GFX_RunBlackFade`, which loops with `CallbackWait(1)` and ends the thread with `CallbackExit`. The other entries end through their own `CallbackWait` and `CallbackExit` calls. `UI_SetModeWait` is the same call, followed by a `CallbackWait(1)` loop until the effect ends.
+`UI_ModeSet(m)` starts a screen effect such as a fade, wipe or zoom. It does nothing while `g_UIWindowEffectBusy (exe/slus_004_22@0x80143C40)` is nonzero. Otherwise it stores `m & 0xFF` in `g_UIModeLocal (exe/slus_004_22@0x80143C90)` and registers `UI_ModeDispatchLocal` in slot 2. That callback copies the 21-entry table to the stack and calls the entry `g_UIModeLocal` selects, once. Several entries are one-line wrappers around the fade routine `GFX_RunBlackFade`, which loops with `CallbackWait(1)` and ends the thread with `CallbackExit`. The other entries end through their own `CallbackWait` and `CallbackExit` calls. `UI_ModeSetWait` is the same call, followed by a `CallbackWait(1)` loop until the effect ends.
 
-The effect table holds screen transitions, not game phases. Phase code calls `UI_SetMode` at a boundary: the field handler for an area change calls `UI_SetMode(g_GameEntryMode)` ([game phases](../../systems/phases/)). The effect catalog is in [UI and text drawing](../../systems/ui/).
+The effect table holds screen transitions, not game phases. Phase code calls `UI_ModeSet` at a boundary: the field handler for an area change calls `UI_ModeSet(g_GameEntryMode)` ([game phases](../../systems/phases/)). The effect catalog is in [UI and text drawing](../../systems/ui/).
 
 ## Open questions
 

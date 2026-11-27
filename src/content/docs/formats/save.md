@@ -65,7 +65,7 @@ The records sit at payload offsets `0x1254`, `0x1314` and `0x13D4` (RAM `0x801EF
 
 ### Title
 
-The card menu title is built at save time. `g_UiFormatBuffer (exe/slus_004_22@0x80145AD4)` is cleared over 64 bytes and filled by `sprintf` with a full-width Shift-JIS format string (`D_801D0C98`, 68 bytes). The format takes seven `%s` arguments, in this order (1 + 2 + 2 + 1 + 1):
+The card menu title is built at save time. `g_UITextFormatBuffer (exe/slus_004_22@0x80145AD4)` is cleared over 64 bytes and filled by `sprintf` with a full-width Shift-JIS format string (`D_801D0C98`, 68 bytes). The format takes seven `%s` arguments, in this order (1 + 2 + 2 + 1 + 1):
 
 1. an area label from the table at `D_801E5434` (whether this argument is an area label or the slot digit is `[unknown]`; [saving](../../systems/saving/) lists the same seven arguments);
 2. two hour digits;

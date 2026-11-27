@@ -30,7 +30,7 @@ The save staging buffer `g_SaveBuffer (emi/etc/shop/00@0x800C1A00)` is the paylo
 The save screen opens from the field, runs inside the main loop, and returns to the field. The driver reads and writes through `SAVE_AccessFile`.
 
 - Scene event 10 is the inn, `Scene_RunInn (emi/etc/game/00@0x801A802C)`, entry 10 of `g_SceneEvents (emi/etc/game/00@0x801C84BC)`. Its cases 6 and 23 set `D_8014865C = -2` and `g_GameEntryState = 7`. The scripts or objects that select event 10 are not traced `[unknown]`.
-- `g_GameStates[7]` is `Game_UpdateShop`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_LoadShopOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Menu_DispatchScreen`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
+- `g_GameModes[7]` is `Game_ShopUpdate`. It runs `g_GameStateHandlers[g_GameEntrySubstate]`. Substate 0, `Game_ShopLoadOverlay (emi/etc/game/00@0x80198270)`, streams the `SHOP` slot `0x266`. Substate 1, `func_80199398`, runs the field frame and `Menu_DispatchScreen`. Substate 2, `Game_ReturnFromShop`, reloads the character archive and returns to entry state 2.
 - `Menu_DispatchScreen` dispatches `D_801E5144` by `D_80148650`. `Menu_SelectScreen` sets `D_80148650` to `D_80148698 + 2`, which is 3 for the save case. That selects `Menu_RunInn`, and entry 3 of its table `D_801E52C4` is `SAVE_DispatchState (emi/etc/shop/00@0x801D46A4)`. It dispatches `D_801E530C` by `D_80148652`.
 - The overwrite path first opens the existing file with mode 1 and size 1, a read of the first 128 bytes. Success shows the file exists (`func_801D51B8`).
 - The new-file path calls `SAVE_AccessFile` with mode `0x200`. The driver creates the file, closes it, reopens it with mode 1 and issues a zero-length read.
@@ -78,7 +78,7 @@ State 12 picks its next state from the status. A press of any button, or the tim
 
 ## Loading
 
-The load screen runs only from the start menu, before any game exists. `Game_LeaveTitle` registers `Game_UpdateCampMenu`, which streams `START` (slot `0x268`) and runs the continue menu (camp substate 1), then the load screens (camp substate 3). Continue is `D_801ED7EC` 0.
+The load screen runs only from the start menu, before any game exists. `Title_Leave` registers `Game_RunCampMenu`, which streams `START` (slot `0x268`) and runs the continue menu (camp substate 1), then the load screens (camp substate 3). Continue is `D_801ED7EC` 0.
 
 ### The continue menu
 
@@ -90,7 +90,7 @@ The continue menu is camp substate 1 (`D_801ED11C`, 7 states). `func_801E411C` c
 
 | State | Function              | Role                                                 |
 | ----: | --------------------- | ---------------------------------------------------- |
-|     0 | `func_801E4F10`       | `UI_SetMode(1)`                                      |
+|     0 | `func_801E4F10`       | `UI_ModeSet(1)`                                      |
 |     1 | `func_801E4F50`       | panel slide-in                                       |
 |     2 | `func_801E4FFC`       | message wait, then to state 3                        |
 |     3 | `func_801E5078`       | probe port 0 and port 1                              |
@@ -105,7 +105,7 @@ The continue menu is camp substate 1 (`D_801ED11C`, 7 states). `func_801E411C` c
 |    12 | `func_801E5BCC`       | slide back, to state 2                               |
 |    13 | `func_801E5C68`       | message for `g_SaveCardStatus`                       |
 |    14 | `func_801E5E30`       | timed wait, then `D_801ED800`                        |
-|    15 | `func_801E5F34`       | `UI_SetMode(0)`, 30-frame wait                       |
+|    15 | `func_801E5F34`       | `UI_ModeSet(0)`, 30-frame wait                       |
 |    16 | `SAVE_RunLoadRestore` | rebuild and hand over                                |
 
 After a good read, state 13 shows its message for up to 60 frames or until a button press. State 15 then waits 30 frames.
@@ -117,13 +117,13 @@ After a good read, state 13 shows its message for up to 60 frames or until a but
 1. Restore the nine button masks from the block into `g_InputMasks`.
 2. Set `g_PartySize` from the field order array (`Party_CountOrder(0)`).
 3. Stream the `PLP` and `PL` character archives for `g_EmiLoadedCharacterIndex`.
-4. `Party_BuildBattlers(0)`: build the party rows in `g_BattlePartyBattlers` from the loaded records.
+4. `Party_BattlersBuild(0)`: build the party rows in `g_BattlePartyBattlers` from the loaded records.
 5. Copy the first 16 block bytes into `g_SceneState` and point `g_SceneFlags` at the scenario's flag word.
 6. Restore the four script variable bytes.
 7. `Scene_LoadOverlay`: stream the scenario overlay for `scenario_id`.
 8. Set camp substate 4.
 
-`Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` then runs `func_801E7210` and `Char_RebuildStats` for each of the eight records, so all live stats come from base stats and equipment. It calls `CallbackReplace(Game_UpdateMain)`. `Game_UpdateMain` starts at entry state 0, `Game_NewGame`. That function reads the saved area id, position and type from the block and sets `g_GameAreaId = 0xFFFF`. It calls `Game_RequestAreaChange` to store the entry context and set `g_GameStateIndex = 5`, then advances to entry state 1. See [area](../areas/) for the load that follows.
+`Menu_ExitCamp (emi/etc/start/08@0x801E62A8)` then runs `func_801E7210` and `Char_RebuildStats` for each of the eight records, so all live stats come from base stats and equipment. It calls `CallbackReplace(Game_RunMain)`. `Game_RunMain` starts at entry state 0, `Game_NewGame`. That function reads the saved area id, position and type from the block and sets `g_GameAreaId = 0xFFFF`. It calls `Game_RequestAreaChange` to store the entry context and set `g_GameStateIndex = 5`, then advances to entry state 1. See [area](../areas/) for the load that follows.
 
 `SAVE_RunLoadVerify (emi/etc/start/08@0x801E5A00)` also restores `g_GameFlags` from `D_80145025`. On a match it sets stereo or mono sound from the byte at `0x80144951`, a block field (`SsSetStereo` or `SsSetMono`).
 
