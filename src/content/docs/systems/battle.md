@@ -13,33 +13,33 @@ The field sets request code 3, the main state machine enters its battle state, a
 | Scripted battle | `g_BattleEncounter != 0`, a record index of `s_BattleModeRecords`. The enemies and a boss module come from an archive that the record names. |
 | Mode            | `g_BattleMode` (`0x801462E0`): one of 6 rows of `g_BattlePhases`.                                                                            |
 | Step, sub-step  | `g_BattleStep` (`0x801462E1`) and `g_BattleSubStep` (`0x801462E2`): the second and third index inside a mode.                                |
-| UI step         | `g_BattleUiStep` (`0x801462E3`): the index the `BATL_END` and `BATL_OVR` overlays dispatch on.                                               |
-| Entry substate  | `g_GameEntrySubstate` while `g_GameEntryState == 5`: index into `g_GameModeHandlers[8]` (`0x801C7B54`). One entry runs `Battle_Update`.      |
+| UI step         | `g_BattleUIStep` (`0x801462E3`): the index the `BATL_END` and `BATL_OVR` overlays dispatch on.                                               |
+| Entry substate  | `g_GameEntrySubstate` while `g_GameEntryState == 5`: index into `g_GameBattleSteps[8]` (`0x801C7B54`). One entry runs `Battle_Update`.       |
 | Boss module     | The code image of a `BOSSnnn.EMI` archive, loaded at `0x800C1800`. It publishes three hooks.                                                 |
 
 ## Starting a battle
 
 ### Random encounter
 
-The player's field step handler `func_801B146C` counts steps and asks `Area_CanStartEncounter (emi/etc/game/00@0x801B3EB0)` on every move. A yes sets the party actor's step byte to 5 and clears its state. The two-entry table `D_801CD118` (the step-5 state table `[inferred]`) then runs `func_801B2AB4` and `func_801B2B6C`; the second writes `g_GameStateIndex = 3`.
+The player's field step handler `func_801B146C` counts steps and asks `Area_EncounterCanStart (emi/etc/game/00@0x801B3EB0)` on every move. A yes sets the party actor's step byte to 5 and clears its state. The two-entry table `D_801CD118` (the step-5 state table `[inferred]`) then runs `func_801B2AB4` and `func_801B2B6C`; the second writes `g_GameStateIndex = 3`.
 
-`Area_CanStartEncounter` returns 0 (no battle) when any of these holds:
+`Area_EncounterCanStart` returns 0 (no battle) when any of these holds:
 
-| Test                                                                                    | Meaning                                        |
-| --------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `g_GameFlags & 0x20`                                                                    | A script flag switched encounters off.         |
-| The zone's `rate` byte gives threshold 0                                                | Town or safe zone.                             |
-| Step counter `D_80143F22` (scaled by 7/10 when `D_80145FAC < 4`) is below `D_80145FB8`  | Not enough steps yet.                          |
-| `D_80145FBC & 1`                                                                        | Another state suppresses it.                   |
-| Not on the world map and `D_80143EFC >= 0xF1`                                           | A gate on a game counter. `[unknown]` meaning. |
-| A party battler row has `flags_00` bit `0x40` (hidden)                                  | A party member is off screen.                  |
-| `Area_BuildEncounter(4, 0)` fails, or a party member has no free cell (`func_801C472C`) | No enemy fits around the party.                |
+| Test                                                                                         | Meaning                                        |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `g_GameFlags & 0x20`                                                                         | A script flag switched encounters off.         |
+| The zone's `rate` byte gives threshold 0                                                     | Town or safe zone.                             |
+| Step counter `D_80143F22` (scaled by 7/10 when `g_AreaPartySpeed < 4`) is below `D_80145FB8` | Not enough steps yet.                          |
+| `D_80145FBC & 1`                                                                             | Another state suppresses it.                   |
+| Not on the world map and `D_80143EFC >= 0xF1`                                                | A gate on a game counter. `[unknown]` meaning. |
+| A party battler row has `flags_00` bit `0x40` (hidden)                                       | A party member is off screen.                  |
+| `Area_EncounterBuild(4, 0)` fails, or a party member has no free cell (`func_801C472C`)      | No enemy fits around the party.                |
 
-The step threshold comes from the area's [zone list](../areas/#zone-list). `func_801B3C3C` finds the rectangle that holds the party's cell. `Area_RollEncounterThreshold (emi/etc/game/00@0x801B3CCC)` reads the rectangle's byte 4, `rate`:
+The step threshold comes from the area's [zone list](../areas/#zone-list). `func_801B3C3C` finds the rectangle that holds the party's cell. `Area_EncounterRollThreshold (emi/etc/game/00@0x801B3CCC)` reads the rectangle's byte 4, `rate`:
 
     threshold = base[rate] + min(rand() & 0x1F, cap[rate])
 
-The pair `(base, cap)` comes from `s_EncounterStepThresholds (emi/etc/game/00@0x801CD1B8)`. The total doubles when any party member has trait `(3, 0x15)` (`func_801C38F4`) and halves when any has trait `(3, 0x14)`. Which abilities those traits belong to is `[unknown]`. Pair per `rate`:
+The pair `(base, cap)` comes from `s_EncounterStepThresholds (emi/etc/game/00@0x801CD1B8)`. The total doubles when any party member has trait `(3, 0x15)` (`Char_CountEquipped`) and halves when any has trait `(3, 0x14)`. Which abilities those traits belong to is `[unknown]`. Pair per `rate`:
 
 | `rate` | 0 | 1   | 2  | 3  | 4  | 5  | 6 | 7 |
 | ------ | - | --- | -- | -- | -- | -- | - | - |
@@ -50,17 +50,17 @@ A base of 0 means no encounters. Higher `rate` values give shorter walks between
 
 ### Formation and enemies
 
-`Area_BuildEncounter (emi/etc/game/00@0x801C60E0)` rolls a formation, copies the enemy list, tests each party cell and clears every enemy that does not fit. It returns 1 only when the gate passes and at least one enemy remains.
+`Area_EncounterBuild (emi/etc/game/00@0x801C60E0)` rolls a formation, copies the enemy list, tests each party cell and clears every enemy that does not fit. It returns 1 only when the gate passes and at least one enemy remains.
 
-1. `Area_PickEncounter` rolls `(rand() & 0xF) + 1` and walks the eight 9-byte formation records at `0x800E4000`, adding byte 8 (the weight) until the running sum reaches the roll. A roll past all eight weights gives formation 0.
-2. `Area_RollEncounterEnemies` copies the record's 8 enemy ids into `D_801463DC` (8 `EncounterEnemy` of 12 bytes). An id other than `0xFF` stays when `(rand() & 0xF) + 1 <= s_EntitySpawnChances[slot]`. The chances are `16, 16, 16, 10, 8, 6, 4, 2`, so slots 0 to 2 always stay and slot 7 stays 2 times in 16. If no enemy stays, there is no battle.
-3. `Area_PlaceEncounterEnemies` places each remaining enemy. For `n` active enemies the offset comes from `D_801CD620[n(n-1)/2 + placed]`, which is why the table has `1 + 2 + ... + 8 = 36` entries. The code then tries up to 49 cells from `s_EntitySpawnOffsets` around the party until `func_801C7518` and `func_801C6EE0` accept one. An enemy with no cell is dropped. `func_801C6DCC` and `Area_SetEncounterCamera` adjust positions for the scroll direction `g_BattleScrollDir`. The cell tests in step 3 are `[inferred]`.
+1. `Area_EncounterPick` rolls `(rand() & 0xF) + 1` and walks the eight 9-byte formation records at `0x800E4000`, adding byte 8 (the weight) until the running sum reaches the roll. A roll past all eight weights gives formation 0.
+2. `Area_EncounterRollEnemies` copies the record's 8 enemy ids into `D_801463DC` (8 `EncounterEnemy` of 12 bytes). An id other than `0xFF` stays when `(rand() & 0xF) + 1 <= s_EntitySpawnChances[slot]`. The chances are `16, 16, 16, 10, 8, 6, 4, 2`, so slots 0 to 2 always stay and slot 7 stays 2 times in 16. If no enemy stays, there is no battle.
+3. `Area_EncounterPlaceEnemies` places each remaining enemy. For `n` active enemies the offset comes from `D_801CD620[n(n-1)/2 + placed]`, which is why the table has `1 + 2 + ... + 8 = 36` entries. The code then tries up to 49 cells from `s_EntitySpawnOffsets` around the party until `func_801C7518` and `func_801C6EE0` accept one. An enemy with no cell is dropped. `func_801C6DCC` and `Area_SetEncounterCamera` adjust positions for the scroll direction `g_BattleScrollDir`. The cell tests in step 3 are `[inferred]`.
 
 The enemy record layout (`0x800E4048 + id * 0x88`, 8 records) is in the [area format](../../formats/area/).
 
 ### Scripted battle
 
-`Battle_StartScripted (emi/etc/game/00@0x801C7A54)` takes a record index. It stores it in `g_BattleEncounter`, clears `g_BattleSurprise`, copies byte 0 of `s_BattleModeRecords[index * 4]` to `g_BattleOptions`, and sets bit 12 (`0x1000`) of `g_AreaWalkFlags`. The table has 56 records of 4 bytes at `0x801CD78C`. Byte 3 of the record is the archive column used at stream time (see the next section). The caller then sets `g_GameStateIndex = 3` `[inferred]`.
+`Game_BattleStartScripted (emi/etc/game/00@0x801C7A54)` takes a record index. It stores it in `g_BattleEncounter`, clears `g_BattleSurprise`, copies byte 0 of `s_BattleModeRecords[index * 4]` to `g_BattleOptions`, and sets bit 12 (`0x1000`) of `g_AreaWalkFlags`. The table has 56 records of 4 bytes at `0x801CD78C`. Byte 3 of the record is the archive column used at stream time (see the next section). The caller then sets `g_GameStateIndex = 3` `[inferred]`.
 
 The known caller is `func_801FA7D8` in `emi/scenario/scena00/00`; other scenario overlays are not searched. The entry and exit substates test these `g_BattleOptions` bits:
 
@@ -73,7 +73,7 @@ The known caller is `func_801FA7D8` in `emi/scenario/scena00/00`; other scenario
 
 ## Entry state 5
 
-`Game_UpdateField` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_UpdateBattle (emi/etc/game/00@0x80197A24)` then calls `g_GameModeHandlers[g_GameEntrySubstate]` once per frame:
+`Game_UpdateField` case 3 zeroes `g_BattleMode`, `g_BattleStep` and `g_BattleSubStep`, increments `g_BattleCount`, and sets `g_GameEntryState = 5` and `g_GameEntrySubstate = 0`. `Game_UpdateBattle (emi/etc/game/00@0x80197A24)` then calls `g_GameBattleSteps[g_GameEntrySubstate]` once per frame:
 
 | Substate | Function (`emi/etc/game/00`)                      | Work                                                                                                                                  |
 | -------: | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -100,7 +100,7 @@ Unless `g_BattleOptions & 0x40` is set, substate 3 copies 1,376 bytes of the seq
 2. `Battle_UpdateParty`, `Battle_UpdateEnemies`, `Battle_UpdateEvents`, `Area_UpdateCamera`, `Battle_UpdateEffects`.
 3. `Battle_UpdatePartyActors`, `Battle_UpdateEnemyActors`.
 4. `func_801A0514` (scripted battle) or `func_801A061C` (random battle): the battle scene draw.
-5. `Area_UpdateParty`, `Actor_DispatchAll`, `GFX_UpdatePaletteAnimations`, `func_8019625C`, `Menu_UpdatePanelTasks`, `Area_DrawScene`.
+5. `Area_UpdateParty`, `Actor_DispatchAll`, `GFX_UpdatePaletteAnimations`, `func_8019625C`, `UI_PanelUpdateTasks`, `Area_SceneDraw`.
 
 `Battle_DispatchMode (emi/battle/battle/03@0x801D112C)` first calls `g_BossBattleEventHook(3)` when `g_BattleEncounter != 0` and the mode is not 0. Then it calls `g_BattlePhases[g_BattleMode]`. Mode 0 calls `Battle_DispatchStep`. Modes 1 to 5 read a step table by `g_BattleStep`, and some steps read a sub-table by `g_BattleSubStep`.
 
@@ -158,7 +158,7 @@ The boss hook takes seven event codes; their meaning is `[unknown]`.
 
 The chooser, `Battle_LoadEndOverlay (emi/battle/battle/03@0x801D6A14)`, waits until no party row has bit `0x2000` and `g_BattleRowCursor == g_BattlePartyCount`. If the result is not defeat, it ANDs every party member's status with `0xBF5F`, which keeps KO (`0x4000`), poison (`0x80`) and confusion (`0x20`). A member with status bit `0x800` first gets HP, AP and willpower set to their maximums. For a random battle it then sets step 2 on defeat (`g_BattleResult` bit 0) or step 1 on victory (bit 1). It calls `g_BattleChooseEndingHook` and `SND_SetBankLayout(0)`, and streams slot 1 (`BATL_END`) for step 1 or slot 2 (`BATL_OVR`) for step 2. In a scripted battle, `g_BattleChooseEndingHook` sets the step. That the boss hook does this is `[inferred]`.
 
-**Victory.** `BATL_END` runs at `0x801EEC00`. Its entry is the image head plus `0x58`, and it dispatches on `g_BattleUiStep`. `Battle_GrantQueuedItems (emi/battle/batl_end/00@0x801EF870)` grants the queued items (`D_80146327`: a count, 16 item words, 16 levels) through `Party_AddItem` and sets `g_BattleStep = 4`. The experience and money payout code lives in the same image and is not traced `[unknown]`.
+**Victory.** `BATL_END` runs at `0x801EEC00`. Its entry is the image head plus `0x58`, and it dispatches on `g_BattleUIStep`. `Battle_GrantQueuedItems (emi/battle/batl_end/00@0x801EF870)` grants the queued items (`D_80146327`: a count, 16 item words, 16 levels) through `Item_Add` and sets `g_BattleStep = 4`. The experience and money payout code lives in the same image and is not traced `[unknown]`.
 
 **Defeat.** `BATL_OVR` also runs at `0x801EEC00`. Its entry is the image head plus 4. `Battle_UpdateGameOver (emi/battle/batl_ovr/00@0x801EF0A8)` fades the screen, frees the palette rows, clears `g_BattleEncounter`, `g_BattleOptions` and the mode bytes, then runs `SND_Exit` and `CallbackReplace(SYS_StartFrontend)`. The game returns to the first load and the title.
 
@@ -186,7 +186,7 @@ Installer addresses in the boss window, by module. A module that has more than o
 
 | Archive (slot)                           | Loaded by                                            | Window                                      |
 | ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------- |
-| `BPLU` `0x1EE` or `BPLD` `0x1DB` family  | entry substate 1 (`EMI_GetArchiveId`)                | character sprites                           |
+| `BPLU` `0x1EE` or `BPLD` `0x1DB` family  | entry substate 1 (`EMI_ArchiveLoadFamily`)           | character sprites                           |
 | `BATTLE` 6, `BATTLE2` 7, `BOSS` `0x1B3+` | entry substate 3 (`Battle_LoadBattleArchive`)        | battle overlay; boss module at `0x800C1800` |
 | `ENEMY` `0x9 + area`                     | `func_801D1228` (random battle)                      | enemy archive                               |
 | `BATL_SE` 5                              | `func_801D277C`, `func_801D25A0`, `func_8009B488`    | sound bank                                  |
@@ -204,9 +204,9 @@ Battler rows and enemy record fields are in [battle records](../../data/battle/)
 
 | Limit                    | Value                                                          | Source                                                                |
 | ------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Formation weights        | Roll 1 to 16 against the running sum of the eight weights      | `Area_PickEncounter`; a roll above the total gives formation 0        |
+| Formation weights        | Roll 1 to 16 against the running sum of the eight weights      | `Area_EncounterPick`; a roll above the total gives formation 0        |
 | Step threshold           | Base 0 to 120, random part capped by the pair's second byte    | `s_EncounterStepThresholds[16]`                                       |
-| Zone `rate`              | 0 to 7 (index `rate * 2` into a 16-byte table)                 | `Area_RollEncounterThreshold`                                         |
+| Zone `rate`              | 0 to 7 (index `rate * 2` into a 16-byte table)                 | `Area_EncounterRollThreshold`                                         |
 | Encounter zone lists     | 200 lists over 666 records of 8 bytes                          | `D_80181164[200]`, `g_AreaEncounterZones[666]`                        |
 | End-of-battle item queue | 16 entries (member sizes 32 and 16 bytes) `[inferred]`         | `PartyGrantQueue` in `Battle_GrantQueuedItems`                        |
 | Target pick tables       | Partial party `{9,7}, {12,4}, {8,8}`; full party six rows of 3 | `s_BattlePartialPartyTargetWeights`, `s_BattleFullPartyTargetWeights` |
@@ -227,11 +227,11 @@ An edit must keep these limits:
 | Meaning of the seven boss event codes                                     | Read `Boss_HandleBattleEvent` in several modules.                      |
 | Per-boss `D_801EB298` index to module mapping (34 of 35)                  | Read each module's head for the installer address, match to the table. |
 | Reward payout (experience, money, drops) in `BATL_END`                    | Read the `BATL_END` functions after `Battle_GrantQueuedItems`.         |
-| Trait ids `(3, 0x14)` and `(3, 0x15)` for the step threshold              | Read `func_801C38F4` and the ability trait table.                      |
+| Trait ids `(3, 0x14)` and `(3, 0x15)` for the step threshold              | Read `Char_CountEquipped` and the ability trait table.                 |
 | Meaning of the `D_80143EFC >= 0xF1` gate                                  | Find its writers in the field engine.                                  |
 | Scene `0x19` requested by the area `0xBD` defeat hook                     | Read the scenario that owns it.                                        |
 | Mode names (party commands, turn order, actions, round end, result)       | Read the mode 1 to 4 steps in full, or an emulator trace.              |
-| Scripted-battle starts in scenario overlays not read                      | Search the scenario overlays for calls to `Battle_StartScripted`.      |
+| Scripted-battle starts in scenario overlays not read                      | Search the scenario overlays for calls to `Game_BattleStartScripted`.  |
 
 ## Sources and confidence
 

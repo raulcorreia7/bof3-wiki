@@ -26,7 +26,7 @@ The item, vital item, weapon, armor and accessory tables each start with a `Noth
 
 ### Row layouts
 
-A `description` is a little-endian `u16` resource id in the `0x4000`-based id space of `Message_GetText` ([text](../text/#references)).
+A `description` is a little-endian `u16` resource id in the `0x4000`-based id space of `UI_MessageGetText` ([text](../text/#references)).
 
 Row sizes are in the table above. The structs `Item`, `VitalItem`, `Weapon`, `Armor`, `Accessory`, `Ability`, `ShopStock` and `LevelGrowth` below give each field and offset. Weapon, armor and accessory rows start with an `ItemHeader`: name `u8[12]`, equipability `u8` (`0x0C`), flags `u8` (`0x0D`). A shop stock row is an item count `u8` (`0x00`), then eleven item references of two bytes from `0x01`: item type `u8`, item index `u8`.
 
@@ -247,7 +247,7 @@ A master is a trainer that changes stat growth and teaches skills. Master ids in
 
 ### Party message tables
 
-Seven area programs hold a `g_PartyMemberMessages` table. Each row is 12 bytes: four `u8` tags at `+0x00` and four `s16` message ids at `+0x04`. The area's `Message_ShowParty` routine compares tag `i` with byte 0 of the battle-record row in `D_80145F09` and shows `messages[i]` through `Message_StartAreaMessage`. The table lists each overlay as archive and entry: `AREA112/13` is entry 13 of `AREA112.EMI`. An address is a runtime address in the area program, so the payload offset is the address minus `0x801F2C00`. The seven tables hold 18 rows in all.
+Seven area programs hold a `g_PartyMemberMessages` table. Each row is 12 bytes: four `u8` tags at `+0x00` and four `s16` message ids at `+0x04`. The area's `Message_ShowParty` routine compares tag `i` with byte 0 of the battle-record row in `D_80145F09` and shows `messages[i]` through `UI_MessageStartArea`. The table lists each overlay as archive and entry: `AREA112/13` is entry 13 of `AREA112.EMI`. An address is a runtime address in the area program, so the payload offset is the address minus `0x801F2C00`. The seven tables hold 18 rows in all.
 
 | Overlay      |      Address | Rows |
 | ------------ | -----------: | ---: |

@@ -97,9 +97,9 @@ paragraph that has already named the image may give the address alone: `Name (@0
 
 The name is a label from this research, not a name that the game stores.
 
-- `func_801A0048` is an address name: the function is located but has no role name yet.
+- `Area_RequestLinkAtCell` is an address name: the function is located but has no role name yet.
 - `D_801448D8` is the same for data.
-- A `g_` prefix marks a named global and an `s_` prefix a named static table, such as `g_SpadWork` and
+- A `g_` prefix marks a named global and an `s_` prefix a named static table, such as `g_Self` and
   `s_ScriptOpcodeLengths`.
 
 ## Evidence tags

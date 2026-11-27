@@ -50,7 +50,7 @@ Three stubs prepare the CPU and start the game. The header's start address is `s
 
 `SYS_StartLogo (exe/slus_004_22@0x8014AEE0)` loads `LOGO.EXE` and runs it as a separate PlayStation program:
 
-1. `SYS_LoadExec (exe/slus_004_22@0x8014E0FC)` finds the file with `CdSearchFile`, reads its header sector into the buffer at `0x800E4800`, copies the ten header words to `D_80143E70`, then reads `t_size` bytes from the next sector to `t_addr` ([executable load](../../concepts/loading/#executable-load)).
+1. `SYS_LoadExe (exe/slus_004_22@0x8014E0FC)` finds the file with `CdSearchFile`, reads its header sector into the buffer at `0x800E4800`, copies the ten header words to `g_LogoHeader`, then reads `t_size` bytes from the next sector to `t_addr` ([executable load](../../concepts/loading/#executable-load)).
 2. It sets the stack address of the exec block at `0x80143E80` (`D_80143EA0`) to `0x801FF000`, stops the callback, pad and card services, and calls `Exec` inside a critical section.
 3. When `Exec` returns, it runs `SYS_InitHardware` again, clears the display and the VRAM, and turns the display on.
 
@@ -68,13 +68,13 @@ After the logo, the first pass of the loop opens slot 0, which runs `SYS_StartFr
 2. `SND_Init`, `SND_SetBankLayout(0)`.
 3. Stream `FIRST.EMI` (slot `0x261`) and wait with `CallbackWait(1)` until `EMI_IsReady`. [Loading](../../concepts/loading/) explains the stream.
 4. Set reverb depth, call `SND_Start`.
-5. Clear 4,272 bytes of game state from `D_801448D8`. Reset the game flags, the walk flags and `g_EmiLoadedCharacterIndex` (to `0xFF`), and copy nine halfwords from `D_8017F56C` into `g_InputMasks`.
+5. Clear 4,272 bytes of game state from `D_801448D8`. Reset the game flags, the walk flags and `g_EmiLoadedCharacterIndex` (to `0xFF`), and copy nine halfwords from `s_DefaultInputMasks` into `g_InputMasks`.
 6. Reset the panel tasks, palette fades, palette slots, draw flags and script table. Set the area draw mode to 6 and request a palette upload.
 7. `CallbackRegister(1, SYS_EnterFrontend)`, then `CallbackExit`, which ends slot 0's own thread.
 
-`SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)` starts in slot 1 in the pass where slot 0 registers it. It streams `GAME.EMI` (slot `0x262`), waits for `EMI_IsReady`, and calls `Game_UpdateTitle (emi/etc/game/01@0x801D0C04)`. Entry 0 of `GAME.EMI` is the resident game program at `0x80195800`; entry 1 is the title overlay at `0x801D0C00`, which holds `Game_UpdateTitle`.
+`SYS_EnterFrontend (exe/slus_004_22@0x8014EC64)` starts in slot 1 in the pass where slot 0 registers it. It streams `GAME.EMI` (slot `0x262`), waits for `EMI_IsReady`, and calls `Title_Run (emi/etc/game/01@0x801D0C04)`. Entry 0 of `GAME.EMI` is the resident game program at `0x80195800`; entry 1 is the title overlay at `0x801D0C00`, which holds `Title_Run`.
 
-`Game_UpdateTitle` clears its state and loops forever on slot 1's thread. Each pass it yields with `CallbackWait(1)`, handles the Start button, runs one of eight title handlers that `g_UiTitleState` selects, and updates the banner and fades. The first handler, `Game_BeginTitle (emi/etc/game/01@0x801D0C90)`, selects sound bank layout 2, streams `DEMO` (slot `0x25F`), resets the palette stage and starts music cue `0x8D`. Title exits: [phases](../phases/).
+`Title_Run` clears its state and loops forever on slot 1's thread. Each pass it yields with `CallbackWait(1)`, handles the Start button, runs one of eight title handlers that `g_UITitleState` selects, and updates the banner and fades. The first handler, `Title_Begin (emi/etc/game/01@0x801D0C90)`, selects sound bank layout 2, streams `DEMO` (slot `0x25F`), resets the palette stage and starts music cue `0x8D`. Title exits: [phases](../phases/).
 
 ```mermaid
 sequenceDiagram
@@ -96,8 +96,8 @@ sequenceDiagram
     S->>E: slot 0: stream FIRST,<br/>poll until ready
     S->>S: CallbackRegister(1,<br/>SYS_EnterFrontend),<br/>CallbackExit
     S->>E: slot 1: stream GAME,<br/>poll until ready
-    S->>T: call Game_UpdateTitle
-    T->>E: Game_BeginTitle:<br/>stream DEMO
+    S->>T: call Title_Run
+    T->>E: Title_Begin:<br/>stream DEMO
 ```
 
 The first frame with the title drawn and input enabled is the first playable frame ([phases](../phases/)).
@@ -108,13 +108,13 @@ The first frame with the title drawn and input enabled is the first playable fra
 | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | How the BIOS loads the executable and returns from `Exec`    | A trace of a run, or the BIOS source; the game files do not show it    |
 | Whether PsyQ library code uses the `InitHeap` memory         | Search the linked PsyQ objects for heap users                          |
-| Other readers of `D_80143EFC`, the `DrawSync` callback value | `Area_CanStartEncounter` is the only reader found; search the overlays |
+| Other readers of `D_80143EFC`, the `DrawSync` callback value | `Area_EncounterCanStart` is the only reader found; search the overlays |
 | Why the soft reset waits for `EMI_IsReady`                   | Read the loader state machine in [loading](../../concepts/loading/)    |
 
 ## Sources and confidence
 
 - **Confidence:** medium. The boot steps are read in the executable, the title overlay and `LOGO.EXE`; the BIOS behavior at load and at `Exec`, and the heap use, are `[inferred]` or `[unknown]`.
-- **Evidence:** the code of `stup2`, `stup1`, `stup0`, `SYS_Main`, `SYS_InitRuntime`, `SYS_InitHardware`, `SYS_StartLogo`, `SYS_LoadExec`, `SYS_StartFrontend`, `SYS_EnterFrontend` and `Game_UpdateTitle`; the entry code of `LOGO.EXE`; the logo's literal movie LBA against the disc file table.
+- **Evidence:** the code of `stup2`, `stup1`, `stup0`, `SYS_Main`, `SYS_InitRuntime`, `SYS_InitHardware`, `SYS_StartLogo`, `SYS_LoadExe`, `SYS_StartFrontend`, `SYS_EnterFrontend` and `Title_Run`; the entry code of `LOGO.EXE`; the logo's literal movie LBA against the disc file table.
 
 ## Related
 

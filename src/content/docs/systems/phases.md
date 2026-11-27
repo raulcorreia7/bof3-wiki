@@ -3,7 +3,7 @@ title: "Game phases"
 description: "The game is a stack of modes: boot, title, start menu, field, menu, battle, scenes and game over."
 ---
 
-The game runs as a set of modes: boot, title, start menu, field, menu, battle, scenes and game over. The callback slots ([scheduler](../../concepts/scheduler/)) hold the running mode, the state table `g_GameStates` selects what the game does each frame, and the request code `g_GameStateIndex` names the next transition. Almost all play happens in one entry state, the field; menus, battles and shops are excursions from it. Internals: [scenario engine](../scenario/), [areas and the field](../areas/), [battle flow](../battle/).
+The game runs as a set of modes: boot, title, start menu, field, menu, battle, scenes and game over. The callback slots ([scheduler](../../concepts/scheduler/)) hold the running mode, the state table `g_GameModes` selects what the game does each frame, and the request code `g_GameStateIndex` names the next transition. Almost all play happens in one entry state, the field; menus, battles and shops are excursions from it. Internals: [scenario engine](../scenario/), [areas and the field](../areas/), [battle flow](../battle/).
 
 ## From power-on to the field
 
@@ -17,14 +17,14 @@ stateDiagram-v2
     Logo --> FirstLoad: slot 0<br/>SYS_StartFrontend
     FirstLoad: First load (FIRST.EMI)
     FirstLoad --> Title: slot 1 SYS_EnterFrontend<br/>(GAME.EMI)
-    Title --> TitleScene: state 4,<br/>Game_StartSelectedGame
+    Title --> TitleScene: state 4,<br/>Title_StartSelectedGame
     TitleScene: Title scene (scenario 16) under the title
-    TitleScene --> StartMenu: Start with the popup open,<br/>Game_LeaveTitle
-    StartMenu: Start menu (Game_UpdateCampMenu)
+    TitleScene --> StartMenu: Start with the popup open,<br/>Title_Leave
+    StartMenu: Start menu (Game_RunCampMenu)
     StartMenu --> NewGame: substate 2
     StartMenu --> LoadGame: substate 3
-    NewGame --> Field: Scene_Start(0),<br/>Game_UpdateMain
-    LoadGame --> Field: Game_UpdateMain,<br/>Game_NewGame
+    NewGame --> Field: Scene_Start(0),<br/>Game_RunMain
+    LoadGame --> Field: Game_RunMain,<br/>Game_NewGame
 ```
 
 The field then reaches the other phases by request code. Four of them return to the field:
@@ -50,34 +50,34 @@ flowchart TD
     Ending -->|"CallbackReplace<br/>SYS_StartFrontend"| FirstLoad
 ```
 
-The title thread on slot 1 steps through eight states (`g_UiTitleState`). States 0 to 3 load `DEMO`, start music cue `0x8D` and fade the title in. State 2 waits 360 ticks and state 3 waits 900 more. Pressing Start below state 3 jumps to state 2 with the timer at 1.
+The title thread on slot 1 steps through eight states (`g_UITitleState`). States 0 to 3 load `DEMO`, start music cue `0x8D` and fade the title in. State 2 waits 360 ticks and state 3 waits 900 more. Pressing Start below state 3 jumps to state 2 with the timer at 1.
 
 :::note
-State 4 is `Game_StartSelectedGame (emi/etc/game/01@0x801D0E54)`. It starts no selection. It clears the actors, zeroes `g_PlayClock`, calls `Scene_Start(16)` and registers `Game_UpdateMain` in slot 0, so the title scene runs in the game's own loop underneath the title.
+State 4 is `Title_StartSelectedGame (emi/etc/game/01@0x801D0E54)`. It starts no selection. It clears the actors, zeroes `g_PlayClock`, calls `Scene_Start(16)` and registers `Game_RunMain` in slot 0, so the title scene runs in the game's own loop underneath the title.
 :::
 
-States 5 and 6 draw the choice prompt. The scenario 16 code raises the popup request, and Start with that popup open sets state 7, `Game_LeaveTitle (emi/etc/game/01@0x801D1000)`, which registers the start-menu loop in slot 0 and ends the title thread. The start menu loads the `START` overlay and offers New Game or Load Game. Both end in `CallbackReplace(Game_UpdateMain)`. The main loop starts in entry state 0, which asks for the saved area, and walks through entry state 1 (load the area) into entry state 2 (the field).
+States 5 and 6 draw the choice prompt. The scenario 16 code raises the popup request, and Start with that popup open sets state 7, `Title_Leave (emi/etc/game/01@0x801D1000)`, which registers the start-menu loop in slot 0 and ends the title thread. The start menu loads the `START` overlay and offers New Game or Load Game. Both end in `CallbackReplace(Game_RunMain)`. The main loop starts in entry state 0, which asks for the saved area, and walks through entry state 1 (load the area) into entry state 2 (the field).
 
-`Menu_StartNewGame (emi/etc/start/08@0x801E2584)` finishes a countdown, calls `Scene_Start(0)` to load the first scenario, and installs `Game_UpdateMain`. The first scenario then selects the first area. Where name entry runs is `[unknown]`. Load Game scans both card ports for a save, restores eight characters with `Char_RebuildStats`, and installs `Game_UpdateMain`; `Game_NewGame` then re-enters the saved area from the saved seed and position ([saving](../saving/)).
+`Menu_StartNewGame (emi/etc/start/08@0x801E2584)` finishes a countdown, calls `Scene_Start(0)` to load the first scenario, and installs `Game_RunMain`. The first scenario then selects the first area. Where name entry runs is `[unknown]`. Load Game scans both card ports for a save, restores eight characters with `Char_RebuildStats`, and installs `Game_RunMain`; `Game_NewGame` then re-enters the saved area from the saved seed and position ([saving](../saving/)).
 
 ## The entry-state machine
 
-`Game_UpdateMain (emi/etc/game/00@0x80197068)` runs in slot 0. It zeroes `g_GameEntryState (exe/slus_004_22@0x80143B90)` and the substate, resets the panel tasks, and then repeats forever: call `g_GameStates[g_GameEntryState]()`, call `Game_UpdateClock` (the play clock and timers), and `CallbackWait(1)`. The play clock does not advance while `g_GameStateIndex` is 9. The substate `g_GameEntrySubstate (exe/slus_004_22@0x80143B92)` selects a handler inside the states that own a sub-table. `g_GameStates` holds 12 entries at `0x801C7B14`.
+`Game_RunMain (emi/etc/game/00@0x80197068)` runs in slot 0. It zeroes `g_GameEntryState (exe/slus_004_22@0x80143B90)` and the substate, resets the panel tasks, and then repeats forever: call `g_GameModes[g_GameEntryState]()`, call `Game_UpdateClock` (the play clock and timers), and `CallbackWait(1)`. The play clock does not advance while `g_GameStateIndex` is 9. The substate `g_GameEntrySubstate (exe/slus_004_22@0x80143B92)` selects a handler inside the states that own a sub-table. `g_GameModes` holds 12 entries at `0x801C7B14`.
 
-| Entry state | Function                                              | What it does                                                                                                                 |
-| ----------: | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-|           0 | `Game_NewGame (emi/etc/game/00@0x801970EC)`           | clears the draw flags, sets `g_GameAreaId` to `0xFFFF`, requests the saved area with `Game_RequestAreaChange`, goes to 1     |
-|           1 | `Game_UpdateAreaLoad (emi/etc/game/00@0x801971E8)`    | loads the area through `func_8019FAA0`, applies the load flags, starts a screen effect, clears `g_GameStateIndex`, goes to 2 |
-|           2 | `Game_UpdateField (emi/etc/game/00@0x80197378)`       | the field: `Game_UpdateScenario`, then the per-frame update `Area_RunFrame`, then dispatch on `g_GameStateIndex`             |
-|           3 | `Game_UpdateMenu (emi/etc/game/00@0x801975E4)`        | menu: streams `STATUS`, runs the menu panels, returns to the field                                                           |
-|           4 | `func_801979D4`                                       | waits for the message window to close, then returns to 2                                                                     |
-|           5 | `Game_UpdateBattle (emi/etc/game/00@0x80197A24)`      | battle: runs the eight functions of `g_GameModeHandlers`                                                                     |
-|           6 | `Game_UpdateCameraLook`                               | camera look mode (D-pad orbit); back to 2 when the camera is restored                                                        |
-|           7 | `Game_UpdateShop (emi/etc/game/00@0x80198234)`        | runs `g_GameStateHandlers[substate]`; substate 0 streams `SHOP`, or returns to 2 at once for a shop actor of type 9          |
-|           8 | `Game_UpdateFishing (emi/etc/game/00@0x801984AC)`     | runs `g_GameSubstateHandlers[substate]`; entered from state 1 when `g_GameRequestFlags` bit 3 is set                         |
-|           9 | `Game_UpdateAbilityMenu (emi/etc/game/00@0x80198744)` | 3-handler table `g_MenuAbilityOpen`: streams `BATE`, an equipment screen and a stat tally for character record 7             |
-|          10 | `Game_UpdateStatusMenu (emi/etc/game/00@0x80198904)`  | 3-handler table `g_MenuStatusOpen`: streams `SHISU`, an item minigame that scores the items used and ranks the score 0 to 5  |
-|          11 | `Game_UpdateSceneCamera (emi/etc/game/00@0x80198AC4)` | 3-handler table `g_GameFlowHandlers`: scene dispatch with camera control, camera reset, back to 2                            |
+| Entry state | Function                                              | What it does                                                                                                                  |
+| ----------: | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+|           0 | `Game_NewGame (emi/etc/game/00@0x801970EC)`           | clears the draw flags, sets `g_GameAreaId` to `0xFFFF`, requests the saved area with `Game_RequestAreaChange`, goes to 1      |
+|           1 | `Game_UpdateAreaLoad (emi/etc/game/00@0x801971E8)`    | loads the area through `Game_EnterArea`, applies the load flags, starts a screen effect, clears `g_GameStateIndex`, goes to 2 |
+|           2 | `Game_UpdateField (emi/etc/game/00@0x80197378)`       | the field: `Game_ScenarioUpdate`, then the per-frame update `Area_RunFrame`, then dispatch on `g_GameStateIndex`              |
+|           3 | `Game_MenuUpdate (emi/etc/game/00@0x801975E4)`        | menu: streams `STATUS`, runs the menu panels, returns to the field                                                            |
+|           4 | `func_801979D4`                                       | waits for the message window to close, then returns to 2                                                                      |
+|           5 | `Game_UpdateBattle (emi/etc/game/00@0x80197A24)`      | battle: runs the eight functions of `g_GameBattleSteps`                                                                       |
+|           6 | `Game_UpdateCameraLook`                               | camera look mode (D-pad orbit); back to 2 when the camera is restored                                                         |
+|           7 | `Game_ShopUpdate (emi/etc/game/00@0x80198234)`        | runs `g_GameStateHandlers[substate]`; substate 0 streams `SHOP`, or returns to 2 at once for a shop actor of type 9           |
+|           8 | `Game_FishingUpdate (emi/etc/game/00@0x801984AC)`     | runs `g_GameSubstateHandlers[substate]`; entered from state 1 when `g_GameRequestFlags` bit 3 is set                          |
+|           9 | `Game_AbilityMenuUpdate (emi/etc/game/00@0x80198744)` | 3-handler table `g_MenuAbilityOpen`: streams `BATE`, an equipment screen and a stat tally for character record 7              |
+|          10 | `Game_ShisuUpdate (emi/etc/game/00@0x80198904)`       | 3-handler table `g_MenuStatusOpen`: streams `SHISU`, an item minigame that scores the items used and ranks the score 0 to 5   |
+|          11 | `Game_SceneCameraUpdate (emi/etc/game/00@0x80198AC4)` | 3-handler table `g_GameFlowHandlers`: scene dispatch with camera control, camera reset, back to 2                             |
 
 The field is state 2. World map, cutscenes, bosses and the fairy village have no entry state of their own; they run as area and scenario code inside it. Fishing sets state 8.
 
@@ -102,16 +102,16 @@ Field code writes a request code to `g_GameStateIndex (exe/slus_004_22@0x80143BB
 
 ### Screen effects
 
-`UI_SetMode(m)` starts a transition effect in slot 2 and does nothing while one is running ([scheduler](../../concepts/scheduler/#local-ui-modes)). Phase code calls it at a boundary and waits for `g_UiWindowEffectBusy` to clear. The effect table has 21 entries: full-screen tints, fades, zooms and camera-angle wipes. The look of each number is `[inferred]` from the call sites:
+`UI_ModeSet(m)` starts a transition effect in slot 2 and does nothing while one is running ([scheduler](../../concepts/scheduler/#local-ui-modes)). Phase code calls it at a boundary and waits for `g_UIWindowEffectBusy` to clear. The effect table has 21 entries: full-screen tints, fades, zooms and camera-angle wipes. The look of each number is `[inferred]` from the call sites:
 
 | Call                          | Where                                                      | Meaning               |
 | ----------------------------- | ---------------------------------------------------------- | --------------------- |
-| `UI_SetMode(0)`               | title, start menu, end of New Game                         | leave-screen effect   |
-| `UI_SetMode(2)`               | entry state 2, code 1                                      | menu-open effect      |
-| `UI_SetMode(3)`               | `Game_LoadMenuOverlay`, after `STATUS` streams             | menu entry            |
-| `UI_SetMode(4)`               | `UI_WaitTitleInput (emi/etc/game/01@0x801D0F00)`           | choice-confirm effect |
-| `UI_SetMode(g_GameEntryMode)` | area reload                                                | field entry (read)    |
-| `UI_SetMode(0x13)`            | `Battle_StartGameOver (emi/battle/batl_ovr/00@0x801EEC40)` | game over             |
+| `UI_ModeSet(0)`               | title, start menu, end of New Game                         | leave-screen effect   |
+| `UI_ModeSet(2)`               | entry state 2, code 1                                      | menu-open effect      |
+| `UI_ModeSet(3)`               | `Game_LoadMenuOverlay`, after `STATUS` streams             | menu entry            |
+| `UI_ModeSet(4)`               | `Title_WaitInput (emi/etc/game/01@0x801D0F00)`             | choice-confirm effect |
+| `UI_ModeSet(g_GameEntryMode)` | area reload                                                | field entry (read)    |
+| `UI_ModeSet(0x13)`            | `Battle_StartGameOver (emi/battle/batl_ovr/00@0x801EEC40)` | game over             |
 
 ## Phase reference
 
@@ -120,28 +120,28 @@ The executable and the resident program `emi/etc/game/00` are in RAM in every ph
 | Phase                                | Entered when                                                            | Code and overlay                                                                                                                                                    | Leaves by                                                                             |
 | ------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Boot                                 | console reset                                                           | `SYS_Main`, `SYS_InitRuntime`; no overlay                                                                                                                           | `SYS_StartLogo`                                                                       |
-| Logo                                 | end of init                                                             | `SYS_StartLogo`, `SYS_LoadExec`; `exe/logo` at `0x801CE000`                                                                                                         | `Exec` returns; `SYS_Main` registers `SYS_StartFrontend`                              |
+| Logo                                 | end of init                                                             | `SYS_StartLogo`, `SYS_LoadExe`; `exe/logo` at `0x801CE000`                                                                                                          | `Exec` returns; `SYS_Main` registers `SYS_StartFrontend`                              |
 | First load                           | after the logo; soft reset; game over; some endings                     | `SYS_StartFrontend`; `FIRST`                                                                                                                                        | `CallbackRegister(1, SYS_EnterFrontend)`, `CallbackExit`                              |
-| Title                                | `SYS_EnterFrontend` streams `GAME` and calls `Game_UpdateTitle`         | `Game_UpdateTitle`, `UI_HandleStartButton (emi/etc/game/01@0x801D104C)`; `game/01` at `0x801D0C00`, `DEMO`                                                          | state 4 starts the title scene; Start with the popup open leaves to the start menu    |
-| Title scene                          | title state 4, `Game_StartSelectedGame`                                 | `Scene_Start(16)`, `scena16` at `0x801F6C00`, `Game_UpdateMain` in slot 0                                                                                           | runs until `Game_LeaveTitle` replaces slot 0                                          |
-| Start menu                           | `Game_LeaveTitle (emi/etc/game/01@0x801D1000)`                          | `Game_UpdateCampMenu`, `Game_LoadCampMenu`; `START` entry 8 (`emi/etc/start/08`) at `0x801D0C00`                                                                    | New Game or Load Game, by `g_GameEntrySubstate` 2 or 3                                |
+| Title                                | `SYS_EnterFrontend` streams `GAME` and calls `Title_Run`                | `Title_Run`, `Title_UpdateStartButton (emi/etc/game/01@0x801D104C)`; `game/01` at `0x801D0C00`, `DEMO`                                                              | state 4 starts the title scene; Start with the popup open leaves to the start menu    |
+| Title scene                          | title state 4, `Title_StartSelectedGame`                                | `Scene_Start(16)`, `scena16` at `0x801F6C00`, `Game_RunMain` in slot 0                                                                                              | runs until `Title_Leave` replaces slot 0                                              |
+| Start menu                           | `Title_Leave (emi/etc/game/01@0x801D1000)`                              | `Game_RunCampMenu`, `Game_LoadCampMenu`; `START` entry 8 (`emi/etc/start/08`) at `0x801D0C00`                                                                       | New Game or Load Game, by `g_GameEntrySubstate` 2 or 3                                |
 | New game                             | menu choice `D_801ED7EC != 0`                                           | `Menu_UpdateCamp`, `g_MenuCampSubFuncs`, `Menu_StartNewGame`; `start/08`, then `scena00`                                                                            | the field, first scenario                                                             |
 | Load game                            | menu choice `D_801ED7EC == 0` and a save found on either port           | `func_801E4ED4` (card probe and read), `Menu_ExitCamp (emi/etc/start/08@0x801E62A8)`                                                                                | `Game_NewGame` re-enters the saved area                                               |
-| Field                                | entry state 1 finished                                                  | state 2, `Area_RunFrame`, `Game_UpdateScenario`; the area program, a character-sprites container and the scenario controller                                        | `g_GameStateIndex` codes 1 to 9                                                       |
+| Field                                | entry state 1 finished                                                  | state 2, `Area_RunFrame`, `Game_ScenarioUpdate`; the area program, a character-sprites container and the scenario controller                                        | `g_GameStateIndex` codes 1 to 9                                                       |
 | World map                            | load flag bit 0 (`g_GameRequestFlags & 1`)                              | state 1 sets `g_GameEntryMode` to 10; world map logic runs as area code (`emi/world*`) `[inferred]`                                                                 | area change (code 5)                                                                  |
-| Cutscene                             | a scenario entry or area script sets a request, or scenario updates run | `Game_UpdateScenario`, `Game_UpdateScene`; `scenaNN` at `0x801F6C00`, effect overlays `SCE10EFF`, `SCE15EF0` to `SCE15EF3` at `0x801D0C00`                          | message wait (code 2); area change                                                    |
-| Battle                               | code 3 from `func_801B2B6C`                                             | state 5, `g_GameModeHandlers`; step 5 is `Battle_Update`; `BATTLE` or `BATTLE2` or an encounter slot, `BPLU` and `BPLD`                                             | victory: steps 6 and 7 restore the field; defeat: game over                           |
+| Cutscene                             | a scenario entry or area script sets a request, or scenario updates run | `Game_ScenarioUpdate`, `Game_UpdateScene`; `scenaNN` at `0x801F6C00`, effect overlays `SCE10EFF`, `SCE15EF0` to `SCE15EF3` at `0x801D0C00`                          | message wait (code 2); area change                                                    |
+| Battle                               | code 3 from `func_801B2B6C`                                             | state 5, `g_GameBattleSteps`; step 5 is `Battle_Update`; `BATTLE` or `BATTLE2` or an encounter slot, `BPLU` and `BPLD`                                              | victory: steps 6 and 7 restore the field; defeat: game over                           |
 | Boss                                 | an encounter with a boss entry in `D_801EB298` of `battle/03`           | the battle chain, with a boss module at `0x800C1800`                                                                                                                | as Battle `[inferred]`                                                                |
-| Menu                                 | code 1                                                                  | state 3: `Game_LoadMenuOverlay` streams `STATUS`; `Game_UpdateMenuFrame`, `Menu_UpdatePanelTasks`                                                                   | `Game_ReturnFromMenu` re-streams the character sprites, re-enters the area, goes to 2 |
+| Menu                                 | code 1                                                                  | state 3: `Game_LoadMenuOverlay` streams `STATUS`; `Game_UpdateMenuFrame`, `UI_PanelUpdateTasks`                                                                     | `Game_ReturnFromMenu` re-streams the character sprites, re-enters the area, goes to 2 |
 | Game over                            | defeat: `g_BattleResult & 1` and `g_BattleEncounter == 0`               | `Battle_LoadEndOverlay (emi/battle/battle/03@0x801D6A14)` picks `BATL_OVR`; `Battle_UpdateGameOver (emi/battle/batl_ovr/00@0x801EF0A8)`                             | `SND_Exit`, `CallbackReplace(SYS_StartFrontend)`: first load, then title              |
 | Ending                               | scenarios 15 to 19                                                      | `scena17` loads `ENDKANJI` (`0x260`) and `SHOP` (`0x266`); `scena15` and `scena17` call `CallbackReplace(SYS_StartFrontend)`                                        | the first load and the title; the sequence that reaches them is `[unknown]`           |
 | Shop, master, fishing, fairy village | not traced as phases                                                    | `SHOP` (`0x266`) and `SISYOU` (`0x267`) exist as overlays; fishing is entry state 8 with code in `emi/world00/area030`; the fairy village loads `COMMU00` (`0x258`) | not traced `[unknown]` for entry; flags are read                                      |
 
 ## Story progression
 
-`Scene_Start(n)` sets `g_SceneState.scenario_id`, clears that scenario's flag word and calls `Scene_LoadOverlay`, which streams the scenario overlay ([loading](../../concepts/loading/#scenario)). When the loader is ready, `Game_UpdateScenario` calls `g_SceneScenes[n]->entry_00` and `Game_UpdateScene` runs the scene states.
+`Scene_Start(n)` sets `g_SceneState.scenario_id`, clears that scenario's flag word and calls `Scene_LoadOverlay`, which streams the scenario overlay ([loading](../../concepts/loading/#scenario)). When the loader is ready, `Game_ScenarioUpdate` calls `g_ScenarioHandlers[n]->entry_00` and `Game_UpdateScene` runs the scene states.
 
-The progression step lives in the area loader. `func_8019FAA0` checks `g_SceneState.flags_01 & 0x80`. When it is set, the loader adds 1 to `scenario_id`, with a result of 16 becoming 17, and calls `Scene_Start`. `Scene_RequestChapterAdvance (emi/etc/game/00@0x801A78F8)` sets that bit. Its callers include `scena00/00`, after `Game_RequestAreaChange(9, 0x570000, 0x40000, 7)`, and, in assembly, `scena08`, `scena10` and `scena15`. Which chapter each scenario is, is `[unknown]` here; see [scenario](../scenario/).
+The progression step lives in the area loader. `Game_EnterArea` checks `g_SceneState.flags_01 & 0x80`. When it is set, the loader adds 1 to `scenario_id`, with a result of 16 becoming 17, and calls `Scene_Start`. `Scene_RequestChapterAdvance (emi/etc/game/00@0x801A78F8)` sets that bit. Its callers include `scena00/00`, after `Game_RequestAreaChange(9, 0x570000, 0x40000, 7)`, and, in assembly, `scena08`, `scena10` and `scena15`. Which chapter each scenario is, is `[unknown]` here; see [scenario](../scenario/).
 
 There are 20 scenario overlays, `SCENA00` to `SCENA19`. Scenario 16 is the title scene, and the counter skips it. Extra overlays: `scena07` loads `A085SE2` (`0x254`), `scena08` loads `A108SE2` (`0x255`), `scena10` loads `SCE10EFF` (`0x290`), `scena15` loads `0x291` to `0x294`, `scena17` loads `ENDKANJI` and `SHOP`. XA audio starts from `scena01`, `scena08`, `scena12`, `scena14`, `commu00`, `shop` and two area overlays. No MDEC or STR call exists outside `LOGO.EXE`, so no other video plays. Whether the scenario number is saved: [saving](../saving/).
 
@@ -151,13 +151,13 @@ Executable work variables that carry the phase state ([memory](../../concepts/me
 
 | Symbol                 | Address                      | Type       | Meaning                                                                                                               |
 | ---------------------- | ---------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
-| `g_GameEntryState`     | `exe/slus_004_22@0x80143B90` | u16        | index into `g_GameStates` (12 entries)                                                                                |
+| `g_GameEntryState`     | `exe/slus_004_22@0x80143B90` | u16        | index into `g_GameModes` (12 entries)                                                                                 |
 | `g_GameEntrySubstate`  | `exe/slus_004_22@0x80143B92` | u16        | handler index inside states with sub-tables; also the New or Load choice (2 or 3)                                     |
 | `g_GameStateIndex`     | `exe/slus_004_22@0x80143BB0` | u8         | request code 0 to 9                                                                                                   |
-| `g_GameEntryMode`      | `exe/slus_004_22@0x80143F1E` | u8         | field-entry effect index passed to `UI_SetMode`                                                                       |
+| `g_GameEntryMode`      | `exe/slus_004_22@0x80143F1E` | u8         | field-entry effect index passed to `UI_ModeSet`                                                                       |
 | `g_GameRequestFlags`   | `exe/slus_004_22@0x80143F02` | u8         | area load flags: bit 0 world map, `0x08` fishing, `0x10` fairy village; `0x20` and `0x40` are also tested `[unknown]` |
-| `g_UiLocalMode`        | `exe/slus_004_22@0x80143C90` | u8         | current transition effect index                                                                                       |
-| `g_UiWindowEffectBusy` | `exe/slus_004_22@0x80143C40` | u8         | nonzero while an effect runs; blocks `UI_SetMode`                                                                     |
+| `g_UIModeLocal`        | `exe/slus_004_22@0x80143C90` | u8         | current transition effect index                                                                                       |
+| `g_UIWindowEffectBusy` | `exe/slus_004_22@0x80143C40` | u8         | nonzero while an effect runs; blocks `UI_ModeSet`                                                                     |
 | `g_SceneState`         | `exe/slus_004_22@0x80146870` | SceneState | `scenario_id`, `flags_01`, `mode_02`, `state_04`, `step_05`, `timer_06`                                               |
 | `g_GameAreaId`         | `exe/slus_004_22@0x80143F00` | u16        | current area; `0xFFFF` forces a reload                                                                                |
 
@@ -167,7 +167,7 @@ Executable work variables that carry the phase state ([memory](../../concepts/me
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | The menu trigger for code 1 and Start-in-field for code 9      | Read the callers of `func_801B2A00` and `func_801B5910`                          |
 | Where name entry runs                                          | Read the `g_MenuCampSubFuncs` tables `D_801ECCF8`, `D_801ECD1C` and `D_801ED138` |
-| Entry paths of the shop, master, fishing and the fairy village | Callers of `EMI_LoadArchive` with `0x266`, `0x267`, `0x258` and the area flags   |
+| Entry paths of the shop, master, fishing and the fairy village | Callers of `EMI_ArchiveLoad` with `0x266`, `0x267`, `0x258` and the area flags   |
 | World map code                                                 | Read the world area overlays that load flag bit 0 selects                        |
 | Boss entry                                                     | Read the callback table `D_801EB298` of `battle/03` and its callers              |
 | What reaches the credits and the end-of-game restart           | Trace the `scena15` to `scena19` assembly and the users of `ENDKANJI`            |
@@ -177,7 +177,7 @@ Executable work variables that carry the phase state ([memory](../../concepts/me
 ## Sources and confidence
 
 - **Confidence:** medium. The entry states, the request codes and the title path are read in the code, but several codes and states have no known writer, and the phases of the world map, the boss, the shop, fishing and the ending are `[inferred]` or `[unknown]`.
-- **Evidence:** the code of `Game_UpdateMain`, the 12 handlers of `g_GameStates`, `Game_RequestAreaChange`, `func_8019FAA0`, `Scene_Start`, the stores to `g_GameStateIndex` in `func_801F97C0`, `func_801F9DF4` and `func_801F8B84` (no other program on the disc stores 7 or 8 there), the step tables of `BATE` and `SHISU`, the title and start-menu overlays, and the `UI_SetMode` and `CallbackReplace` call sites.
+- **Evidence:** the code of `Game_RunMain`, the 12 handlers of `g_GameModes`, `Game_RequestAreaChange`, `Game_EnterArea`, `Scene_Start`, the stores to `g_GameStateIndex` in `func_801F97C0`, `func_801F9DF4` and `func_801F8B84` (no other program on the disc stores 7 or 8 there), the step tables of `BATE` and `SHISU`, the title and start-menu overlays, and the `UI_ModeSet` and `CallbackReplace` call sites.
 
 ## Related
 
@@ -186,4 +186,4 @@ Executable work variables that carry the phase state ([memory](../../concepts/me
 - [Scenario engine](../scenario/): the scenario overlays and the story state.
 - [Areas and the field](../areas/): the field handlers that raise request codes.
 - [Battle flow](../battle/): the battle chain that entry state 5 runs.
-- [Screens](../screens/): the full-screen modes that `g_GameStates` selects.
+- [Screens](../screens/): the full-screen modes that `g_GameModes` selects.

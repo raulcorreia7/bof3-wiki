@@ -13,7 +13,7 @@ Each pass of the loop waits for the display, swaps the two buffers, draws the pr
 
 The first callback loads `FIRST.EMI` with the EMI loader and registers a second callback in the next slot. That callback loads `GAME.EMI` (the resident game program and the title overlay) and runs the title. The loader reads the disc in the background, so a callback waits with a yield and never blocks a frame. [Loading](../loading/) describes how a request flows through the loader, and [disc and files](../../formats/disc/) lists what the disc holds.
 
-The title leads to the start menu (new or saved game). Either choice installs `Game_UpdateMain` in slot 0, which runs a 12-entry state table once per pass. The field is one state; menus, battles and shops are others. In the field, the area code runs each frame and a scenario overlay drives story events. Code for a battle or scenario is streamed by the loader into its overlay window, then called. [Phases](../../systems/phases/) follows the transitions, and [memory](../memory/) shows which images share which RAM.
+The title leads to the start menu (new or saved game). Either choice installs `Game_RunMain` in slot 0, which runs a 12-entry state table once per pass. The field is one state; menus, battles and shops are others. In the field, the area code runs each frame and a scenario overlay drives story events. Code for a battle or scenario is streamed by the loader into its overlay window, then called. [Phases](../../systems/phases/) follows the transitions, and [memory](../memory/) shows which images share which RAM.
 
 ```mermaid
 flowchart TD
@@ -22,7 +22,7 @@ flowchart TD
     logo --> first["slot 0: load FIRST"]
     first --> game["slot 1: load GAME, run title"]
     game --> menu["start menu"]
-    menu --> loop["slot 0: Game_UpdateMain"]
+    menu --> loop["slot 0: Game_RunMain"]
     loop --> field["field, menu, battle, shop"]
     field -. "stream overlay" .-> loop
 ```
